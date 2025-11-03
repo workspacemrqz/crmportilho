@@ -168,7 +168,7 @@ export default function SettingsPage() {
               <CardHeader className={`cursor-pointer hover-elevate active-elevate-2 rounded-t-xl ${!isBufferSectionOpen ? 'rounded-b-xl' : ''}`}>
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex-1">
-                    <CardTitle className="text-lg">Buffer de Mensagens</CardTitle>
+                    <CardTitle className="text-lg" style={{ color: '#E76030' }}>Buffer de Mensagens</CardTitle>
                     <CardDescription className="text-xs">
                       Tempo de espera de mensagens
                     </CardDescription>
@@ -240,7 +240,7 @@ export default function SettingsPage() {
               <CardHeader className={`cursor-pointer hover-elevate active-elevate-2 rounded-t-xl ${!isWhatsAppSectionOpen ? 'rounded-b-xl' : ''}`}>
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex-1">
-                    <CardTitle className="text-lg">
+                    <CardTitle className="text-lg" style={{ color: '#E76030' }}>
                       Conexão do WhatsApp
                     </CardTitle>
                     <CardDescription className="text-xs">
