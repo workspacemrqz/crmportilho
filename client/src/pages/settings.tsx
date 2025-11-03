@@ -1,0 +1,150 @@
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Loader2, Save, RotateCcw, Info } from "lucide-react";
+
+const settingsSchema = z.object({
+  bufferTimeoutSeconds: z.coerce.number().min(1).max(300)
+});
+
+type SettingsForm = z.infer<typeof settingsSchema>;
+
+type Settings = {
+  id: string;
+  bufferTimeoutSeconds: number;
+  updatedBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export default function SettingsPage() {
+  const { toast } = useToast();
+
+  const { data: settings, isLoading } = useQuery<Settings>({
+    queryKey: ["/api/settings"],
+  });
+
+  const form = useForm<SettingsForm>({
+    resolver: zodResolver(settingsSchema),
+    defaultValues: {
+      bufferTimeoutSeconds: settings?.bufferTimeoutSeconds || 30
+    },
+    values: settings ? {
+      bufferTimeoutSeconds: settings.bufferTimeoutSeconds
+    } : undefined
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async (data: SettingsForm) => {
+      return apiRequest("PUT", "/api/settings", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+      toast({
+        title: "Configurações salvas!",
+        description: "As alterações foram aplicadas com sucesso."
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Erro ao salvar",
+        description: "Não foi possível salvar as configurações.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const onSubmit = (data: SettingsForm) => {
+    updateMutation.mutate(data);
+  };
+
+  const resetToDefault = () => {
+    form.setValue("bufferTimeoutSeconds", 30);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <Loader2 className="w-8 h-8 animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-full overflow-auto">
+      <div className="container mx-auto p-4 sm:p-6 max-w-4xl">
+        <div className="mb-4 sm:mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold">Configurações do Sistema</h1>
+          <p className="text-sm sm:text-base text-muted-foreground mt-2">
+            Ajuste as configurações globais do chatbot e sistema CRM
+          </p>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Buffer de Mensagens do Chatbot</CardTitle>
+            <CardDescription>
+              Tempo de espera antes de processar mensagens do WhatsApp
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <FormField
+                  control={form.control}
+                  name="bufferTimeoutSeconds"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tempo de Espera (segundos)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={300}
+                          {...field}
+                          data-testid="input-buffer-timeout"
+                          className="max-w-xs"
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Recomendado: 15-60 segundos
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Button
+                    type="submit"
+                    disabled={updateMutation.isPending}
+                    data-testid="button-save-settings"
+                  >
+                    {updateMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Salvando...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-2 h-4 w-4" />
+                        Salvar Configurações
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}

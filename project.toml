@@ -1,0 +1,67 @@
+# ===================================
+# CONFIGURAÇÃO EASYPANEL BUILDPACKS
+# ===================================
+# Este arquivo configura o Heroku Builder 24 para implantação no Easypanel
+# Documentação: https://easypanel.io/docs/builders
+
+[_]
+schema-version = "0.2"
+
+# ===================================
+# CONFIGURAÇÃO DO BUILDER
+# ===================================
+[build]
+# Usa Heroku Builder 24 (Ubuntu 24.04, suporta AMD64 e ARM64)
+builder = "heroku/builder:24"
+
+# ===================================
+# VARIÁVEIS DE AMBIENTE DE BUILD
+# ===================================
+# Estas variáveis são usadas APENAS durante o processo de build
+
+# Versão do Node.js
+[[build.env]]
+name = "NODE_VERSION"
+value = "20.x"
+
+# Permite instalação de devDependencies durante o build
+# (necessário para TypeScript, Vite, esbuild, etc.)
+[[build.env]]
+name = "NPM_CONFIG_PRODUCTION"
+value = "false"
+
+# Otimizações de build
+[[build.env]]
+name = "NODE_OPTIONS"
+value = "--max-old-space-size=4096"
+
+# ===================================
+# BUILDPACKS
+# ===================================
+# Especifica os buildpacks na ordem de execução
+
+# Buildpack Node.js - detecta e compila aplicações Node.js
+[[build.buildpacks]]
+uri = "heroku/nodejs"
+
+# ===================================
+# NOTAS
+# ===================================
+# 
+# 1. O buildpack Node.js detecta automaticamente:
+#    - package.json
+#    - package-lock.json
+#    - .node-version
+#
+# 2. Processo de build executado:
+#    - npm install (com devDependencies)
+#    - npm run build
+#
+# 3. Comando de inicialização definido em Procfile:
+#    - web: NODE_ENV=production node dist/index.js
+#
+# 4. A variável PORT é injetada automaticamente pelo Easypanel
+#    e é usada pelo servidor (process.env.PORT)
+#
+# 5. Para adicionar mais buildpacks, adicione mais entradas
+#    [[build.buildpacks]] na ordem desejada
