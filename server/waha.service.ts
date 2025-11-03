@@ -367,4 +367,107 @@ export class WAHAService {
     // Default to text
     return 'text';
   }
+
+  async getSessionStatus(): Promise<{ status: string; qr?: string } | null> {
+    try {
+      const url = `${this.baseUrl}/api/${this.session}/status`;
+      console.log(`[WAHA] Fetching session status from ${url}`);
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: this.getHeaders()
+      });
+
+      if (!response.ok) {
+        console.error(`[WAHA] Failed to get session status: ${response.status}`);
+        return null;
+      }
+
+      const data = await response.json();
+      console.log(`[WAHA] Session status:`, data);
+      
+      return {
+        status: data.status || 'UNKNOWN',
+        qr: data.qr
+      };
+    } catch (error) {
+      console.error('[WAHA] Error fetching session status:', error);
+      return null;
+    }
+  }
+
+  async startSession(): Promise<boolean> {
+    try {
+      const url = `${this.baseUrl}/api/${this.session}/start`;
+      console.log(`[WAHA] Starting session at ${url}`);
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({})
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[WAHA] Failed to start session: ${response.status} - ${errorText}`);
+        return false;
+      }
+
+      console.log(`[WAHA] Session started successfully`);
+      return true;
+    } catch (error) {
+      console.error('[WAHA] Error starting session:', error);
+      return false;
+    }
+  }
+
+  async stopSession(): Promise<boolean> {
+    try {
+      const url = `${this.baseUrl}/api/${this.session}/stop`;
+      console.log(`[WAHA] Stopping session at ${url}`);
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({})
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[WAHA] Failed to stop session: ${response.status} - ${errorText}`);
+        return false;
+      }
+
+      console.log(`[WAHA] Session stopped successfully`);
+      return true;
+    } catch (error) {
+      console.error('[WAHA] Error stopping session:', error);
+      return false;
+    }
+  }
+
+  async logoutSession(): Promise<boolean> {
+    try {
+      const url = `${this.baseUrl}/api/${this.session}/logout`;
+      console.log(`[WAHA] Logging out session at ${url}`);
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({})
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[WAHA] Failed to logout session: ${response.status} - ${errorText}`);
+        return false;
+      }
+
+      console.log(`[WAHA] Session logged out successfully`);
+      return true;
+    } catch (error) {
+      console.error('[WAHA] Error logging out session:', error);
+      return false;
+    }
+  }
 }

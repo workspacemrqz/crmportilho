@@ -1613,6 +1613,59 @@ Retorne APENAS o JSON array, sem texto adicional.`;
     }
   });
 
+  // WhatsApp/WAHA Session Management endpoints
+  app.get('/api/whatsapp/status', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const status = await wahaAPI.getSessionStatus();
+      if (!status) {
+        return res.status(500).json({ error: 'Failed to get WhatsApp session status' });
+      }
+      res.json(status);
+    } catch (error) {
+      console.error('Error fetching WhatsApp status:', error);
+      res.status(500).json({ error: 'Failed to fetch WhatsApp status' });
+    }
+  });
+
+  app.post('/api/whatsapp/start', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const success = await wahaAPI.startSession();
+      if (!success) {
+        return res.status(500).json({ error: 'Failed to start WhatsApp session' });
+      }
+      res.json({ success: true, message: 'Session started successfully' });
+    } catch (error) {
+      console.error('Error starting WhatsApp session:', error);
+      res.status(500).json({ error: 'Failed to start WhatsApp session' });
+    }
+  });
+
+  app.post('/api/whatsapp/stop', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const success = await wahaAPI.stopSession();
+      if (!success) {
+        return res.status(500).json({ error: 'Failed to stop WhatsApp session' });
+      }
+      res.json({ success: true, message: 'Session stopped successfully' });
+    } catch (error) {
+      console.error('Error stopping WhatsApp session:', error);
+      res.status(500).json({ error: 'Failed to stop WhatsApp session' });
+    }
+  });
+
+  app.post('/api/whatsapp/logout', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const success = await wahaAPI.logoutSession();
+      if (!success) {
+        return res.status(500).json({ error: 'Failed to logout WhatsApp session' });
+      }
+      res.json({ success: true, message: 'Session logged out successfully' });
+    } catch (error) {
+      console.error('Error logging out WhatsApp session:', error);
+      res.status(500).json({ error: 'Failed to logout WhatsApp session' });
+    }
+  });
+
   // Chatbot test endpoint - simulates incoming messages
   app.post('/api/chatbot/test-message', async (req: Request, res: Response) => {
     try {
