@@ -8,7 +8,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Loader2, Save, RotateCcw, Info } from "lucide-react";
+import { Loader2, Save, RotateCcw, Info, ChevronDown } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useState } from "react";
 
 const settingsSchema = z.object({
   bufferTimeoutSeconds: z.coerce.number().min(1).max(300)
@@ -26,6 +28,7 @@ type Settings = {
 
 export default function SettingsPage() {
   const { toast } = useToast();
+  const [isBufferSectionOpen, setIsBufferSectionOpen] = useState(false);
 
   const { data: settings, isLoading } = useQuery<Settings>({
     queryKey: ["/api/settings"],
@@ -87,63 +90,77 @@ export default function SettingsPage() {
           </p>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Buffer de Mensagens do Chatbot</CardTitle>
-            <CardDescription>
-              Tempo de espera antes de processar mensagens do WhatsApp
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <FormField
-                  control={form.control}
-                  name="bufferTimeoutSeconds"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Tempo de Espera (segundos)</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          min={1}
-                          max={300}
-                          {...field}
-                          data-testid="input-buffer-timeout"
-                          className="max-w-xs"
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Recomendado: 15-60 segundos
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <Button
-                    type="submit"
-                    disabled={updateMutation.isPending}
-                    data-testid="button-save-settings"
-                  >
-                    {updateMutation.isPending ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Salvando...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="mr-2 h-4 w-4" />
-                        Salvar Configurações
-                      </>
-                    )}
-                  </Button>
+        <Collapsible open={isBufferSectionOpen} onOpenChange={setIsBufferSectionOpen}>
+          <Card>
+            <CollapsibleTrigger asChild>
+              <CardHeader className="cursor-pointer hover-elevate active-elevate-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex-1">
+                    <CardTitle>Buffer de Mensagens do Chatbot</CardTitle>
+                    <CardDescription>
+                      Tempo de espera antes de processar mensagens do WhatsApp
+                    </CardDescription>
+                  </div>
+                  <ChevronDown 
+                    className={`h-5 w-5 transition-transform duration-200 ${isBufferSectionOpen ? 'rotate-180' : ''}`}
+                    data-testid="icon-chevron-buffer"
+                  />
                 </div>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
+              </CardHeader>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent>
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                    <FormField
+                      control={form.control}
+                      name="bufferTimeoutSeconds"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Tempo de Espera (segundos)</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              min={1}
+                              max={300}
+                              {...field}
+                              data-testid="input-buffer-timeout"
+                              className="max-w-xs"
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Recomendado: 15-60 segundos
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <Button
+                        type="submit"
+                        disabled={updateMutation.isPending}
+                        data-testid="button-save-settings"
+                      >
+                        {updateMutation.isPending ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Salvando...
+                          </>
+                        ) : (
+                          <>
+                            <Save className="mr-2 h-4 w-4" />
+                            Salvar Configurações
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
       </div>
     </div>
   );
