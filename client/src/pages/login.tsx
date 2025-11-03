@@ -70,7 +70,7 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
         <Card>
           <CardHeader className="space-y-1">
             <CardDescription className="text-center">
-              Entre com suas credenciais
+              Faça login para acessar o sistema
             </CardDescription>
           </CardHeader>
           <CardContent>
