@@ -370,7 +370,7 @@ export class WAHAService {
 
   async getSessionStatus(): Promise<{ status: string; qr?: string } | null> {
     try {
-      const url = `${this.baseUrl}/api/${this.session}/status`;
+      const url = `${this.baseUrl}/api/sessions/${this.session}`;
       console.log(`[WAHA] Fetching session status from ${url}`);
       
       const response = await fetch(url, {
@@ -398,7 +398,7 @@ export class WAHAService {
 
   async startSession(): Promise<boolean> {
     try {
-      const url = `${this.baseUrl}/api/${this.session}/start`;
+      const url = `${this.baseUrl}/api/sessions/${this.session}/start`;
       console.log(`[WAHA] Starting session at ${url}`);
       
       const response = await fetch(url, {
@@ -423,7 +423,7 @@ export class WAHAService {
 
   async stopSession(): Promise<boolean> {
     try {
-      const url = `${this.baseUrl}/api/${this.session}/stop`;
+      const url = `${this.baseUrl}/api/sessions/${this.session}/stop`;
       console.log(`[WAHA] Stopping session at ${url}`);
       
       const response = await fetch(url, {
@@ -448,7 +448,7 @@ export class WAHAService {
 
   async logoutSession(): Promise<boolean> {
     try {
-      const url = `${this.baseUrl}/api/${this.session}/logout`;
+      const url = `${this.baseUrl}/api/sessions/${this.session}/logout`;
       console.log(`[WAHA] Logging out session at ${url}`);
       
       const response = await fetch(url, {
