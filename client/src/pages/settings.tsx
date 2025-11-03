@@ -165,7 +165,7 @@ export default function SettingsPage() {
         <Collapsible open={isBufferSectionOpen} onOpenChange={setIsBufferSectionOpen}>
           <Card>
             <CollapsibleTrigger asChild>
-              <CardHeader className="cursor-pointer hover-elevate active-elevate-2">
+              <CardHeader className="cursor-pointer hover-elevate active-elevate-2 rounded-t-xl">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex-1">
                     <CardTitle>Buffer de Mensagens do Chatbot</CardTitle>
@@ -237,7 +237,7 @@ export default function SettingsPage() {
         <Collapsible open={isWhatsAppSectionOpen} onOpenChange={setIsWhatsAppSectionOpen} className="mt-6">
           <Card>
             <CollapsibleTrigger asChild>
-              <CardHeader className="cursor-pointer hover-elevate active-elevate-2">
+              <CardHeader className="cursor-pointer hover-elevate active-elevate-2 rounded-t-xl">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex-1">
                     <CardTitle className="flex items-center gap-2">
