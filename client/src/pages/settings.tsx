@@ -8,7 +8,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Loader2, Save, RotateCcw, Info, ChevronDown, Smartphone, RefreshCw, Power, LogOut } from "lucide-react";
+import { Loader2, Save, RotateCcw, Info, ChevronDown, RefreshCw, Power, LogOut } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useState, useEffect } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -168,9 +168,9 @@ export default function SettingsPage() {
               <CardHeader className={`cursor-pointer hover-elevate active-elevate-2 rounded-t-xl ${!isBufferSectionOpen ? 'rounded-b-xl' : ''}`}>
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex-1">
-                    <CardTitle>Buffer de Mensagens do Chatbot</CardTitle>
-                    <CardDescription>
-                      Tempo de espera antes de processar mensagens do WhatsApp
+                    <CardTitle className="text-lg">Buffer de Mensagens</CardTitle>
+                    <CardDescription className="text-xs">
+                      Tempo de espera de mensagens
                     </CardDescription>
                   </div>
                   <ChevronDown 
@@ -240,12 +240,11 @@ export default function SettingsPage() {
               <CardHeader className={`cursor-pointer hover-elevate active-elevate-2 rounded-t-xl ${!isWhatsAppSectionOpen ? 'rounded-b-xl' : ''}`}>
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex-1">
-                    <CardTitle className="flex items-center gap-2">
-                      <Smartphone className="h-5 w-5" />
+                    <CardTitle className="text-lg">
                       Conexão do WhatsApp
                     </CardTitle>
-                    <CardDescription>
-                      Gerencie a conexão do WhatsApp com a instância WAHA
+                    <CardDescription className="text-xs">
+                      Gerencie a conexão com WAHA
                     </CardDescription>
                   </div>
                   <ChevronDown 
