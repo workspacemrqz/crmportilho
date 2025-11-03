@@ -386,12 +386,48 @@ export class WAHAService {
       const data = await response.json();
       console.log(`[WAHA] Session status:`, data);
       
+      let qr = data.qr;
+      
+      // Se a sessão está esperando QR code, buscar o QR atualizado
+      if (data.status === 'SCAN_QR_CODE') {
+        const qrData = await this.getQRCode();
+        if (qrData) {
+          qr = qrData;
+        }
+      }
+      
       return {
         status: data.status || 'UNKNOWN',
-        qr: data.qr
+        qr: qr
       };
     } catch (error) {
       console.error('[WAHA] Error fetching session status:', error);
+      return null;
+    }
+  }
+
+  async getQRCode(): Promise<string | null> {
+    try {
+      const url = `${this.baseUrl}/api/${this.session}/auth/qr`;
+      console.log(`[WAHA] Fetching QR code from ${url}`);
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({})
+      });
+
+      if (!response.ok) {
+        console.error(`[WAHA] Failed to get QR code: ${response.status}`);
+        return null;
+      }
+
+      const data = await response.json();
+      console.log(`[WAHA] QR code fetched successfully`);
+      
+      return data.qr || null;
+    } catch (error) {
+      console.error('[WAHA] Error fetching QR code:', error);
       return null;
     }
   }
