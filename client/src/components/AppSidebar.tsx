@@ -51,11 +51,11 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader className="p-4">
-        <div className="flex items-center justify-center">
+        <div className="flex items-center">
           <img 
             src={logoSeguroIA} 
             alt="Seguro IA" 
-            className="h-10 w-auto object-contain"
+            className="h-8 w-auto object-contain"
             data-testid="img-logo"
           />
         </div>
