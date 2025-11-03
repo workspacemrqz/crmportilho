@@ -64,7 +64,7 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
             <img 
               src={logoSeguroIA} 
               alt="Seguro IA" 
-              className="h-16 w-auto object-contain"
+              className="h-12 w-auto object-contain"
               data-testid="img-logo-login"
             />
           </div>
