@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Shield } from "lucide-react";
+import logoSeguroIA from "@assets/logo-seguro-ia.png";
 
 const loginSchema = z.object({
   username: z.string().min(1, "Usuário é obrigatório"),
@@ -60,9 +60,13 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <div className="flex flex-col items-center justify-center mb-4 gap-2">
-            <Shield className="h-12 w-12 text-primary" data-testid="icon-logo-login" />
-            <h1 className="text-2xl font-bold" data-testid="text-logo-login">Seguro IA</h1>
+          <div className="flex items-center justify-center mb-4">
+            <img 
+              src={logoSeguroIA} 
+              alt="Seguro IA" 
+              className="h-16 w-auto object-contain"
+              data-testid="img-logo-login"
+            />
           </div>
           <CardDescription className="text-center">
             Entre com suas credenciais

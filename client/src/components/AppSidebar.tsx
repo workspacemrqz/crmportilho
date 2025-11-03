@@ -10,8 +10,9 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { LayoutDashboard, Users, MessageSquare, FileText, Workflow, Settings, CheckCircle2, Shield } from "lucide-react";
+import { LayoutDashboard, Users, MessageSquare, FileText, Workflow, Settings, CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import logoSeguroIA from "@assets/logo-seguro-ia.png";
 
 const menuItems = [
   {
@@ -50,9 +51,13 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader className="p-4">
-        <div className="flex items-center gap-2">
-          <Shield className="h-6 w-6 text-primary" data-testid="icon-logo" />
-          <span className="font-semibold text-lg" data-testid="text-logo">Seguro IA</span>
+        <div className="flex items-center justify-center">
+          <img 
+            src={logoSeguroIA} 
+            alt="Seguro IA" 
+            className="h-10 w-auto object-contain"
+            data-testid="img-logo"
+          />
         </div>
       </SidebarHeader>
       <SidebarContent>
