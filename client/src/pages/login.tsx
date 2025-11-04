@@ -1,4 +1,5 @@
 import { useState } from "react";
+import logo from "@/assets/Logo laranja.png";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -8,7 +9,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import logoSeguroIA from "@assets/logo-seguro-ia.png";
 
 const loginSchema = z.object({
   username: z.string().min(1, "Usuário é obrigatório"),
@@ -60,9 +60,9 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
       <div className="w-full max-w-md space-y-4">
         <div className="flex items-center justify-center">
-          <img 
-            src={logoSeguroIA} 
-            alt="Seguro IA" 
+          <img
+            src={logo}
+            alt="Seguro IA"
             className="h-12 w-auto object-contain"
             data-testid="img-logo-login"
           />

@@ -29,7 +29,7 @@ export function validateRequiredEnvVars(): void {
   if (missing.length > 0) {
     throw new Error(
       `Missing required environment variables: ${missing.join(', ')}\n` +
-      `Please configure these variables in your Replit Secrets before starting the application.`
+      `Please configure these variables in your local environment (e.g., .env file) before starting the application.`
     );
   }
 }

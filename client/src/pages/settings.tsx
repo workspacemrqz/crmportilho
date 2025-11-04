@@ -8,7 +8,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Loader2, Save, RotateCcw, Info, ChevronDown, RefreshCw, Power, LogOut } from "lucide-react";
+import { Loader2, Save, RotateCcw, ChevronDown } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useState, useEffect } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -27,24 +27,17 @@ type Settings = {
   updatedAt: string;
 };
 
-type WhatsAppStatus = {
-  status: string;
-  qr?: string;
-};
+// WhatsApp section removida
 
 export default function SettingsPage() {
   const { toast } = useToast();
   const [isBufferSectionOpen, setIsBufferSectionOpen] = useState(false);
-  const [isWhatsAppSectionOpen, setIsWhatsAppSectionOpen] = useState(false);
 
   const { data: settings, isLoading } = useQuery<Settings>({
     queryKey: ["/api/settings"],
   });
 
-  const { data: whatsappStatus, isLoading: isLoadingWhatsApp, refetch: refetchWhatsApp } = useQuery<WhatsAppStatus>({
-    queryKey: ["/api/whatsapp/status"],
-    refetchInterval: isWhatsAppSectionOpen ? 3000 : false,
-  });
+  // Conexão do WhatsApp removida
 
   const form = useForm<SettingsForm>({
     resolver: zodResolver(settingsSchema),
@@ -76,65 +69,7 @@ export default function SettingsPage() {
     }
   });
 
-  const startSessionMutation = useMutation({
-    mutationFn: async () => {
-      return apiRequest("POST", "/api/whatsapp/start");
-    },
-    onSuccess: () => {
-      refetchWhatsApp();
-      toast({
-        title: "Sessão iniciada!",
-        description: "A sessão do WhatsApp foi iniciada. Escaneie o QR code."
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Erro ao iniciar",
-        description: "Não foi possível iniciar a sessão.",
-        variant: "destructive"
-      });
-    }
-  });
-
-  const stopSessionMutation = useMutation({
-    mutationFn: async () => {
-      return apiRequest("POST", "/api/whatsapp/stop");
-    },
-    onSuccess: () => {
-      refetchWhatsApp();
-      toast({
-        title: "Sessão parada!",
-        description: "A sessão do WhatsApp foi parada."
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Erro ao parar",
-        description: "Não foi possível parar a sessão.",
-        variant: "destructive"
-      });
-    }
-  });
-
-  const logoutSessionMutation = useMutation({
-    mutationFn: async () => {
-      return apiRequest("POST", "/api/whatsapp/logout");
-    },
-    onSuccess: () => {
-      refetchWhatsApp();
-      toast({
-        title: "Logout realizado!",
-        description: "O WhatsApp foi desconectado com sucesso."
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Erro ao desconectar",
-        description: "Não foi possível desconectar o WhatsApp.",
-        variant: "destructive"
-      });
-    }
-  });
+  // Mutations da conexão WhatsApp removidas
 
   const onSubmit = (data: SettingsForm) => {
     updateMutation.mutate(data);
@@ -234,136 +169,7 @@ export default function SettingsPage() {
           </Card>
         </Collapsible>
 
-        <Collapsible open={isWhatsAppSectionOpen} onOpenChange={setIsWhatsAppSectionOpen} className="mt-6">
-          <Card>
-            <CollapsibleTrigger asChild>
-              <CardHeader className={`cursor-pointer hover-elevate active-elevate-2 rounded-t-xl ${!isWhatsAppSectionOpen ? 'rounded-b-xl' : ''}`}>
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex-1">
-                    <CardTitle className="text-lg" style={{ color: '#E76030' }}>
-                      Conexão do WhatsApp
-                    </CardTitle>
-                    <CardDescription className="text-xs">
-                      Gerencie a conexão com WAHA
-                    </CardDescription>
-                  </div>
-                  <ChevronDown 
-                    className={`h-5 w-5 transition-transform duration-200 ${isWhatsAppSectionOpen ? 'rotate-180' : ''}`}
-                    data-testid="icon-chevron-whatsapp"
-                  />
-                </div>
-              </CardHeader>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <CardContent className="space-y-4">
-                {isLoadingWhatsApp ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="w-8 h-8 animate-spin" data-testid="loader-whatsapp" />
-                  </div>
-                ) : (
-                  <>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-medium">Status da Conexão</p>
-                          <p className="text-sm text-muted-foreground" data-testid="text-whatsapp-status">
-                            {whatsappStatus?.status || 'Desconhecido'}
-                          </p>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => refetchWhatsApp()}
-                          data-testid="button-refresh-status"
-                        >
-                          <RefreshCw className="h-4 w-4" />
-                        </Button>
-                      </div>
-
-                      {whatsappStatus?.qr && (
-                        <div className="border rounded-md p-4 bg-background">
-                          <p className="text-sm font-medium mb-3">Escaneie o QR Code com seu WhatsApp:</p>
-                          <div className="flex justify-center bg-white p-4 rounded-md">
-                            <img 
-                              src={whatsappStatus.qr} 
-                              alt="QR Code do WhatsApp" 
-                              className="max-w-full h-auto"
-                              data-testid="img-qr-code"
-                            />
-                          </div>
-                          <Alert className="mt-4">
-                            <Info className="h-4 w-4" />
-                            <AlertDescription>
-                              Abra o WhatsApp no seu celular, vá em Dispositivos Conectados e escaneie este código.
-                            </AlertDescription>
-                          </Alert>
-                        </div>
-                      )}
-
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          onClick={() => startSessionMutation.mutate()}
-                          disabled={startSessionMutation.isPending}
-                          data-testid="button-start-session"
-                        >
-                          {startSessionMutation.isPending ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Iniciando...
-                            </>
-                          ) : (
-                            <>
-                              <Power className="mr-2 h-4 w-4" />
-                              Iniciar Sessão
-                            </>
-                          )}
-                        </Button>
-
-                        <Button
-                          variant="secondary"
-                          onClick={() => stopSessionMutation.mutate()}
-                          disabled={stopSessionMutation.isPending}
-                          data-testid="button-stop-session"
-                        >
-                          {stopSessionMutation.isPending ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Parando...
-                            </>
-                          ) : (
-                            <>
-                              <Power className="mr-2 h-4 w-4" />
-                              Parar Sessão
-                            </>
-                          )}
-                        </Button>
-
-                        <Button
-                          variant="destructive"
-                          onClick={() => logoutSessionMutation.mutate()}
-                          disabled={logoutSessionMutation.isPending}
-                          data-testid="button-logout-session"
-                        >
-                          {logoutSessionMutation.isPending ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Desconectando...
-                            </>
-                          ) : (
-                            <>
-                              <LogOut className="mr-2 h-4 w-4" />
-                              Desconectar WhatsApp
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </CardContent>
-            </CollapsibleContent>
-          </Card>
-        </Collapsible>
+        {/* Seção 'Conexão do WhatsApp' removida */}
       </div>
     </div>
   );

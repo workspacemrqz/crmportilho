@@ -12,7 +12,6 @@ import Leads from "@/pages/leads";
 import Conversations from "@/pages/conversations";
 import Workflows from "@/pages/workflows";
 import Settings from "@/pages/settings";
-import DataValidation from "@/pages/data-validation";
 import LoginPage from "@/pages/login";
 import NotFound from "@/pages/not-found";
 import { LogOut, User } from "lucide-react";
@@ -23,7 +22,6 @@ function Router() {
       <Route path="/" component={Dashboard} />
       <Route path="/clientes" component={Leads} />
       <Route path="/conversas" component={Conversations} />
-      <Route path="/validacao-dados" component={DataValidation} />
       <Route path="/fluxos" component={Workflows} />
       <Route path="/configuracoes" component={Settings} />
       <Route component={NotFound} />

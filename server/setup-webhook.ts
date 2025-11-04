@@ -3,9 +3,7 @@
 const WAHA_API = process.env.WAHA_API || 'https://waha.evolutiaoficial.com';
 const WAHA_API_KEY = process.env.WAHA_API_KEY || 'ce47b12436b7b1f61490eaf59dbb61f3';
 const WAHA_INSTANCIA = process.env.WAHA_INSTANCIA || 'ChatwootApi';
-const WEBHOOK_URL = process.env.REPLIT_DOMAINS ? 
-  `https://${process.env.REPLIT_DOMAINS}/api/webhook/waha` : 
-  'http://localhost:5000/api/webhook/waha';
+const WEBHOOK_URL = process.env.WEBHOOK_URL || 'http://localhost:5000/api/webhook/waha';
 
 async function setupWebhook() {
   try {

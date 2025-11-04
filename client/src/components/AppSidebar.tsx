@@ -10,9 +10,9 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { LayoutDashboard, Users, MessageSquare, FileText, Workflow, Settings, CheckCircle2 } from "lucide-react";
+import { LayoutDashboard, Users, MessageSquare, FileText, Workflow, Settings } from "lucide-react";
+import logo from "@/assets/Logo laranja.png";
 import { Badge } from "@/components/ui/badge";
-import logoSeguroIA from "@assets/logo-seguro-ia.png";
 
 const menuItems = [
   {
@@ -31,11 +31,6 @@ const menuItems = [
     icon: MessageSquare,
   },
   {
-    title: "Validação de Dados",
-    url: "/validacao-dados",
-    icon: CheckCircle2,
-  },
-  {
     title: "Workflows",
     url: "/fluxos",
     icon: Workflow,
@@ -52,9 +47,9 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarHeader className="p-4">
         <div className="flex items-center">
-          <img 
-            src={logoSeguroIA} 
-            alt="Seguro IA" 
+          <img
+            src={logo}
+            alt="Seguro IA"
             className="h-8 w-auto object-contain"
             data-testid="img-logo"
           />

@@ -31,9 +31,6 @@ Thumbs.db
 *.swo
 *~
 
-# Replit specific (not needed in production)
-.replit
-replit.nix
 
 # Temporary files
 *.tmp
