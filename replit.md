@@ -168,10 +168,15 @@ npm run dev        # Start both frontend and backend
 
 ### Initial Replit Setup
 - Configured Vite for Replit environment with proper host settings (0.0.0.0)
+- **CRITICAL FIX**: Added `allowedHosts: true` to Vite config to allow Replit proxy domains
 - Set up HMR (Hot Module Reload) to work with Replit's proxy
 - Provisioned PostgreSQL database and pushed schema
 - Configured concurrent workflow for frontend (port 5000) and backend (port 3000)
 - Updated environment variables for authentication
+
+### Configuration Notes
+- The `allowedHosts: true` setting in `vite.config.ts` is **essential** for Replit - without it, Vite blocks requests from the dynamic Replit preview domains
+- Minor WebSocket HMR connection warnings in console are expected and don't affect functionality
 
 ## User Preferences
 - Language: Portuguese (Brazilian)
