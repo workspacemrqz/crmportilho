@@ -14,7 +14,7 @@ import Workflows from "@/pages/workflows";
 import Settings from "@/pages/settings";
 import LoginPage from "@/pages/login";
 import NotFound from "@/pages/not-found";
-import { LogOut, User } from "lucide-react";
+import { LogOut } from "lucide-react";
 
 function Router() {
   return (
@@ -47,10 +47,6 @@ function AuthenticatedApp() {
           <header className="flex items-center justify-between p-2 sm:p-4 border-b gap-2 sm:gap-4">
             <SidebarTrigger data-testid="button-sidebar-toggle" />
             <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-              <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground">
-                <User className="h-4 w-4" />
-                <span className="truncate">{user?.username}</span>
-              </div>
               <Button
                 variant="ghost"
                 size="icon"

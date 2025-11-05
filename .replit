@@ -41,7 +41,11 @@ externalPort = 80
 localPort = 5001
 externalPort = 3001
 
+[[ports]]
+localPort = 39557
+externalPort = 3002
+
 [deployment]
-deploymentTarget = "autoscale"
+deploymentTarget = "gce"
 run = ["node", "dist/index.js"]
 build = ["npm", "run", "build"]
