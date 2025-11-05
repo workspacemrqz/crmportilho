@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { ChatbotService } from "./chatbot.service";
 import { WAHAService } from "./waha.service";
+import { SupabaseStorageService } from "./supabase.service";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -36,6 +37,7 @@ import { requireAuth, validateLogin } from "./middleware/auth";
 // Initialize services
 const chatbotService = new ChatbotService();
 const wahaAPI = new WAHAService();
+const supabaseStorage = new SupabaseStorageService();
 
 // Cache para deduplicação de mensagens (armazena IDs das últimas 1000 mensagens)
 const processedMessageIds = new Set<string>();
@@ -50,17 +52,9 @@ function addToCache(messageId: string) {
   processedMessageIds.add(messageId);
 }
 
-// Configure file upload
+// Configure file upload (using memory storage for Supabase upload)
 const upload = multer({
-  storage: multer.diskStorage({
-    destination: (req, file, cb) => {
-      cb(null, 'uploads/');
-    },
-    filename: (req, file, cb) => {
-      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-      cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-    }
-  }),
+  storage: multer.memoryStorage(),
   limits: {
     fileSize: 10 * 1024 * 1024 // 10MB limit
   },
@@ -1168,12 +1162,24 @@ Retorne APENAS o JSON array, sem texto adicional.`;
         return res.status(400).json({ error: 'leadId and type are required' });
       }
 
-      // Store document info in database
+      console.log('[UPLOAD] Uploading document to Supabase:', req.file.originalname);
+
+      // Upload file to Supabase Storage bucket 'portilho'
+      const supabasePath = await supabaseStorage.uploadDocument(
+        req.file.buffer,
+        req.file.originalname,
+        leadId,
+        req.file.mimetype
+      );
+
+      console.log('[UPLOAD] Document uploaded to Supabase:', supabasePath);
+
+      // Store document info in database with Supabase path
       const document = await storage.createDocument({
         leadId,
         filename: req.file.originalname,
         type: type as any,
-        url: `/uploads/${req.file.filename}`,
+        url: supabasePath, // Store Supabase path instead of local path
         mimeType: req.file.mimetype,
         size: req.file.size
       });
@@ -1207,30 +1213,18 @@ Retorne APENAS o JSON array, sem texto adicional.`;
         return res.status(404).json({ error: 'Document not found' });
       }
 
-      // Get file path from URL (remove leading slash if present)
-      const filePath = document.url.startsWith('/') ? document.url.substring(1) : document.url;
-      const absolutePath = path.join(process.cwd(), filePath);
+      console.log('[DOWNLOAD] Downloading document from Supabase:', document.url);
 
-      // Check if file exists
-      if (!fs.existsSync(absolutePath)) {
-        console.error('[DOWNLOAD] File not found:', absolutePath);
-        return res.status(404).json({ error: 'File not found on server' });
-      }
+      // Download file from Supabase Storage
+      const fileBuffer = await supabaseStorage.downloadDocument(document.url);
 
       // Set headers for download
       res.setHeader('Content-Type', document.mimeType || 'application/octet-stream');
       res.setHeader('Content-Disposition', `attachment; filename="${document.filename}"`);
+      res.setHeader('Content-Length', fileBuffer.length.toString());
       
-      // Stream file to response
-      const fileStream = fs.createReadStream(absolutePath);
-      fileStream.pipe(res);
-      
-      fileStream.on('error', (error: any) => {
-        console.error('[DOWNLOAD] Error streaming file:', error);
-        if (!res.headersSent) {
-          res.status(500).json({ error: 'Failed to download file' });
-        }
-      });
+      // Send file buffer
+      res.send(fileBuffer);
     } catch (error) {
       console.error('Error downloading document:', error);
       res.status(500).json({ error: 'Failed to download document' });
