@@ -3914,9 +3914,29 @@ Use emojis e seja acolhedora.`;
   }
 
   private isHumanHandoffRequest(message: string): boolean {
-    const triggers = ['humano', 'atendente', 'falar com alguém', 'pessoa real', 'atendimento humano'];
     const lowercaseMessage = message.toLowerCase();
-    return triggers.some(trigger => lowercaseMessage.includes(trigger));
+    
+    // Palavras-chave diretas para atendimento humano
+    const triggers = ['humano', 'atendente', 'falar com alguém', 'pessoa real', 'atendimento humano'];
+    if (triggers.some(trigger => lowercaseMessage.includes(trigger))) {
+      return true;
+    }
+    
+    // Padrões para quando o cliente quer falar com uma pessoa específica
+    // Exemplos: "quero falar com a Camila", "preciso falar com Verônica", "me passa o João"
+    const specificPersonPatterns = [
+      /(?:quero|preciso|gostaria|posso|queria|pode)\s+(?:de\s+)?falar\s+com\s+(?:a|o)?\s*[a-záàâãéêíóôõúçA-ZÁÀÂÃÉÊÍÓÔÕÚÇ]+/i,
+      /(?:me\s+)?(?:passa|transfere|conecta|manda)\s+(?:para\s+)?(?:a|o)?\s*[a-záàâãéêíóôõúçA-ZÁÀÂÃÉÊÍÓÔÕÚÇ]+/i,
+      /falar\s+com\s+(?:a|o)?\s*[a-záàâãéêíóôõúçA-ZÁÀÂÃÉÊÍÓÔÕÚÇ]+/i,
+      /(?:cadê|onde\s+está|onde\s+tá)\s+(?:a|o)?\s*[a-záàâãéêíóôõúçA-ZÁÀÂÃÉÊÍÓÔÕÚÇ]+/i
+    ];
+    
+    if (specificPersonPatterns.some(pattern => pattern.test(message))) {
+      console.log('[ChatbotService] 🔔 Detectado pedido para falar com pessoa específica');
+      return true;
+    }
+    
+    return false;
   }
 
   private generateProtocol(): string {
