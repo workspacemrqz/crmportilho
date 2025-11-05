@@ -240,7 +240,7 @@ export const workflowTemplates = pgTable("workflow_templates", {
   content: text("content").notNull(),
   defaultContent: text("default_content").notNull(),
   category: varchar("category", { length: 50 }),
-  requiredVariables: text().array().default(sql`ARRAY[]::text[]`),
+  requiredVariables: text("required_variables").array().default(sql`ARRAY[]::text[]`),
   status: workflowStatusEnum("status").notNull().default("active"),
   isActive: boolean("is_active").notNull().default(true),
   version: integer("version").notNull().default(1),

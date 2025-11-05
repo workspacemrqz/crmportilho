@@ -183,6 +183,18 @@ npm run dev        # Start both frontend and backend
 
 ## Recent Changes (November 2025)
 
+### Supabase Storage Integration (November 5, 2025)
+- **FEATURE**: Complete integration with Supabase Storage for document management
+- **Storage Service**: Created SupabaseStorageService for document upload/download
+- **Bucket**: All documents stored in "portilho" bucket with organized path structure
+- **Authentication**: Uses SUPABASE_SERVICE_ROLE_KEY for server-side operations
+- **Path Format**: `{leadId}/{timestamp}-{filename}` for organized storage
+- **Security**: Service role key used only on server-side, never exposed to frontend
+- **BUGFIX**: Fixed schema column name mapping for `required_variables` in workflow_templates table
+  - Problem: Drizzle ORM converts camelCase to snake_case in database, causing SQL errors
+  - Solution: Explicitly specified column name as `text("required_variables")` in schema
+  - Impact: Resolved chatbot initialization errors that were causing fallback error messages
+
 ### Supabase Database Migration (November 5, 2025)
 - **FEATURE**: Complete database migration system to Supabase PostgreSQL
 - **Migration Scripts**: Created automated migration pipeline with 4 stages:
