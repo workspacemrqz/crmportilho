@@ -32,7 +32,6 @@ export default function ChatInterface({ conversationId, protocol, contactName, s
   // Fetch messages from API
   const { data: messagesData = [] } = useQuery<Message[]>({
     queryKey: ['/api/conversations', conversationId, 'messages'],
-    refetchInterval: 3000, // Refresh every 3 seconds
   });
 
   // Sort messages chronologically (oldest first)

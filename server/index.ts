@@ -1,11 +1,13 @@
 import 'dotenv/config';
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
+import createMemoryStore from "memorystore";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { securityHeaders } from "./middleware/security";
 import { logSecurityEvent } from "./middleware/webhook-auth";
 import { validateRequiredEnvVars } from "./middleware/auth";
+import { setupWebSocket } from "./websocket";
 
 // Validate required environment variables before starting
 try {
@@ -36,9 +38,17 @@ declare module 'express-session' {
   }
 }
 
+// Create session store (shared between Express and WebSocket)
+const MemoryStore = createMemoryStore(session);
+const sessionStore = new MemoryStore({
+  checkPeriod: 86400000 // prune expired entries every 24h
+});
+
 // Configure session middleware
+const sessionSecret = process.env.SESSION_SECRET!;
 app.use(session({
-  secret: process.env.SESSION_SECRET!,
+  store: sessionStore,
+  secret: sessionSecret,
   resave: false,
   saveUninitialized: false,
   cookie: {
@@ -92,6 +102,14 @@ app.use((req, res, next) => {
 (async () => {
   const server = await registerRoutes(app);
 
+  // Setup WebSocket server with session authentication
+  setupWebSocket(server, {
+    store: sessionStore,
+    secret: sessionSecret
+  });
+  
+  log('WebSocket server integrated with HTTP server');
+
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
@@ -117,5 +135,6 @@ app.use((req, res, next) => {
     host: "0.0.0.0",
   }, () => {
     log(`serving on port ${port}`);
+    log(`WebSocket server available at ws://localhost:${port}/ws`);
   });
 })();

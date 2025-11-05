@@ -23,6 +23,10 @@ import { eq, and, desc, ne } from 'drizzle-orm';
 import OpenAI from 'openai';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { 
+  broadcastNewMessage, 
+  broadcastConversationUpdate 
+} from './websocket';
 
 // Initialize OpenAI with direct API key from secrets
 const openai = new OpenAI({
@@ -420,13 +424,21 @@ export class ChatbotService {
           }
         }
         
-        await db.insert(messages).values({
+        const [savedMessage] = await db.insert(messages).values({
           conversationId: conversation.id,
           content: msg.content,
           isBot: false,
           messageType,
           metadata: enrichedMetadata
-        });
+        }).returning();
+        
+        // Broadcast incoming customer message
+        try {
+          broadcastNewMessage(conversation.id, savedMessage);
+          console.log(`[ChatbotService] 📡 Broadcast: customer message sent for conversation ${conversation.id}`);
+        } catch (broadcastError) {
+          console.error('[ChatbotService] ❌ Broadcast failed (non-fatal):', broadcastError);
+        }
       }
 
       console.log(`[ChatbotService] 🔑 FlushBuffer - conversationId: ${conversation.id} | protocol: ${lead.protocol}`);
@@ -685,6 +697,17 @@ export class ChatbotService {
     }).returning();
 
     console.log(`[ChatbotService] ✨ Nova conversa criada - ID: ${newConversation.id}`);
+    
+    // Broadcast new conversation
+    try {
+      // Import broadcastNewConversation dynamically to avoid circular dependency
+      const { broadcastNewConversation } = await import('./websocket');
+      broadcastNewConversation(newConversation);
+      console.log(`[ChatbotService] 📡 Broadcast: new conversation sent for ${newConversation.id}`);
+    } catch (broadcastError) {
+      console.error('[ChatbotService] ❌ Broadcast failed (non-fatal):', broadcastError);
+    }
+    
     return newConversation;
   }
 
@@ -3485,6 +3508,21 @@ Agradecemos por escolher a Portilho Corretora! 💚`;
         endedAt: new Date()
       })
       .where(eq(conversations.id, conversation.id));
+    
+    // Broadcast conversation update for handoff
+    try {
+      const [updatedConversation] = await db.select()
+        .from(conversations)
+        .where(eq(conversations.id, conversation.id))
+        .limit(1);
+      
+      if (updatedConversation) {
+        broadcastConversationUpdate(conversation.id, updatedConversation);
+        console.log(`[ChatbotService] 📡 Broadcast: conversation update sent for ${conversation.id} (handoff)`);
+      }
+    } catch (broadcastError) {
+      console.error('[ChatbotService] ❌ Conversation update broadcast failed (non-fatal):', broadcastError);
+    }
 
     // Update chatbot state to PERMANENTLY stop automatic responses
     const [chatbotState] = await db.select()
@@ -3519,12 +3557,20 @@ Agradecemos por escolher a Portilho Corretora! 💚`;
     }
 
     // Log the handoff
-    await db.insert(messages).values({
+    const [handoffMessage] = await db.insert(messages).values({
       conversationId: conversation.id,
       content: `[SISTEMA] Transferido para atendimento humano. Motivo: ${reason}. Bot desativado permanentemente - apenas atendentes poderão responder.`,
       isBot: true,
       messageType: 'system'
-    });
+    }).returning();
+    
+    // Broadcast handoff system message
+    try {
+      broadcastNewMessage(conversation.id, handoffMessage);
+      console.log(`[ChatbotService] 📡 Broadcast: handoff system message sent for conversation ${conversation.id}`);
+    } catch (broadcastError) {
+      console.error('[ChatbotService] ❌ Broadcast failed (non-fatal):', broadcastError);
+    }
   }
 
   private async updateChatbotState(stateId: string, updates: any) {
@@ -4045,6 +4091,34 @@ Retorne APENAS uma palavra: "sim", "não" ou "unclear".`;
         console.log(`[ChatbotService] 📤 Tentativa ${attempt}/${maxRetries} de enviar mensagem para ${phone}`);
         const result = await this.wahaAPI.sendText(phone, text, conversationId);
         console.log(`[ChatbotService] ✅ Mensagem enviada com sucesso na tentativa ${attempt}`);
+        
+        // Save bot message to database and broadcast (only if conversationId is provided)
+        if (conversationId) {
+          try {
+            const [savedBotMessage] = await db.insert(messages).values({
+              conversationId,
+              content: text,
+              isBot: true,
+              messageType: 'text',
+              metadata: { 
+                sentViaRetry: true,
+                attempt,
+                wahaResult: result
+              }
+            }).returning();
+            
+            // Broadcast bot message
+            try {
+              broadcastNewMessage(conversationId, savedBotMessage);
+              console.log(`[ChatbotService] 📡 Broadcast: bot message sent for conversation ${conversationId}`);
+            } catch (broadcastError) {
+              console.error('[ChatbotService] ❌ Broadcast failed (non-fatal):', broadcastError);
+            }
+          } catch (dbError) {
+            console.error('[ChatbotService] ❌ Failed to save bot message to DB (non-fatal):', dbError);
+          }
+        }
+        
         return result;
       } catch (error) {
         lastError = error;

@@ -33,6 +33,11 @@ import {
   extractMessageContent 
 } from "./schemas/webhook.schema";
 import { requireAuth, validateLogin } from "./middleware/auth";
+import { 
+  broadcastNewMessage, 
+  broadcastNewConversation, 
+  broadcastConversationUpdate 
+} from './websocket';
 
 // Initialize services
 const chatbotService = new ChatbotService();
@@ -243,7 +248,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   });
                   
                   // Store a system message about the permanent handoff
-                  await storage.createMessage({
+                  const systemMessage = await storage.createMessage({
                     conversationId: conversation.id,
                     content: `[SISTEMA] Intervenção humana detectada. Bot permanentemente desativado para este lead.`,
                     isBot: true,
@@ -255,8 +260,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     }
                   });
                   
+                  // Broadcast system message
+                  try {
+                    broadcastNewMessage(conversation.id, systemMessage);
+                    console.log(`[WAHA-WEBHOOK] 📡 Broadcast: system message sent for conversation ${conversation.id}`);
+                  } catch (broadcastError) {
+                    console.error('[WAHA-WEBHOOK] ❌ Broadcast failed (non-fatal):', broadcastError);
+                  }
+                  
                   // Store the human's message too
-                  await storage.createMessage({
+                  const humanMessage = await storage.createMessage({
                     conversationId: conversation.id,
                     content: parsedMessage.message,
                     isBot: false,
@@ -267,6 +280,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
                       handoffTriggered: true
                     }
                   });
+                  
+                  // Broadcast human agent message
+                  try {
+                    broadcastNewMessage(conversation.id, humanMessage);
+                    console.log(`[WAHA-WEBHOOK] 📡 Broadcast: human agent message sent for conversation ${conversation.id}`);
+                  } catch (broadcastError) {
+                    console.error('[WAHA-WEBHOOK] ❌ Broadcast failed (non-fatal):', broadcastError);
+                  }
+                  
+                  // Broadcast conversation update for handoff
+                  try {
+                    const updatedConversation = await storage.getConversation(conversation.id);
+                    if (updatedConversation) {
+                      broadcastConversationUpdate(conversation.id, updatedConversation);
+                      console.log(`[WAHA-WEBHOOK] 📡 Broadcast: conversation update sent for ${conversation.id}`);
+                    }
+                  } catch (broadcastError) {
+                    console.error('[WAHA-WEBHOOK] ❌ Conversation update broadcast failed (non-fatal):', broadcastError);
+                  }
                   
                   console.log(`[WAHA-WEBHOOK] Lead ${lead.protocol} permanently handed off to human agent`);
                 }
@@ -306,7 +338,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     });
                     
                     // Store a system message about the permanent handoff
-                    await storage.createMessage({
+                    const systemMessage = await storage.createMessage({
                       conversationId: conversation.id,
                       content: `[SISTEMA] Intervenção humana detectada. Bot permanentemente desativado para este lead.`,
                       isBot: true,
@@ -318,8 +350,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
                       }
                     });
                     
+                    // Broadcast system message
+                    try {
+                      broadcastNewMessage(conversation.id, systemMessage);
+                      console.log(`[WAHA-WEBHOOK] 📡 Broadcast: system message sent for conversation ${conversation.id}`);
+                    } catch (broadcastError) {
+                      console.error('[WAHA-WEBHOOK] ❌ Broadcast failed (non-fatal):', broadcastError);
+                    }
+                    
                     // Store the human's message too
-                    await storage.createMessage({
+                    const humanMessage = await storage.createMessage({
                       conversationId: conversation.id,
                       content: parsedMessage.message,
                       isBot: false,
@@ -330,6 +370,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
                         handoffTriggered: true
                       }
                     });
+                    
+                    // Broadcast human agent message
+                    try {
+                      broadcastNewMessage(conversation.id, humanMessage);
+                      console.log(`[WAHA-WEBHOOK] 📡 Broadcast: human agent message sent for conversation ${conversation.id}`);
+                    } catch (broadcastError) {
+                      console.error('[WAHA-WEBHOOK] ❌ Broadcast failed (non-fatal):', broadcastError);
+                    }
+                    
+                    // Broadcast conversation update for handoff
+                    try {
+                      const updatedConversation = await storage.getConversation(conversation.id);
+                      if (updatedConversation) {
+                        broadcastConversationUpdate(conversation.id, updatedConversation);
+                        console.log(`[WAHA-WEBHOOK] 📡 Broadcast: conversation update sent for ${conversation.id}`);
+                      }
+                    } catch (broadcastError) {
+                      console.error('[WAHA-WEBHOOK] ❌ Conversation update broadcast failed (non-fatal):', broadcastError);
+                    }
                     
                     console.log(`[WAHA-WEBHOOK] Lead ${lead.protocol} permanently handed off to human agent`);
                   }
@@ -359,7 +418,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               console.log('[WAHA-WEBHOOK] 🛑 PERMANENT HANDOFF ACTIVE - Ignoring message to prevent bot response');
               
               // Still save the customer message for history, but don't let bot process it
-              await storage.createMessage({
+              const customerMessage = await storage.createMessage({
                 conversationId: conversationCheck.id,
                 content: parsedMessage.message || '',
                 isBot: false,
@@ -369,6 +428,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   ignoredDueToHandoff: true
                 }
               });
+              
+              // Broadcast customer message
+              try {
+                broadcastNewMessage(conversationCheck.id, customerMessage);
+                console.log(`[WAHA-WEBHOOK] 📡 Broadcast: customer message sent for conversation ${conversationCheck.id}`);
+              } catch (broadcastError) {
+                console.error('[WAHA-WEBHOOK] ❌ Broadcast failed (non-fatal):', broadcastError);
+              }
               
               return res.status(200).json({ status: 'ignored', reason: 'permanent-handoff-active' });
             }
@@ -1197,6 +1264,14 @@ Retorne APENAS o JSON array, sem texto adicional.`;
         messageType: type,
         metadata: { manual: true, sentBy: req.body.userId || 'agent' }
       });
+      
+      // Broadcast manual message
+      try {
+        broadcastNewMessage(conversationId, storedMessage);
+        console.log(`[API] 📡 Broadcast: manual message sent for conversation ${conversationId}`);
+      } catch (broadcastError) {
+        console.error('[API] ❌ Broadcast failed (non-fatal):', broadcastError);
+      }
 
       // PERMANENTLY DISABLE CHATBOT when manual message is sent
       const chatbotState = await storage.getChatbotState(conversationId);
@@ -1209,7 +1284,7 @@ Retorne APENAS o JSON array, sem texto adicional.`;
         console.log(`[API] 🔇 Mensagem manual enviada. Bot PERMANENTEMENTE desativado para lead ${lead.protocol}`);
         
         // Store system message about the permanent handoff
-        await storage.createMessage({
+        const systemHandoffMessage = await storage.createMessage({
           conversationId,
           content: `[SISTEMA] Mensagem manual enviada pelo dashboard. Bot permanentemente desativado para este lead.`,
           isBot: true,
@@ -1220,6 +1295,25 @@ Retorne APENAS o JSON array, sem texto adicional.`;
             handoffTime: new Date().toISOString()
           }
         });
+        
+        // Broadcast system handoff message
+        try {
+          broadcastNewMessage(conversationId, systemHandoffMessage);
+          console.log(`[API] 📡 Broadcast: system handoff message sent for conversation ${conversationId}`);
+        } catch (broadcastError) {
+          console.error('[API] ❌ Broadcast failed (non-fatal):', broadcastError);
+        }
+        
+        // Broadcast conversation update for handoff
+        try {
+          const updatedConversation = await storage.getConversation(conversationId);
+          if (updatedConversation) {
+            broadcastConversationUpdate(conversationId, updatedConversation);
+            console.log(`[API] 📡 Broadcast: conversation update sent for ${conversationId}`);
+          }
+        } catch (broadcastError) {
+          console.error('[API] ❌ Conversation update broadcast failed (non-fatal):', broadcastError);
+        }
       }
 
       res.json({
@@ -1275,6 +1369,14 @@ Retorne APENAS o JSON array, sem texto adicional.`;
           size: req.file.size
         }
       });
+      
+      // Broadcast file message
+      try {
+        broadcastNewMessage(conversationId, storedMessage);
+        console.log(`[API] 📡 Broadcast: file message sent for conversation ${conversationId}`);
+      } catch (broadcastError) {
+        console.error('[API] ❌ Broadcast failed (non-fatal):', broadcastError);
+      }
 
       // PAUSE CHATBOT for 24 hours when manual message is sent
       const chatbotState = await storage.getChatbotState(conversationId);
@@ -1287,6 +1389,17 @@ Retorne APENAS o JSON array, sem texto adicional.`;
         });
         
         console.log(`[API] 🔇 Arquivo enviado manualmente. Bot pausado até ${handoffUntil.toISOString()} para lead ${lead.protocol}`);
+        
+        // Broadcast conversation update for pause
+        try {
+          const updatedConversation = await storage.getConversation(conversationId);
+          if (updatedConversation) {
+            broadcastConversationUpdate(conversationId, updatedConversation);
+            console.log(`[API] 📡 Broadcast: conversation update sent for ${conversationId} (bot paused)`);
+          }
+        } catch (broadcastError) {
+          console.error('[API] ❌ Conversation update broadcast failed (non-fatal):', broadcastError);
+        }
       }
 
       res.json({

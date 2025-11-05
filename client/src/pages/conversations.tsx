@@ -1,8 +1,11 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import ConversationList from "@/components/ConversationList";
 import ChatInterface from "@/components/ChatInterface";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, Wifi, WifiOff } from "lucide-react";
+import { useWebSocket } from "@/hooks/useWebSocket";
+import { useAuth } from "@/contexts/AuthContext";
+import { Badge } from "@/components/ui/badge";
 
 type Conversation = {
   id: string;
@@ -28,11 +31,49 @@ type Conversation = {
 export default function Conversations() {
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [showConversationList, setShowConversationList] = useState(true);
+  const queryClient = useQueryClient();
+  const { isAuthenticated } = useAuth();
 
-  // Fetch conversations from API
+  const handleWebSocketMessage = useCallback((event: { type: string; data: any }) => {
+    console.log('[Conversations] WebSocket event received:', event.type);
+    
+    switch (event.type) {
+      case 'message:new':
+        console.log('[Conversations] New message for conversation:', event.data.conversationId);
+        queryClient.invalidateQueries({ 
+          queryKey: ['/api/conversations', event.data.conversationId, 'messages'] 
+        });
+        queryClient.invalidateQueries({ 
+          queryKey: ['/api/conversations'] 
+        });
+        break;
+      
+      case 'conversation:new':
+        console.log('[Conversations] New conversation created');
+        queryClient.invalidateQueries({ 
+          queryKey: ['/api/conversations'] 
+        });
+        break;
+      
+      case 'conversation:update':
+        console.log('[Conversations] Conversation updated:', event.data.conversationId);
+        queryClient.invalidateQueries({ 
+          queryKey: ['/api/conversations'] 
+        });
+        break;
+      
+      default:
+        console.log('[Conversations] Unknown event type:', event.type);
+    }
+  }, [queryClient]);
+
+  const { isConnected } = useWebSocket({ 
+    onMessage: handleWebSocketMessage,
+    enabled: isAuthenticated 
+  });
+
   const { data: conversationsData = [], isLoading } = useQuery<Conversation[]>({
     queryKey: ['/api/conversations'],
-    refetchInterval: 5000, // Refresh every 5 seconds
   });
 
   // Transform API data to match ConversationList format
@@ -52,9 +93,26 @@ export default function Conversations() {
     <div className="flex flex-col md:flex-row h-full overflow-hidden">
       <div className={`${showConversationList ? 'flex' : 'hidden'} md:flex w-full md:w-80 border-r md:flex-shrink-0 flex-col h-full md:h-auto overflow-hidden`}>
         <div className="p-4 border-b">
-          <h2 className="text-base sm:text-lg font-semibold" data-testid="text-conversations-title">
-            Conversas Ativas
-          </h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-base sm:text-lg font-semibold" data-testid="text-conversations-title">
+              Conversas Ativas
+            </h2>
+            {isAuthenticated && (
+              <Badge variant={isConnected ? "default" : "secondary"} className="flex items-center gap-1">
+                {isConnected ? (
+                  <>
+                    <Wifi className="h-3 w-3" />
+                    <span className="text-xs">Online</span>
+                  </>
+                ) : (
+                  <>
+                    <WifiOff className="h-3 w-3" />
+                    <span className="text-xs">Offline</span>
+                  </>
+                )}
+              </Badge>
+            )}
+          </div>
         </div>
         <div className="overflow-y-auto flex-1">
           {conversations.length === 0 ? (
