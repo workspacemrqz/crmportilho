@@ -40,25 +40,33 @@ export default function Conversations() {
     switch (event.type) {
       case 'message:new':
         console.log('[Conversations] New message for conversation:', event.data.conversationId);
-        queryClient.invalidateQueries({ 
-          queryKey: ['/api/conversations', event.data.conversationId, 'messages'] 
+        // Force immediate refetch for messages
+        queryClient.refetchQueries({ 
+          queryKey: ['/api/conversations', event.data.conversationId, 'messages'],
+          type: 'active'
         });
-        queryClient.invalidateQueries({ 
-          queryKey: ['/api/conversations'] 
+        // Force immediate refetch for conversation list
+        queryClient.refetchQueries({ 
+          queryKey: ['/api/conversations'],
+          type: 'active'
         });
         break;
       
       case 'conversation:new':
         console.log('[Conversations] New conversation created');
-        queryClient.invalidateQueries({ 
-          queryKey: ['/api/conversations'] 
+        // Force immediate refetch for conversation list
+        queryClient.refetchQueries({ 
+          queryKey: ['/api/conversations'],
+          type: 'active'
         });
         break;
       
       case 'conversation:update':
         console.log('[Conversations] Conversation updated:', event.data.conversationId);
-        queryClient.invalidateQueries({ 
-          queryKey: ['/api/conversations'] 
+        // Force immediate refetch for conversation list
+        queryClient.refetchQueries({ 
+          queryKey: ['/api/conversations'],
+          type: 'active'
         });
         break;
       
