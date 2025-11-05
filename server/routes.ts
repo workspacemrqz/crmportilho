@@ -672,21 +672,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Find the document in conversation messages
       const conversations = await storage.getConversations({ leadId: lead.id });
       let documentInfo: any = null;
+      let docMessage: Message | null = null;
+      let conversationId: string | null = null;
       
       for (const conversation of conversations) {
         const messages = await storage.getMessages(conversation.id);
-        const docMessage = messages.find((msg: any) => 
+        const foundMessage = messages.find((msg: any) => 
           (msg.id === messageId || (msg.metadata as any)?.messageId === messageId) &&
           (msg.messageType === 'document' || msg.messageType === 'image' || msg.messageType === 'media')
         );
         
-        if (docMessage) {
-          const metadata = docMessage.metadata as any;
+        if (foundMessage) {
+          docMessage = foundMessage;
+          conversationId = conversation.id;
+          const metadata = foundMessage.metadata as any;
           documentInfo = {
             filename: metadata?.filename || metadata?.caption || `document_${messageId}`,
             mimeType: metadata?.mimetype || 'application/octet-stream',
             mediaUrl: metadata?.mediaUrl || metadata?.url,
-            messageId: metadata?.messageId || messageId
+            messageId: metadata?.messageId || messageId,
+            supabasePath: metadata?.supabasePath || null
           };
           break;
         }
@@ -699,16 +704,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log('[DOWNLOAD] Document info found:', documentInfo);
       
-      // Try to download the file using WAHA service
-      const wahaDownloadAPI = new WAHAService();
-      const fileBuffer = await wahaDownloadAPI.downloadMedia(documentInfo.messageId, documentInfo.mediaUrl);
+      let fileBuffer: Buffer | null = null;
       
-      if (!fileBuffer) {
-        console.log('[DOWNLOAD] Failed to download file from WhatsApp');
-        return res.status(404).json({ error: 'File not available for download' });
+      // Step 1: Try downloading from Supabase Storage (cache)
+      if (documentInfo.supabasePath) {
+        console.log('[DOWNLOAD] ☁️ Attempting to download from Supabase cache:', documentInfo.supabasePath);
+        try {
+          fileBuffer = await supabaseStorage.downloadDocument(documentInfo.supabasePath);
+          console.log('[DOWNLOAD] ✅ Successfully downloaded from Supabase cache, size:', fileBuffer.length);
+        } catch (supabaseError) {
+          console.log('[DOWNLOAD] ⚠️ Failed to download from Supabase cache, will try WAHA API:', supabaseError);
+          fileBuffer = null;
+        }
+      } else {
+        console.log('[DOWNLOAD] No Supabase cache path found, will try WAHA API');
       }
       
-      console.log('[DOWNLOAD] File downloaded successfully, size:', fileBuffer.length);
+      // Step 2: If not in Supabase, try downloading from WAHA API
+      if (!fileBuffer) {
+        console.log('[DOWNLOAD] 📥 Attempting to download from WAHA API');
+        const wahaDownloadAPI = new WAHAService();
+        fileBuffer = await wahaDownloadAPI.downloadMedia(documentInfo.messageId, documentInfo.mediaUrl);
+        
+        if (!fileBuffer) {
+          console.log('[DOWNLOAD] ❌ Failed to download file from WAHA API');
+          return res.status(404).json({ error: 'File not available for download' });
+        }
+        
+        console.log('[DOWNLOAD] ✅ File downloaded from WAHA API, size:', fileBuffer.length);
+        
+        // Step 3: Save to Supabase for future downloads (if not already cached)
+        if (!documentInfo.supabasePath) {
+          try {
+            console.log('[DOWNLOAD] ☁️ Saving to Supabase cache for future downloads');
+            const supabasePath = await supabaseStorage.uploadDocument(
+              fileBuffer,
+              documentInfo.filename,
+              leadId,
+              documentInfo.mimeType
+            );
+            
+            console.log('[DOWNLOAD] ✅ Successfully cached in Supabase:', supabasePath);
+            
+            // Update message metadata with Supabase path
+            if (docMessage) {
+              const updatedMetadata = {
+                ...(docMessage.metadata as any),
+                supabasePath: supabasePath
+              };
+              
+              // Import db and messages at the top if not already imported
+              const { db } = await import('./db');
+              const { messages: messagesTable } = await import('@shared/schema');
+              const { eq } = await import('drizzle-orm');
+              
+              await db.update(messagesTable)
+                .set({ metadata: updatedMetadata })
+                .where(eq(messagesTable.id, docMessage.id));
+              
+              console.log('[DOWNLOAD] 📝 Updated message metadata with Supabase path');
+            }
+          } catch (supabaseError) {
+            console.error('[DOWNLOAD] ⚠️ Failed to cache in Supabase (non-fatal):', supabaseError);
+          }
+        }
+      }
       
       // Set appropriate headers for file download
       res.setHeader('Content-Type', documentInfo.mimeType);

@@ -17,6 +17,7 @@ import {
   type InsertQuote
 } from '@shared/schema';
 import { WAHAService } from './waha.service';
+import { SupabaseStorageService } from './supabase.service';
 import { eq, and, desc, ne } from 'drizzle-orm';
 import OpenAI from 'openai';
 import { promises as fs } from 'fs';
@@ -63,6 +64,7 @@ interface MessageBuffer {
 
 export class ChatbotService {
   private wahaAPI: WAHAService;
+  private supabaseStorage: SupabaseStorageService;
   private messageTemplatesCache: Map<string, string> = new Map();
   private cacheExpiry: number = 0;
   private cacheTTL: number = 5 * 60 * 1000; // 5 minutes cache
@@ -80,6 +82,7 @@ export class ChatbotService {
 
   constructor() {
     this.wahaAPI = new WAHAService();
+    this.supabaseStorage = new SupabaseStorageService();
     // Carregar configurações iniciais
     void this.loadSettings();
   }
@@ -477,6 +480,24 @@ export class ChatbotService {
         return { filename, mimetype, size, mediaUrl, error: 'download_failed' };
       }
       
+      // Upload to Supabase Storage for permanent caching
+      let supabasePath: string | null = null;
+      try {
+        const supabaseFilePath = `${leadId}/whatsapp/${messageId}`;
+        console.log('[ChatbotService] ☁️ Uploading to Supabase Storage:', supabaseFilePath);
+        
+        supabasePath = await this.supabaseStorage.uploadDocument(
+          mediaBuffer,
+          filename,
+          leadId,
+          mimetype || 'application/octet-stream'
+        );
+        
+        console.log('[ChatbotService] ✅ Successfully cached in Supabase:', supabasePath);
+      } catch (supabaseError) {
+        console.error('[ChatbotService] ⚠️ Failed to upload to Supabase (non-fatal):', supabaseError);
+      }
+      
       // Generate unique filename for storage
       const timestamp = Date.now();
       const ext = path.extname(filename) || '.bin';
@@ -526,7 +547,8 @@ export class ChatbotService {
         messageId,
         savedPath: filePath,
         documentId: document.id,
-        documentType: docType
+        documentType: docType,
+        supabasePath: supabasePath || undefined
       };
       
     } catch (error) {
