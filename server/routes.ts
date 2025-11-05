@@ -1260,7 +1260,7 @@ Retorne APENAS o JSON array, sem texto adicional.`;
       const storedMessage = await storage.createMessage({
         conversationId,
         content: message,
-        isBot: false,
+        isBot: true,
         messageType: type,
         metadata: { manual: true, sentBy: req.body.userId || 'agent' }
       });
