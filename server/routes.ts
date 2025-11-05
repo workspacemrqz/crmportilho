@@ -1351,14 +1351,14 @@ Retorne APENAS o JSON array, sem texto adicional.`;
       const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
       const caption = req.body.caption || req.file.originalname;
 
-      // Send file via WAHA API
-      const result = await wahaAPI.sendDocument(lead.whatsappPhone, fileUrl, caption, conversationId);
+      // Send file via WAHA API (without saving to DB - we'll do it here)
+      const result = await wahaAPI.sendDocument(lead.whatsappPhone, fileUrl, caption);
 
       // Store message in database
       const storedMessage = await storage.createMessage({
         conversationId,
         content: caption,
-        isBot: false,
+        isBot: true,
         messageType: 'document',
         metadata: { 
           manual: true, 

@@ -207,36 +207,37 @@ export class WAHAService {
   async sendDocument(phone: string, documentUrl: string, caption: string, conversationId?: string) {
     try {
       const chatId = this.formatPhone(phone);
-      const url = `${this.baseUrl}/api/sendFile`;  // Endpoint correto sem {session} na URL
+      const url = `${this.baseUrl}/api/sendFile`;
       
-      console.log(`[WAHA] Sending document to ${chatId}`);
+      console.log(`[WAHA] Sending document to ${chatId} via ${url}`);
+      console.log(`[WAHA] Document URL: ${documentUrl}`);
+      console.log(`[WAHA] Caption: ${caption}`);
       
       const response = await fetch(url, {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({
           chatId,
-          file: documentUrl,
+          file: {
+            url: documentUrl
+          },
           caption,
-          session: this.session  // Session vai no body
+          session: this.session
         })
       });
 
-      const result = await response.json();
-      
-      // Store message in database
-      if (conversationId) {
-        await db.insert(messages).values({
-          conversationId,
-          content: caption,
-          isBot: true,
-          messageType: 'document',
-          evolutionMessageId: result.id || result.messageId,
-          status: 'sent',
-          metadata: { documentUrl, result }
-        });
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[WAHA] Failed to send document: ${response.status} - ${errorText}`);
+        throw new Error(`WAHA API error: ${response.status} - ${errorText}`);
       }
 
+      const result = await response.json();
+      console.log('[WAHA] ✓ Document sent successfully:', result);
+      
+      // Note: Message is stored in database by the caller (routes.ts)
+      // to avoid duplication
+      
       return result;
     } catch (error) {
       console.error('[WAHA] Error sending document:', error);
