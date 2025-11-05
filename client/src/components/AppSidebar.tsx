@@ -16,12 +16,12 @@ import { Badge } from "@/components/ui/badge";
 
 const menuItems = [
   {
-    title: "Dashboard",
+    title: "Painel",
     url: "/",
     icon: LayoutDashboard,
   },
   {
-    title: "Leads",
+    title: "Clientes",
     url: "/clientes",
     icon: Users,
   },
@@ -31,7 +31,7 @@ const menuItems = [
     icon: MessageSquare,
   },
   {
-    title: "Workflows",
+    title: "Fluxos",
     url: "/fluxos",
     icon: Workflow,
   },
