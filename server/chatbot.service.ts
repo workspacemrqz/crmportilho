@@ -525,18 +525,7 @@ export class ChatbotService {
         docType = 'apolice';
       }
       
-      // Create document record in database
-      const { storage } = await import('./storage');
-      const document = await storage.createDocument({
-        leadId,
-        filename: uniqueFilename,
-        type: docType,
-        url: filePath,
-        mimeType: mimetype || undefined,
-        size: size || mediaBuffer.length
-      });
-      
-      console.log('[ChatbotService] ✅ Document record created:', document.id);
+      console.log('[ChatbotService] ✅ Media processed successfully, type:', docType);
       
       // Return enriched metadata
       return {
@@ -547,7 +536,6 @@ export class ChatbotService {
         mediaUrl,
         messageId,
         savedPath: filePath,
-        documentId: document.id,
         documentType: docType,
         supabasePath: supabasePath || undefined
       };
