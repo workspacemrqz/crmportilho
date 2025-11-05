@@ -74,6 +74,7 @@ export class ChatbotService {
   private settingsCacheTime: number = 0;
   private SETTINGS_CACHE_TTL = 60000; // 1 minuto
   private customBufferTimeouts: Map<string, number> = new Map(); // Buffer customizado por telefone
+  private permanentHandoffConversations: Set<string> = new Set(); // Guard em memória para handoff permanente
 
   // Required fields by chatbot state for validation
   private readonly REQUIRED_FIELDS_BY_STATE: Record<string, string[]> = {
@@ -86,6 +87,29 @@ export class ChatbotService {
     this.supabaseStorage = new SupabaseStorageService();
     // Carregar configurações iniciais
     void this.loadSettings();
+  }
+
+  public markPermanentHandoff(conversationId: string, phone: string): void {
+    console.log(`[ChatbotService] 🚨 Marcando handoff permanente em memória para conversation ${conversationId}`);
+    this.permanentHandoffConversations.add(conversationId);
+    
+    const buffer = this.messageBuffers.get(phone);
+    if (buffer) {
+      console.log(`[ChatbotService] 🗑️ Limpando buffer de mensagens para ${phone} devido ao handoff`);
+      if (buffer.timer) {
+        clearTimeout(buffer.timer);
+      }
+      this.messageBuffers.delete(phone);
+    }
+  }
+
+  public isPermanentHandoffActive(conversationId: string): boolean {
+    return this.permanentHandoffConversations.has(conversationId);
+  }
+
+  public clearPermanentHandoff(conversationId: string): void {
+    console.log(`[ChatbotService] ♻️ Removendo handoff permanente da memória para conversation ${conversationId}`);
+    this.permanentHandoffConversations.delete(conversationId);
   }
 
   // Utility functions for data formatting
