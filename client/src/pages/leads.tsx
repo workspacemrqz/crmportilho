@@ -1585,19 +1585,7 @@ export default function Leads() {
                     <ArrowUpDown className="h-4 w-4" />
                   </div>
                 </TableHead>
-                <TableHead
-                  className="cursor-pointer hover-elevate"
-                  onClick={() => handleSort("name")}
-                  data-testid="header-name"
-                >
-                  <div className="flex items-center gap-2">
-                    Nome
-                    <ArrowUpDown className="h-4 w-4" />
-                  </div>
-                </TableHead>
                 <TableHead data-testid="header-whatsapp">WhatsApp</TableHead>
-                <TableHead data-testid="header-phone">Telefone</TableHead>
-                <TableHead data-testid="header-email">Email</TableHead>
                 <TableHead
                   className="cursor-pointer hover-elevate"
                   onClick={() => handleSort("status")}
@@ -1642,22 +1630,9 @@ export default function Leads() {
                   <TableCell data-testid={`cell-whatsapp-name-${lead.id}`}>
                     {lead.whatsappName || <span className="text-muted-foreground">Não informado</span>}
                   </TableCell>
-                  <TableCell data-testid={`cell-name-${lead.id}`}>
-                    {lead.name || <span className="text-muted-foreground">Não informado</span>}
-                  </TableCell>
                   <TableCell data-testid={`cell-whatsapp-${lead.id}`}>
                     <div className="text-sm">
                       {formatPhone(lead.whatsappPhone)}
-                    </div>
-                  </TableCell>
-                  <TableCell data-testid={`cell-phone-${lead.id}`}>
-                    <div className="text-sm">
-                      {formatPhone(lead.phone)}
-                    </div>
-                  </TableCell>
-                  <TableCell data-testid={`cell-email-${lead.id}`}>
-                    <div className="text-sm text-muted-foreground">
-                      {lead.email || "-"}
                     </div>
                   </TableCell>
                   <TableCell data-testid={`cell-status-${lead.id}`}>
