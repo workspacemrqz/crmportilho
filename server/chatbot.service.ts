@@ -2717,12 +2717,10 @@ RESPOSTA:`;
         
       } else if (lowercaseMessage.includes('cadastral')) {
         // Alteração cadastral - transferir direto para humano
-        await this.sendMessageWithRetry(
-          lead.whatsappPhone, 
-          'Entendi! Para alterações cadastrais, vou transferir você para nosso setor de atendimento. Em breve entrarão em contato. 💚', 
-          conversation.id
-        );
-        await this.handleHumanHandoff(lead, conversation, 'Endosso - Alteração Cadastral');
+        const mensagemCompleta = `Entendi! Para alterações cadastrais, vou transferir você para nosso setor de atendimento. Em breve entrarão em contato. 💚
+
+Obrigado pela paciência. Atenderemos você o mais rápido possível.`;
+        await this.handleHumanHandoff(lead, conversation, 'Endosso - Alteração Cadastral', mensagemCompleta);
         console.log(`[ChatbotService] ✅ Transferindo para humano - Alteração Cadastral`);
         
       } else if (lowercaseMessage.includes('cobertura')) {
@@ -3340,7 +3338,7 @@ Agradecemos por escolher a Portilho Corretora! 💚`;
     }
   }
 
-  private async handleHumanHandoff(lead: Lead, conversation: Conversation, reason: string) {
+  private async handleHumanHandoff(lead: Lead, conversation: Conversation, reason: string, customMessage?: string) {
     // Update lead status
     await db.update(leads)
       .set({ 
@@ -3374,12 +3372,20 @@ Agradecemos por escolher a Portilho Corretora! 💚`;
       console.log(`[ChatbotService] 🔇 Respostas automáticas DESATIVADAS PERMANENTEMENTE para lead ${lead.protocol}`);
     }
 
-    // Send notification message
-    await this.wahaAPI.sendText(
-      lead.whatsappPhone,
-      'Estou transferindo você para um de nossos especialistas. Em breve você será atendido. Obrigado pela paciência! 💚',
-      conversation.id
-    );
+    // Send notification message (use custom message if provided, otherwise use default)
+    if (customMessage) {
+      await this.wahaAPI.sendText(
+        lead.whatsappPhone,
+        customMessage,
+        conversation.id
+      );
+    } else {
+      await this.wahaAPI.sendText(
+        lead.whatsappPhone,
+        'Obrigado pela paciência. Atenderemos você o mais rápido possível.',
+        conversation.id
+      );
+    }
 
     // Log the handoff
     await db.insert(messages).values({
