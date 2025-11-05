@@ -3599,7 +3599,11 @@ Retorne um JSON com:
   private async understandMenuIntent(userMessage: string): Promise<string> {
     console.log(`[ChatbotService] 🔍 Analisando intenção do menu para: "${userMessage}"`);
     
-    const msg = userMessage.trim().toLowerCase()
+    // CRITICAL: Clean message prefix first (removes "Mensagem N:" pattern)
+    const cleanedMessage = this.cleanMessagePrefix(userMessage);
+    console.log(`[ChatbotService] 🧹 Mensagem limpa: "${cleanedMessage}"`);
+    
+    const msg = cleanedMessage.trim().toLowerCase()
       .normalize('NFD').replace(/[\u0300-\u036f]/g, ''); // Remove accents
     
     // 1. Check for direct number input (most common)
