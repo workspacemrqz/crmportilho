@@ -73,7 +73,7 @@ export class ChatbotService {
 
   // Required fields by chatbot state for validation
   private readonly REQUIRED_FIELDS_BY_STATE: Record<string, string[]> = {
-    'dados_pessoais': ['name', 'cpf', 'birthDate', 'maritalStatus', 'address', 'cep', 'email', 'profession', 'isPrincipalDriver'],
+    'dados_pessoais': ['name', 'cpf', 'phone', 'birthDate', 'maritalStatus', 'address', 'cep', 'email', 'profession', 'isPrincipalDriver'],
     'dados_veiculo': ['placa', 'marca', 'modelo', 'ano'],
   };
 
@@ -4368,6 +4368,7 @@ Retorne um objeto JSON com APENAS os campos extraídos da mensagem.`;
     const requiredFields = [
       'name',
       'cpf',
+      'phone',
       'birthDate',
       'maritalStatus',
       'address',
@@ -4380,6 +4381,7 @@ Retorne um objeto JSON com APENAS os campos extraídos da mensagem.`;
     const fieldTranslations: Record<string, string> = {
       name: 'Nome completo',
       cpf: 'CPF',
+      phone: 'Telefone',
       birthDate: 'Data de nascimento',
       maritalStatus: 'Estado civil',
       address: 'Endereço completo',
