@@ -301,12 +301,12 @@ export class ChatbotService {
       // Remover buffer do Map (reset para próximo ciclo)
       this.messageBuffers.delete(phone);
       
-      // Concatenar todas as mensagens
+      // Concatenar todas as mensagens sem prefixo
       const allMessages = buffer.messages
-        .map((msg, idx) => `Mensagem ${idx + 1}: ${msg.content}`)
+        .map(msg => msg.content)
         .join('\n');
       
-      console.log(`[ChatbotService] 📝 Conteúdo combinado das mensagens:\n${allMessages}`);
+      console.log(`[ChatbotService] 📝 Conteúdo combinado das mensagens (${buffer.messages.length} mensagens):\n${allMessages}`);
       
       // Processar usando a primeira mensagem como base, mas com conteúdo combinado
       const firstMessage = buffer.messages[0];
