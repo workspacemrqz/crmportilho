@@ -235,10 +235,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 // This is a human intervention!
                 console.log('[WAHA-WEBHOOK] 🚨 HUMAN INTERVENTION DETECTED! Marking conversation as permanently handed off.');
                 
+                // CRITICAL: Mark handoff in memory IMMEDIATELY before any DB operations
+                // This prevents race conditions where customer messages arrive while we're updating the DB
+                chatbotService.markPermanentHandoff(conversation.id, phone);
+                
                 // Get or create chatbot state
                 const chatbotState = await storage.getChatbotState(conversation.id);
                 if (chatbotState) {
-                  // Mark as permanently handed off
+                  // Mark as permanently handed off in database
                   await storage.updateChatbotState(chatbotState.id, {
                     isPermanentHandoff: true
                   });
