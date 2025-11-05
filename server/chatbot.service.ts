@@ -4124,7 +4124,7 @@ Condutor Principal: ${lead.isPrincipalDriver ? 'Sim' : lead.isPrincipalDriver ==
       console.log('[ChatbotService] ✅ Telefone extraído (regex):', cleanedData.phone);
     }
 
-    // Extract birth date (DD/MM/YYYY or DD-MM-YYYY) - return as ISO string
+    // Extract birth date (DD/MM/YYYY or DD-MM-YYYY) - return as Date object
     const birthDateMatch = cleanMsg.match(/(?:nascimento|nasci|data)[:\s]*(\d{2})[/-](\d{2})[/-](\d{4})|(\d{2})[/-](\d{2})[/-](\d{4})/i);
     if (birthDateMatch) {
       let day: string, month: string, year: string;
@@ -4133,9 +4133,10 @@ Condutor Principal: ${lead.isPrincipalDriver ? 'Sim' : lead.isPrincipalDriver ==
       } else {
         [, , , , day, month, year] = birthDateMatch;
       }
-      // Return as ISO string format (YYYY-MM-DD)
-      cleanedData.birthDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-      console.log('[ChatbotService] ✅ Data de nascimento extraída (regex):', cleanedData.birthDate);
+      // Return as Date object (Drizzle ORM expects Date, not string)
+      const isoString = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      cleanedData.birthDate = new Date(isoString);
+      console.log('[ChatbotService] ✅ Data de nascimento extraída (regex):', isoString, '→', cleanedData.birthDate);
     }
 
     // Extract profession - specific keywords to avoid conflicting with name
