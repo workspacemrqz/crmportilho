@@ -1,28 +1,29 @@
 // Script to configure webhook in WAHA
+export {};
 
-const WAHA_API = process.env.WAHA_API || 'https://waha.evolutiaoficial.com';
-const WAHA_API_KEY = process.env.WAHA_API_KEY || 'ce47b12436b7b1f61490eaf59dbb61f3';
-const WAHA_INSTANCIA = process.env.WAHA_INSTANCIA || 'ChatwootApi';
-const WEBHOOK_URL = process.env.WEBHOOK_URL || 'http://localhost:5000/api/webhook/waha';
+const WAHA_API_SETUP = process.env.WAHA_API || 'https://waha.evolutiaoficial.com';
+const WAHA_API_KEY_SETUP = process.env.WAHA_API_KEY || 'ce47b12436b7b1f61490eaf59dbb61f3';
+const WAHA_INSTANCIA_SETUP = process.env.WAHA_INSTANCIA || 'ChatwootApi';
+const WEBHOOK_URL_SETUP = process.env.WEBHOOK_URL || 'http://localhost:5000/api/webhook/waha';
 
 async function setupWebhook() {
   try {
     console.log('🔧 Configurando webhook do WAHA...');
-    console.log('📍 WAHA API:', WAHA_API);
-    console.log('🔑 Session:', WAHA_INSTANCIA);
-    console.log('🔗 Webhook URL:', WEBHOOK_URL);
+    console.log('📍 WAHA API:', WAHA_API_SETUP);
+    console.log('🔑 Session:', WAHA_INSTANCIA_SETUP);
+    console.log('🔗 Webhook URL:', WEBHOOK_URL_SETUP);
 
     // Configurar webhook no WAHA
-    const response = await fetch(`${WAHA_API}/api/${WAHA_INSTANCIA}/config`, {
+    const response = await fetch(`${WAHA_API_SETUP}/api/${WAHA_INSTANCIA_SETUP}/config`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Api-Key': WAHA_API_KEY
+        'X-Api-Key': WAHA_API_KEY_SETUP
       },
       body: JSON.stringify({
         webhooks: [
           {
-            url: WEBHOOK_URL,
+            url: WEBHOOK_URL_SETUP,
             events: [
               'message',
               'message.any',
@@ -46,14 +47,14 @@ async function setupWebhook() {
       
       // Tentar método alternativo
       console.log('\n🔄 Tentando método alternativo...');
-      const altResponse = await fetch(`${WAHA_API}/api/sessions/${WAHA_INSTANCIA}/webhooks`, {
+      const altResponse = await fetch(`${WAHA_API_SETUP}/api/sessions/${WAHA_INSTANCIA_SETUP}/webhooks`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Api-Key': WAHA_API_KEY
+          'X-Api-Key': WAHA_API_KEY_SETUP
         },
         body: JSON.stringify({
-          url: WEBHOOK_URL,
+          url: WEBHOOK_URL_SETUP,
           events: ['*'] // Todos os eventos
         })
       });
@@ -73,9 +74,9 @@ async function setupWebhook() {
 
     // Verificar configuração atual
     console.log('\n📋 Verificando configuração atual...');
-    const checkResponse = await fetch(`${WAHA_API}/api/sessions/${WAHA_INSTANCIA}`, {
+    const checkResponse = await fetch(`${WAHA_API_SETUP}/api/sessions/${WAHA_INSTANCIA_SETUP}`, {
       headers: {
-        'X-Api-Key': WAHA_API_KEY
+        'X-Api-Key': WAHA_API_KEY_SETUP
       }
     });
 

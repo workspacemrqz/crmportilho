@@ -5,6 +5,7 @@ import { ChatbotService } from "./chatbot.service";
 import { WAHAService } from "./waha.service";
 import multer from "multer";
 import path from "path";
+import fs from "fs";
 import { z } from "zod";
 import {
   insertLeadSchema,
@@ -210,7 +211,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         // Check if message is from a group - ignore group messages
-        const isGroup = validatedData?.payload?._data?.Info?.IsGroup || false;
+        const isGroup = (validatedData?.payload as any)?._data?.Info?.IsGroup || false;
         if (isGroup) {
           console.log('[WAHA-WEBHOOK] 🚫 Message from group detected - ignoring. Groups are not supported.');
           return res.status(200).json({ status: 'ignored', reason: 'group-message-not-supported' });
@@ -675,12 +676,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Find the document in conversation messages
-      const conversations = await storage.getConversationsByPhone(lead.phone);
+      const conversations = await storage.getConversations({ leadId: lead.id });
       let documentInfo: any = null;
       
       for (const conversation of conversations) {
-        const messages = await storage.getMessagesByConversationId(conversation.id);
-        const docMessage = messages.find(msg => 
+        const messages = await storage.getMessages(conversation.id);
+        const docMessage = messages.find((msg: any) => 
           (msg.id === messageId || (msg.metadata as any)?.messageId === messageId) &&
           (msg.messageType === 'document' || msg.messageType === 'image' || msg.messageType === 'media')
         );
@@ -705,8 +706,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('[DOWNLOAD] Document info found:', documentInfo);
       
       // Try to download the file using WAHA service
-      const wahaAPI = new WahaAPI();
-      const fileBuffer = await wahaAPI.downloadMedia(documentInfo.messageId, documentInfo.mediaUrl);
+      const wahaDownloadAPI = new WAHAService();
+      const fileBuffer = await wahaDownloadAPI.downloadMedia(documentInfo.messageId, documentInfo.mediaUrl);
       
       if (!fileBuffer) {
         console.log('[DOWNLOAD] Failed to download file from WhatsApp');
@@ -1224,7 +1225,7 @@ Retorne APENAS o JSON array, sem texto adicional.`;
       const fileStream = fs.createReadStream(absolutePath);
       fileStream.pipe(res);
       
-      fileStream.on('error', (error) => {
+      fileStream.on('error', (error: any) => {
         console.error('[DOWNLOAD] Error streaming file:', error);
         if (!res.headersSent) {
           res.status(500).json({ error: 'Failed to download file' });

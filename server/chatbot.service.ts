@@ -3598,47 +3598,107 @@ Retorne um JSON com:
   // Understand user intent using OpenAI
   private async understandMenuIntent(userMessage: string): Promise<string> {
     try {
-      const systemPrompt = `Você é um assistente que entende a intenção do usuário ao escolher opções de um menu.
+      console.log(`[ChatbotService] 🔍 Analisando intenção do menu para: "${userMessage}"`);
       
-O menu tem as seguintes opções:
-1 - Seguros Novos – Geral (nova cotação para produtos diversos)
-2 - Seguros Novos – Autorio (nova cotação da Autorio)
-3 - Renovação de Seguro (atualizar ou renovar apólice)
-4 - Endosso / Alteração (alterações na apólice)
-5 - Parcelas, Boletos ou 2ª via (consultar ou emitir)
-6 - Sinistros / Assistências (abrir sinistro, solicitar assistência)
+      const systemPrompt = `Você é um assistente inteligente que entende a intenção do usuário ao escolher opções de um menu de seguros.
 
-Analise a mensagem do usuário e retorne APENAS o número da opção (1, 2, 3, 4, 5 ou 6).
-Se o usuário mencionar:
-- "seguro novo", "cotação", "quero fazer seguro" → retorne "1"
-- "autorio", "auto rio" → retorne "2"
-- "renovar", "renovação", "venceu", "vencendo" → retorne "3"
-- "alterar", "mudança", "endosso", "correção" → retorne "4"
-- "boleto", "parcela", "2ª via", "segunda via", "pagamento" → retorne "5"
-- "sinistro", "acidente", "batida", "assistência", "guincho" → retorne "6"
+O menu apresentado ao usuário tem as seguintes opções:
+1️⃣ Seguros Novos – Geral → Solicitar nova cotação para produtos diversos
+2️⃣ Seguros Novos – Autorio → Solicitar nova cotação da Autorio
+3️⃣ Renovação de Seguro → Atualizar ou renovar sua apólice
+4️⃣ Endosso / Alteração → Alterações na apólice
+5️⃣ Parcelas, Boletos ou 2ª via → Consultar ou emitir
+6️⃣ Sinistros / Assistências → Abrir sinistro, solicitar assistência
 
-Se não conseguir identificar claramente, retorne "0".
-Retorne APENAS o número, sem explicações.`;
+REGRAS DE INTERPRETAÇÃO:
+1. Se o usuário digitar apenas o número (1, 2, 3, 4, 5, ou 6), retorne esse número.
+2. Se o usuário usar linguagem natural, identifique a opção correspondente.
+3. Se o usuário usar saudações simples ("oi", "olá", "ola", "hey", "bom dia", etc.) SEM mencionar especificamente outro serviço, interprete como interesse geral em seguros e retorne "1" (opção mais comum para novos clientes).
+4. Se a mensagem for ambígua ou não relacionada a nenhuma opção específica, retorne "0".
+
+EXEMPLOS DE RECONHECIMENTO:
+
+Para OPÇÃO 1:
+- "1" → "1"
+- "ola" → "1" (saudação simples indica interesse geral)
+- "oi" → "1"
+- "olá" → "1"
+- "quero fazer um seguro" → "1"
+- "preciso de cotação" → "1"
+- "seguro novo" → "1"
+- "quero contratar seguro" → "1"
+- "gostaria de informações sobre seguros" → "1"
+
+Para OPÇÃO 2:
+- "2" → "2"
+- "autorio" → "2"
+- "auto rio" → "2"
+- "seguro autorio" → "2"
+
+Para OPÇÃO 3:
+- "3" → "3"
+- "renovar" → "3"
+- "renovação" → "3"
+- "meu seguro está vencendo" → "3"
+- "venceu" → "3"
+
+Para OPÇÃO 4:
+- "4" → "4"
+- "alterar" → "4"
+- "mudança" → "4"
+- "endosso" → "4"
+- "correção" → "4"
+
+Para OPÇÃO 5:
+- "5" → "5"
+- "boleto" → "5"
+- "parcela" → "5"
+- "2ª via" → "5"
+- "segunda via" → "5"
+- "pagamento" → "5"
+
+Para OPÇÃO 6:
+- "6" → "6"
+- "sinistro" → "6"
+- "acidente" → "6"
+- "batida" → "6"
+- "assistência" → "6"
+- "guincho" → "6"
+
+IMPORTANTE: Retorne APENAS o número da opção (1, 2, 3, 4, 5, 6 ou 0), sem nenhuma explicação ou texto adicional.`;
 
       const response = await openai.chat.completions.create({
-        model: 'gpt-4',
+        model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userMessage }
         ],
-        temperature: 0.3,
+        temperature: 0.2,
         max_tokens: 10
       });
 
       const intent = response.choices[0]?.message?.content?.trim() || '0';
+      console.log(`[ChatbotService] 🤖 IA identificou intenção: ${intent} para mensagem: "${userMessage}"`);
       return intent;
     } catch (error) {
-      console.error('[ChatbotService] Erro ao entender intenção do menu:', error);
+      console.error('[ChatbotService] ❌ Erro ao entender intenção do menu:', error);
       // Fallback to exact matching if OpenAI fails
-      const trimmed = userMessage.trim();
+      const trimmed = userMessage.trim().toLowerCase();
+      
+      // Check for exact number match
       if (['1', '2', '3', '4', '5', '6'].includes(trimmed)) {
+        console.log(`[ChatbotService] 🔄 Fallback: número direto detectado: ${trimmed}`);
         return trimmed;
       }
+      
+      // Fallback for common greetings -> assume option 1
+      const greetings = ['oi', 'ola', 'olá', 'hey', 'opa', 'e ai', 'e aí', 'bom dia', 'boa tarde', 'boa noite'];
+      if (greetings.some(greeting => trimmed.includes(greeting))) {
+        console.log(`[ChatbotService] 🔄 Fallback: saudação detectada, assumindo opção 1`);
+        return '1';
+      }
+      
+      console.log(`[ChatbotService] 🔄 Fallback: não foi possível identificar intenção`);
       return '0';
     }
   }
