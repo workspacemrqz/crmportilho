@@ -30,20 +30,21 @@ export class SupabaseStorageService {
 
   constructor() {
     const databaseUrl = process.env.DATABASE_URL;
-    const anonKey = process.env.SUPABASE_ANON_KEY;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!databaseUrl) {
       throw new Error('DATABASE_URL environment variable is not set');
     }
 
-    if (!anonKey) {
-      throw new Error('SUPABASE_ANON_KEY environment variable is not set');
+    if (!serviceRoleKey) {
+      throw new Error('SUPABASE_SERVICE_ROLE_KEY environment variable is not set');
     }
 
     const supabaseUrl = getSupabaseUrlFromDatabaseUrl(databaseUrl);
     console.log('[SupabaseStorage] Initializing with URL:', supabaseUrl);
 
-    this.supabase = createClient(supabaseUrl, anonKey);
+    // Use service role key for server-side operations with full permissions
+    this.supabase = createClient(supabaseUrl, serviceRoleKey);
   }
 
   /**
