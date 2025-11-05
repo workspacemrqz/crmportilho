@@ -214,26 +214,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Check for human intervention - if message is from me (WhatsApp Business) but NOT from bot
         if (parsedMessage.isFromMe) {
           console.log('[WAHA-WEBHOOK] Message is from WhatsApp Business account (isFromMe: true)');
+          console.log('[WAHA-WEBHOOK] Message source:', parsedMessage.source);
           
-          // Check if this is a bot-sent message by checking recent messages
-          const lead = await storage.getLeadByPhone(phone.replace(/\D/g, ''));
-          if (lead) {
-            const conversations = await storage.getConversations({ leadId: lead.id, status: 'active' });
-            if (conversations.length > 0) {
-              const conversation = conversations[0];
-              
-              // Check if we recently sent this exact message as a bot
-              const recentMessages = await storage.getMessages(conversation.id, 10);
-              const botSentThisMessage = recentMessages.some(msg => 
-                msg.isBot === true && 
-                msg.content === parsedMessage.message &&
-                // Message sent in the last 30 seconds
-                (new Date().getTime() - new Date(msg.timestamp).getTime()) < 30000
-              );
-              
-              if (!botSentThisMessage) {
-                // This is a human intervention!
-                console.log('[WAHA-WEBHOOK] 🚨 HUMAN INTERVENTION DETECTED! Marking conversation as permanently handed off.');
+          // IMPROVED DETECTION: Check source field first (more reliable)
+          // - source: "api" = sent by bot through API
+          // - source: "app" or "web" or null = sent by human through WhatsApp app
+          const isHumanMessage = parsedMessage.source !== 'api';
+          
+          if (isHumanMessage) {
+            console.log('[WAHA-WEBHOOK] 🚨 HUMAN MESSAGE DETECTED (source != api)! This is definitely human intervention.');
+            
+            const lead = await storage.getLeadByPhone(phone.replace(/\D/g, ''));
+            if (lead) {
+              const conversations = await storage.getConversations({ leadId: lead.id, status: 'active' });
+              if (conversations.length > 0) {
+                const conversation = conversations[0];
                 
                 // CRITICAL: Mark handoff in memory IMMEDIATELY before any DB operations
                 // This prevents race conditions where customer messages arrive while we're updating the DB
@@ -275,8 +270,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   
                   console.log(`[WAHA-WEBHOOK] Lead ${lead.protocol} permanently handed off to human agent`);
                 }
-              } else {
-                console.log('[WAHA-WEBHOOK] Message was sent by bot, ignoring echo');
+              }
+            }
+          } else if (!parsedMessage.source || parsedMessage.source === 'api') {
+            // FALLBACK: When source is 'api' or not available, use the original logic
+            // Check if this is a bot-sent message by checking recent messages
+            const lead = await storage.getLeadByPhone(phone.replace(/\D/g, ''));
+            if (lead) {
+              const conversations = await storage.getConversations({ leadId: lead.id, status: 'active' });
+              if (conversations.length > 0) {
+                const conversation = conversations[0];
+                
+                // Check if we recently sent this exact message as a bot
+                const recentMessages = await storage.getMessages(conversation.id, 10);
+                const botSentThisMessage = recentMessages.some(msg => 
+                  msg.isBot === true && 
+                  msg.content === parsedMessage.message &&
+                  // Message sent in the last 30 seconds
+                  (new Date().getTime() - new Date(msg.timestamp).getTime()) < 30000
+                );
+                
+                if (!botSentThisMessage) {
+                  // This is a human intervention!
+                  console.log('[WAHA-WEBHOOK] 🚨 HUMAN INTERVENTION DETECTED (fallback check)! Marking conversation as permanently handed off.');
+                  
+                  // CRITICAL: Mark handoff in memory IMMEDIATELY before any DB operations
+                  chatbotService.markPermanentHandoff(conversation.id, phone);
+                  
+                  // Get or create chatbot state
+                  const chatbotState = await storage.getChatbotState(conversation.id);
+                  if (chatbotState) {
+                    // Mark as permanently handed off in database
+                    await storage.updateChatbotState(chatbotState.id, {
+                      isPermanentHandoff: true
+                    });
+                    
+                    // Store a system message about the permanent handoff
+                    await storage.createMessage({
+                      conversationId: conversation.id,
+                      content: `[SISTEMA] Intervenção humana detectada. Bot permanentemente desativado para este lead.`,
+                      isBot: true,
+                      messageType: 'system',
+                      metadata: { 
+                        handoffType: 'permanent',
+                        handoffReason: 'human_intervention_detected',
+                        handoffTime: new Date().toISOString()
+                      }
+                    });
+                    
+                    // Store the human's message too
+                    await storage.createMessage({
+                      conversationId: conversation.id,
+                      content: parsedMessage.message,
+                      isBot: false,
+                      messageType: parsedMessage.type || 'text',
+                      metadata: { 
+                        ...parsedMessage,
+                        isHumanAgent: true,
+                        handoffTriggered: true
+                      }
+                    });
+                    
+                    console.log(`[WAHA-WEBHOOK] Lead ${lead.protocol} permanently handed off to human agent`);
+                  }
+                } else {
+                  console.log('[WAHA-WEBHOOK] Message was sent by bot, ignoring echo');
+                }
               }
             }
           }

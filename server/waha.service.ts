@@ -336,7 +336,8 @@ export class WAHAService {
         media: payload.hasMedia ? payload.media : null,
         quotedMessage: payload.quotedMsg || null,
         pushName: pushName,
-        name: pushName // Alias for backward compatibility
+        name: pushName, // Alias for backward compatibility
+        source: payload.source || null // CRITICAL: Track if message came from 'api' (bot) or 'app'/'web' (human)
       };
     } catch (error) {
       console.error('[WAHA] Error parsing webhook message:', error);
