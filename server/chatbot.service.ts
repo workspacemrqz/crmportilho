@@ -444,9 +444,10 @@ export class ChatbotService {
       
       // Extract media information from messageData
       const messageId = messageData?.id || messageData?.messageId;
-      const mimetype = messageData?.mimetype || messageData?._data?.mimetype;
-      const mediaUrl = messageData?._data?.mediaUrl || messageData?.mediaUrl;
-      const size = messageData?.size || messageData?._data?.size;
+      const mimetype = messageData?.mimetype || messageData?._data?.mimetype || messageData?.media?.mimetype;
+      // WAHA webhook provides media.url field for downloaded files
+      const mediaUrl = messageData?.media?.url || messageData?._data?.mediaUrl || messageData?.mediaUrl;
+      const size = messageData?.size || messageData?._data?.size || messageData?.media?.fileSize;
       
       // Extract filename from various possible locations
       let filename = 
