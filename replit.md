@@ -49,8 +49,14 @@ Full-stack TypeScript application with:
 - Webhook processing for incoming messages
 
 ### 3. AI-Powered Chatbot
-- Automated customer service using OpenAI GPT models
-- Natural language understanding and processing
+- **Intelligent Menu Recognition** (100% local, no API dependency):
+  - Recognizes direct numbers (1, 2, 3...)
+  - Recognizes written numbers in Portuguese (um, dois, três...)
+  - Recognizes emoji numbers (1️⃣, 2️⃣...)
+  - Recognizes greetings as option 1 default (oi, olá, bom dia...)
+  - Keyword-based intent detection for all menu options
+  - Automatic accent normalization for better matching
+- Optional OpenAI GPT integration for advanced conversational AI
 - Workflow-based conversation flows
 - Context-aware responses
 - Data extraction from conversations
@@ -166,6 +172,18 @@ npm run dev        # Start both frontend and backend
 
 ## Recent Changes (November 2025)
 
+### Menu Intent Recognition System (November 5, 2025)
+- **CRITICAL FIX**: Replaced OpenAI-dependent menu recognition with robust local pattern matching
+- System now works 100% reliably without requiring OpenAI API quota
+- Comprehensive recognition capabilities:
+  - Direct numbers: "1", "2", "3"
+  - Written numbers: "um", "dois", "três", "primeiro", "segunda"
+  - Emoji numbers: 1️⃣, 2️⃣, 3️⃣
+  - Greetings default to option 1: "oi", "olá", "bom dia", "boa tarde"
+  - Keyword matching for all 6 menu options with accent normalization
+- Fixed all LSP errors in webhook configuration files
+- Added detailed logging for debugging menu selection process
+
 ### Initial Replit Setup
 - Configured Vite for Replit environment with proper host settings (0.0.0.0)
 - **CRITICAL FIX**: Added `allowedHosts: true` to Vite config to allow Replit proxy domains
@@ -177,6 +195,7 @@ npm run dev        # Start both frontend and backend
 ### Configuration Notes
 - The `allowedHosts: true` setting in `vite.config.ts` is **essential** for Replit - without it, Vite blocks requests from the dynamic Replit preview domains
 - Minor WebSocket HMR connection warnings in console are expected and don't affect functionality
+- Menu recognition works entirely offline - OpenAI API key is optional and only used for advanced conversational features
 
 ## User Preferences
 - Language: Portuguese (Brazilian)
