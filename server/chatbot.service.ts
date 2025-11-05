@@ -70,6 +70,7 @@ export class ChatbotService {
   private bufferTimeoutMs: number = 30000; // Cache do valor (default 30s)
   private settingsCacheTime: number = 0;
   private SETTINGS_CACHE_TTL = 60000; // 1 minuto
+  private customBufferTimeouts: Map<string, number> = new Map(); // Buffer customizado por telefone
 
   // Required fields by chatbot state for validation
   private readonly REQUIRED_FIELDS_BY_STATE: Record<string, string[]> = {
@@ -229,6 +230,27 @@ export class ChatbotService {
     await this.loadSettings();
   }
 
+  // Set custom buffer timeout for a specific phone number (one-time use)
+  private setCustomBufferTimeout(phone: string, timeoutMs: number) {
+    this.customBufferTimeouts.set(phone, timeoutMs);
+    console.log(`[ChatbotService] 🕐 Buffer customizado definido para ${phone}: ${timeoutMs/1000}s`);
+  }
+
+  // Get buffer timeout for a specific phone (checks custom first, then default)
+  private async getBufferTimeoutForPhone(phone: string): Promise<number> {
+    // Check if there's a custom timeout for this phone
+    const customTimeout = this.customBufferTimeouts.get(phone);
+    if (customTimeout !== undefined) {
+      console.log(`[ChatbotService] 🕐 Usando buffer customizado para ${phone}: ${customTimeout/1000}s`);
+      // Remove custom timeout after retrieving (one-time use)
+      this.customBufferTimeouts.delete(phone);
+      return customTimeout;
+    }
+    
+    // Otherwise use default configured timeout
+    return await this.getBufferTimeout();
+  }
+
   async processIncomingMessage(phone: string, messageContent: string, messageData: any) {
     try {
       console.log(`[ChatbotService] processIncomingMessage called with phone: ${phone}`);
@@ -242,8 +264,8 @@ export class ChatbotService {
       let buffer = this.messageBuffers.get(phone);
       
       if (!buffer) {
-        // Use configured buffer timeout
-        const timeout = await this.getBufferTimeout();
+        // Use configured buffer timeout (checks for custom timeout first)
+        const timeout = await this.getBufferTimeoutForPhone(phone);
         
         console.log(`[ChatbotService] Starting new ${timeout/1000}s buffer for ${phone}`);
         buffer = {
@@ -1400,6 +1422,9 @@ Agora vou coletar seus dados pessoais. Por favor, informe:
 💬 Dica: Você pode responder digitando ou enviando áudio, se for mais rápido e prático.`;
 
       await this.wahaAPI.sendText(lead.whatsappPhone, urgentMessage, conversation.id);
+      
+      // Set custom buffer of 2 minutes (120 seconds) for collecting personal data
+      this.setCustomBufferTimeout(lead.whatsappPhone, 120000);
       
       // Update lead priority to urgent
       await db.update(leads)
