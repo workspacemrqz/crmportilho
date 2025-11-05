@@ -172,6 +172,18 @@ npm run dev        # Start both frontend and backend
 
 ## Recent Changes (November 2025)
 
+### Smart Data Extraction with Fallback System (November 5, 2025)
+- **FEATURE COMPLETE**: Intelligent partial data extraction for customer responses
+- **Primary Method**: OpenAI GPT-4 for advanced natural language understanding
+- **Fallback System**: Local regex-based extraction when OpenAI unavailable
+  - Extracts: nome, CPF, email, CEP, telefone, data de nascimento, profissão, endereço, estado civil
+  - Handles multiple input patterns: "Gabriel Alves Marques, 54498358848"
+  - Supports natural phrasings: "Meu nome é João Silva, sou engenheiro"
+  - Returns ISO date format (YYYY-MM-DD) for consistency
+- **Progressive Collection**: System saves partial data and requests only missing fields
+- **Validation**: Checks completeness before advancing workflow states
+- Fixed message prefix bug ("Mensagem N:") that broke menu recognition
+
 ### Menu Intent Recognition System (November 5, 2025)
 - **CRITICAL FIX**: Replaced OpenAI-dependent menu recognition with robust local pattern matching
 - System now works 100% reliably without requiring OpenAI API quota
