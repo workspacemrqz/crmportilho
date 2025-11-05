@@ -376,6 +376,13 @@ export class ChatbotService {
       // Find or create conversation
       let conversation = await this.findOrCreateConversation(lead.id, lead.protocol);
       
+      // CRITICAL: Check in-memory guard first before any processing
+      // This prevents race conditions where human intervention was just detected
+      if (this.isPermanentHandoffActive(conversation.id)) {
+        console.log(`[ChatbotService] 🔇 GUARD EM MEMÓRIA: Bot permanentemente desativado para conversation ${conversation.id}. Ignorando mensagens.`);
+        return;
+      }
+      
       // Store all incoming messages
       for (const msg of buffer.messages) {
         // Determine message type from messageData
@@ -690,6 +697,12 @@ export class ChatbotService {
       console.log(`[ChatbotService] 📊 CollectedData:`, JSON.stringify(existingState.collectedData));
       console.log(`[ChatbotService] 🔄 Estado existente encontrado: ${existingState.currentState} (ID: ${existingState.id})`);
       console.log(`[ChatbotService] 📊 Dados coletados no estado: ${JSON.stringify(existingState.collectedData)}`);
+      
+      // Sync in-memory handoff guard with DB state (important after server restart)
+      if (existingState.isPermanentHandoff && !this.isPermanentHandoffActive(conversationId)) {
+        console.log(`[ChatbotService] 🔄 Sincronizando guard em memória: isPermanentHandoff=true no DB para conversation ${conversationId}`);
+        this.permanentHandoffConversations.add(conversationId);
+      }
       
       // PROTEÇÃO CRÍTICA: Se o estado já tem dados coletados, NUNCA permitir volta para initial
       if (existingState.currentState === 'initial' && existingState.collectedData && Object.keys(existingState.collectedData).length > 0) {
@@ -3449,6 +3462,9 @@ Agradecemos por escolher a Portilho Corretora! 💚`;
   }
 
   private async handleHumanHandoff(lead: Lead, conversation: Conversation, reason: string, customMessage?: string) {
+    // CRITICAL: Mark in memory FIRST to prevent race conditions
+    this.markPermanentHandoff(conversation.id, lead.whatsappPhone);
+    
     // Update lead status
     await db.update(leads)
       .set({ 
