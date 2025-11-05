@@ -1460,16 +1460,24 @@ Agora vou coletar seus dados pessoais. Por favor, informe:
       const extractedData = await this.extractPersonalDataFromMessage(messageContent, lead);
       console.log('[ChatbotService] 📊 Dados extraídos:', JSON.stringify(extractedData));
 
-      // 2. Atualizar lead com TODOS os campos extraídos
-      if (Object.keys(extractedData).length > 0) {
-        console.log('[ChatbotService] 💾 Atualizando lead no banco de dados...');
-        await db.update(leads).set(extractedData).where(eq(leads.id, lead.id));
-        console.log('[ChatbotService] ✅ Lead atualizado com sucesso');
-      } else {
-        console.log('[ChatbotService] ⚠️ Nenhum dado extraído da mensagem');
+      // 2. Check if OpenAI extraction failed (empty object) and show friendly error
+      if (Object.keys(extractedData).length === 0) {
+        console.log('[ChatbotService] ⚠️ Nenhum dado extraído - OpenAI pode estar indisponível');
+        await this.wahaAPI.sendText(
+          lead.whatsappPhone,
+          '⚠️ Desculpe, nosso sistema de IA está temporariamente indisponível.\n\n' +
+          'Por favor, digite "humano" para falar com um atendente que vai te ajudar pessoalmente.',
+          conversation.id
+        );
+        return;
       }
 
-      // 3. Buscar lead atualizado do banco para validação
+      // 3. Atualizar lead com TODOS os campos extraídos
+      console.log('[ChatbotService] 💾 Atualizando lead no banco de dados...');
+      await db.update(leads).set(extractedData).where(eq(leads.id, lead.id));
+      console.log('[ChatbotService] ✅ Lead atualizado com sucesso');
+
+      // 4. Buscar lead atualizado do banco para validação
       console.log('[ChatbotService] 🔄 Buscando lead atualizado do banco...');
       const updatedLead = await db.query.leads.findFirst({
         where: eq(leads.id, lead.id)
@@ -1479,13 +1487,13 @@ Agora vou coletar seus dados pessoais. Por favor, informe:
         throw new Error('Lead não encontrado após atualização');
       }
 
-      // 4. Validar completude dos dados
+      // 5. Validar completude dos dados
       console.log('[ChatbotService] 🔍 Validando completude dos dados pessoais...');
       const validation = await this.isStateDataComplete('dados_pessoais', updatedLead);
       
       console.log(`[ChatbotService] 📊 Resultado validação: ${validation.isComplete ? 'COMPLETO ✅' : 'INCOMPLETO ❌'}`);
       
-      // 5. Se incompleto: pedir o que falta e NÃO avançar
+      // 6. Se incompleto: pedir o que falta e NÃO avançar
       if (!validation.isComplete) {
         console.log(`[ChatbotService] ⚠️ Dados incompletos. Campos faltantes (${validation.missingFields.length}):`, validation.missingFields.join(', '));
         
@@ -1499,7 +1507,7 @@ Agora vou coletar seus dados pessoais. Por favor, informe:
         return;
       }
 
-      // 6. Se completo: gerar resumo e pedir confirmação
+      // 7. Se completo: gerar resumo e pedir confirmação
       console.log('[ChatbotService] ✅ Todos os dados pessoais foram coletados!');
       console.log('[ChatbotService] 📝 Gerando resumo para confirmação...');
       
@@ -4329,11 +4337,18 @@ Retorne um objeto JSON com APENAS os campos extraídos da mensagem.`;
       console.error('[ChatbotService] ❌ Erro ao extrair dados pessoais com GPT-4:', error);
       if (error instanceof Error) {
         console.error('[ChatbotService] ❌ Mensagem de erro:', error.message);
+        
+        // Check if it's a quota/billing error
+        if (error.message.includes('quota') || error.message.includes('billing')) {
+          console.error('[ChatbotService] ⚠️ ERRO DE QUOTA: A chave da OpenAI está sem créditos');
+          console.error('[ChatbotService] 💡 Solução: Adicione créditos em https://platform.openai.com/account/billing');
+        }
       }
       
-      // FALLBACK: Use local regex extraction when OpenAI fails
-      console.log('[ChatbotService] 🔄 OpenAI falhou, usando extração local como fallback...');
-      return this.extractPersonalDataLocalFallback(message);
+      // NO FALLBACK - Return empty object when OpenAI fails
+      // User requested to use ONLY OpenAI for accurate extraction
+      console.log('[ChatbotService] ⚠️ Sem fallback - retornando objeto vazio');
+      return {};
     }
   }
 
