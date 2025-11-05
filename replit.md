@@ -8,6 +8,20 @@ Seguro IA is a comprehensive CRM system designed for managing leads and customer
 - Application name: "Seguro IA" (Insurance AI)
 - Login credentials: Username "1", Password "1" (for development)
 
+## Recent Changes
+
+### November 5, 2025 - Human Intervention Race Condition Fix
+Fixed critical race condition where the bot would continue responding after human intervention was detected. When an agent sent a message, the system would mark the conversation as permanently handed off in the database, but due to asynchronous operations, customer messages arriving simultaneously could still be processed before the database update completed.
+
+**Solution Implemented:**
+- Added in-memory guard (`permanentHandoffConversations` Set) in ChatbotService for instant handoff tracking
+- Modified webhook to mark handoff in memory IMMEDIATELY before any database operations
+- Added early-exit check in message buffer flush process to prevent processing after handoff
+- Implemented state synchronization on server restart to restore in-memory guards from database
+- All human handoff triggers (agent intervention and bot-initiated transfers) now use the in-memory guard
+
+**Impact:** Eliminates the issue where the bot sends automated responses after a human agent has taken over the conversation.
+
 ## System Architecture
 
 ### Core Technologies
