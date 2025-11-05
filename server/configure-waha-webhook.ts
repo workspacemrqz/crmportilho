@@ -48,6 +48,12 @@ async function configureWebhook() {
                 'message.any',
                 'session.status'
               ],
+              customHeaders: [
+                {
+                  name: 'X-Api-Key',
+                  value: WAHA_API_KEY
+                }
+              ],
               retries: {
                 policy: 'exponential',
                 delaySeconds: 2,
