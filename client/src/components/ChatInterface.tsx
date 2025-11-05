@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Paperclip } from "lucide-react";
+import { Send, Paperclip, X, FileText } from "lucide-react";
 import MessageBubble from "./MessageBubble";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
@@ -25,6 +25,7 @@ interface ChatInterfaceProps {
 
 export default function ChatInterface({ conversationId, protocol, contactName, status }: ChatInterfaceProps) {
   const [input, setInput] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -98,10 +99,10 @@ export default function ChatInterface({ conversationId, protocol, contactName, s
 
   // Send file mutation
   const sendFileMutation = useMutation({
-    mutationFn: async (file: File) => {
+    mutationFn: async ({ file, caption }: { file: File; caption: string }) => {
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('caption', file.name);
+      formData.append('caption', caption || file.name);
 
       const response = await fetch(`/api/conversations/${conversationId}/send-file`, {
         method: 'POST',
@@ -140,6 +141,23 @@ export default function ChatInterface({ conversationId, protocol, contactName, s
   });
 
   const handleSend = () => {
+    // If there's a file selected, send it with the caption
+    if (selectedFile) {
+      sendFileMutation.mutate({ 
+        file: selectedFile, 
+        caption: input.trim() || selectedFile.name 
+      });
+      setSelectedFile(null);
+      setInput("");
+      
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      return;
+    }
+    
+    // Otherwise, send text message
     if (!input.trim()) return;
     
     sendMessageMutation.mutate(input);
@@ -178,9 +196,12 @@ export default function ChatInterface({ conversationId, protocol, contactName, s
       return;
     }
 
-    sendFileMutation.mutate(file);
-    
-    // Reset file input
+    // Store the file to be sent when user clicks send button
+    setSelectedFile(file);
+  };
+
+  const handleRemoveFile = () => {
+    setSelectedFile(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -213,6 +234,27 @@ export default function ChatInterface({ conversationId, protocol, contactName, s
       </div>
 
       <div className="border-t p-2 sm:p-4">
+        {/* File preview */}
+        {selectedFile && (
+          <div className="mb-2 flex items-center gap-2 p-2 bg-muted rounded-md">
+            <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">{selectedFile.name}</p>
+              <p className="text-xs text-muted-foreground">
+                {(selectedFile.size / 1024).toFixed(1)} KB
+              </p>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 flex-shrink-0"
+              onClick={handleRemoveFile}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+
         <div className="flex gap-1 sm:gap-2">
           <input
             ref={fileInputRef}
@@ -228,7 +270,7 @@ export default function ChatInterface({ conversationId, protocol, contactName, s
             className="flex-shrink-0"
             data-testid="button-attach"
             onClick={handleAttachClick}
-            disabled={sendFileMutation.isPending}
+            disabled={sendFileMutation.isPending || !!selectedFile}
           >
             <Paperclip className="h-5 w-5" />
           </Button>
@@ -236,7 +278,7 @@ export default function ChatInterface({ conversationId, protocol, contactName, s
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Digite sua mensagem..."
+            placeholder={selectedFile ? "Digite uma legenda (opcional)..." : "Digite sua mensagem..."}
             className="resize-none min-h-[2.5rem] flex-1"
             data-testid="input-message"
           />
@@ -245,7 +287,7 @@ export default function ChatInterface({ conversationId, protocol, contactName, s
             size="icon"
             className="flex-shrink-0"
             data-testid="button-send"
-            disabled={sendMessageMutation.isPending}
+            disabled={sendMessageMutation.isPending || sendFileMutation.isPending || (!input.trim() && !selectedFile)}
           >
             <Send className="h-5 w-5" />
           </Button>
