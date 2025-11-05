@@ -18,6 +18,7 @@ import {
 } from '@shared/schema';
 import { WAHAService } from './waha.service';
 import { SupabaseStorageService } from './supabase.service';
+import { chatwootService } from './chatwoot.service';
 import { eq, and, desc, ne } from 'drizzle-orm';
 import OpenAI from 'openai';
 import { promises as fs } from 'fs';
@@ -1306,6 +1307,16 @@ O veículo já está com você ou quando você irá pegá-lo?`;
           })
           .where(eq(leads.id, lead.id));
         
+        // Get updated lead to ensure we have latest data
+        const [updatedLead] = await db.select().from(leads).where(eq(leads.id, lead.id));
+        
+        // Create Chatwoot conversation with urgent priority and realizar_cotação label
+        await this.createChatwootConversationForLead(
+          updatedLead,
+          'urgent',
+          ['realizar_cotação', 'autorio', 'urgente']
+        );
+        
         // Send message and transfer to human
         const urgentMessage = `Entendido! Como o veículo já está com você, vou marcar sua solicitação com grau de importância ALTO e COTAÇÃO URGENTE. 🚨
 
@@ -1370,6 +1381,16 @@ Por favor, informe a data e hora aproximadas.`;
           tags: [...(lead.tags || []), 'AUTORIO', 'VEÍCULO_A_RETIRAR']
         })
         .where(eq(leads.id, lead.id));
+      
+      // Get updated lead to ensure we have latest data
+      const [updatedLead] = await db.select().from(leads).where(eq(leads.id, lead.id));
+      
+      // Create Chatwoot conversation with medium priority and realizar_cotação label
+      await this.createChatwootConversationForLead(
+        updatedLead,
+        'medium',
+        ['realizar_cotação', 'autorio']
+      );
       
       await this.updateChatbotState(chatbotState.id, {
         collectedData: { 
@@ -1444,6 +1465,16 @@ Agora vou coletar seus dados pessoais. Por favor, informe:
           tags: [...(lead.tags || []), 'URGENTE', 'AUTO', 'SEM_SEGURO']
         })
         .where(eq(leads.id, lead.id));
+
+      // Get updated lead to ensure we have latest data
+      const [updatedLead] = await db.select().from(leads).where(eq(leads.id, lead.id));
+      
+      // Create Chatwoot conversation with urgent priority and realizar_cotação label
+      await this.createChatwootConversationForLead(
+        updatedLead,
+        'urgent',
+        ['realizar_cotação', 'auto', 'urgente']
+      );
 
       await this.updateChatbotState(chatbotState.id, {
         currentState: 'fluxo_auto_dados_pessoais',
@@ -2948,6 +2979,24 @@ Obrigado por escolher a Portilho Corretora!`;
     try {
       console.log(`[ChatbotService] 📍 Estado: fluxo_auto_quando_pega | Lead: ${lead.protocol}`);
       
+      // Update lead with normal priority since vehicle is not yet with customer
+      await db.update(leads)
+        .set({ 
+          priority: 'normal',
+          tags: [...(lead.tags || []), 'AUTO', 'VEÍCULO_A_RETIRAR']
+        })
+        .where(eq(leads.id, lead.id));
+      
+      // Get updated lead to ensure we have latest data
+      const [updatedLead] = await db.select().from(leads).where(eq(leads.id, lead.id));
+      
+      // Create Chatwoot conversation with medium priority and realizar_cotação label
+      await this.createChatwootConversationForLead(
+        updatedLead,
+        'medium',
+        ['realizar_cotação', 'auto']
+      );
+      
       // Store the date when client will pick up vehicle
       const confirmMessage = `Perfeito! Anotei que você irá pegar o veículo em ${messageContent}.
 
@@ -2960,7 +3009,8 @@ Nome completo, CPF, data de nascimento, estado civil, endereço completo com CEP
         currentState: 'fluxo_auto_dados_pessoais',
         collectedData: { 
           ...(chatbotState.collectedData as ChatbotCollectedData || {}), 
-          dataRetirada: messageContent 
+          dataRetirada: messageContent,
+          prioridade: 'normal'
         }
       });
     } catch (error) {
@@ -3888,6 +3938,56 @@ Retorne APENAS uma palavra: "sim", "não" ou "unclear".`;
         return 'não';
       }
       return 'unclear';
+    }
+  }
+
+  // Create Chatwoot conversation for lead with priority and labels
+  private async createChatwootConversationForLead(
+    lead: Lead,
+    priority: 'urgent' | 'medium',
+    labels: string[]
+  ): Promise<void> {
+    try {
+      console.log(`[ChatbotService] 🔗 Criando conversação Chatwoot para lead ${lead.protocol}`);
+      
+      // Skip if Chatwoot is not configured
+      if (!chatwootService.isConfigured()) {
+        console.log('[ChatbotService] ⚠️ Chatwoot não configurado, pulando criação de conversação');
+        return;
+      }
+
+      // Skip if lead already has a Chatwoot conversation
+      if (lead.chatwootConversationId) {
+        console.log(`[ChatbotService] ℹ️ Lead ${lead.protocol} já tem conversação Chatwoot ID ${lead.chatwootConversationId}`);
+        return;
+      }
+
+      // Create conversation in Chatwoot
+      const result = await chatwootService.createInsuranceConversation(
+        lead.name || 'Cliente',
+        lead.whatsappPhone,
+        lead.email || undefined,
+        lead.cpf || undefined,
+        lead.protocol,
+        priority,
+        labels
+      );
+
+      if (result) {
+        // Update lead with Chatwoot IDs
+        await db.update(leads)
+          .set({
+            chatwootContactId: result.contactId,
+            chatwootConversationId: result.conversationId
+          })
+          .where(eq(leads.id, lead.id));
+
+        console.log(`[ChatbotService] ✅ Conversação Chatwoot criada: Contact ID ${result.contactId}, Conversation ID ${result.conversationId}`);
+      } else {
+        console.warn(`[ChatbotService] ⚠️ Falha ao criar conversação Chatwoot para lead ${lead.protocol}`);
+      }
+    } catch (error) {
+      console.error('[ChatbotService] ❌ Erro ao criar conversação Chatwoot:', error);
     }
   }
 
