@@ -41,8 +41,23 @@ export default function ChatInterface({ conversationId, protocol, contactName, s
       if (message.messageType === 'system') {
         return false;
       }
-      // Remove duplicates by id (keep first occurrence)
-      return self.findIndex(m => m.id === message.id) === index;
+      
+      // Remove duplicates by content and isBot (keep first occurrence)
+      // Messages with same content and same sender (bot/user) within 5 seconds are considered duplicates
+      const isDuplicate = self.findIndex(m => {
+        if (m.id === message.id) return true; // Same message
+        
+        const isSameContent = m.content === message.content && m.isBot === message.isBot;
+        if (!isSameContent) return false;
+        
+        // Check if timestamps are within 5 seconds
+        const timeDiff = Math.abs(
+          new Date(m.timestamp).getTime() - new Date(message.timestamp).getTime()
+        );
+        return timeDiff < 5000; // 5 seconds
+      }) === index;
+      
+      return isDuplicate;
     })
     .sort((a, b) => 
       new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
