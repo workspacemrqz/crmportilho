@@ -188,8 +188,15 @@ npm run dev        # Start both frontend and backend
 - **Storage Service**: Created SupabaseStorageService for document upload/download
 - **Bucket**: All documents stored in "portilho" bucket with organized path structure
 - **Authentication**: Uses SUPABASE_SERVICE_ROLE_KEY for server-side operations
-- **Path Format**: `{leadId}/{timestamp}-{filename}` for organized storage
+- **Path Format**: 
+  - Manual uploads: `{leadId}/{timestamp}-{filename}`
+  - WhatsApp documents: `{leadId}/whatsapp/{messageId}`
 - **Security**: Service role key used only on server-side, never exposed to frontend
+- **WhatsApp Document Caching**: Implemented 3-tier download strategy for reliability
+  1. Documents automatically cached in Supabase when received via webhook
+  2. Download endpoint prioritizes Supabase cache (reliable) over WAHA API (unreliable)
+  3. Lazy caching - documents missed initially are cached on first user download
+  4. Metadata updated with Supabase path for tracking
 - **BUGFIX**: Fixed schema column name mapping for `required_variables` in workflow_templates table
   - Problem: Drizzle ORM converts camelCase to snake_case in database, causing SQL errors
   - Solution: Explicitly specified column name as `text("required_variables")` in schema
