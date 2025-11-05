@@ -4068,6 +4068,113 @@ Condutor Principal: ${lead.isPrincipalDriver ? 'Sim' : lead.isPrincipalDriver ==
   // ========== FUNÇÕES DE EXTRAÇÃO INTELIGENTE DE DADOS PESSOAIS ==========
 
   /**
+   * Extrai dados pessoais usando regex local (fallback quando OpenAI falhar)
+   * @param message - Mensagem do cliente contendo dados pessoais
+   * @returns Objeto com os campos extraídos
+   */
+  private extractPersonalDataLocalFallback(message: string): any {
+    console.log('[ChatbotService] 🔧 Usando fallback local para extração de dados...');
+    const cleanedData: any = {};
+
+    // Clean message prefix
+    const cleanMsg = this.cleanMessagePrefix(message);
+    const msgLower = cleanMsg.toLowerCase();
+
+    // Extract CPF (11 digits, with or without formatting)
+    const cpfMatch = cleanMsg.match(/\b(\d{3}\.?\d{3}\.?\d{3}-?\d{2})\b/);
+    if (cpfMatch) {
+      cleanedData.cpf = this.formatCPF(cpfMatch[1]);
+      console.log('[ChatbotService] ✅ CPF extraído (regex):', cleanedData.cpf);
+    }
+
+    // Extract name - handles multiple patterns
+    // Pattern 1: "Meu nome é João Silva" or "Me chamo João Silva"
+    let nameMatch = cleanMsg.match(/(?:meu nome(?: é)?|me chamo|sou)\s+([A-ZÁÀÂÃÉÊÍÓÔÕÚÇ][a-záàâãéêíóôõúç]+(?:\s+[A-ZÁÀÂÃÉÊÍÓÔÕÚÇ][a-záàâãéêíóôõúç]+)+)/i);
+    if (nameMatch) {
+      cleanedData.name = nameMatch[1].trim();
+      console.log('[ChatbotService] ✅ Nome extraído (regex pattern 1):', cleanedData.name);
+    } else {
+      // Pattern 2: Name at the start followed by comma or CPF
+      nameMatch = cleanMsg.match(/^([A-ZÁÀÂÃÉÊÍÓÔÕÚÇ][a-záàâãéêíóôõúç]+(?:\s+[A-ZÁÀÂÃÉÊÍÓÔÕÚÇ][a-záàâãéêíóôõúç]+)+)(?:\s*,|\s+\d)/);
+      if (nameMatch) {
+        cleanedData.name = nameMatch[1].trim();
+        console.log('[ChatbotService] ✅ Nome extraído (regex pattern 2):', cleanedData.name);
+      }
+    }
+
+    // Extract email
+    const emailMatch = cleanMsg.match(/\b([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})\b/);
+    if (emailMatch) {
+      cleanedData.email = emailMatch[1].toLowerCase();
+      console.log('[ChatbotService] ✅ Email extraído (regex):', cleanedData.email);
+    }
+
+    // Extract CEP (8 digits, with or without dash)
+    const cepMatch = cleanMsg.match(/(?:cep[:\s]+)?(\d{5}-?\d{3})\b/i);
+    if (cepMatch) {
+      cleanedData.cep = this.formatCEP(cepMatch[1]);
+      console.log('[ChatbotService] ✅ CEP extraído (regex):', cleanedData.cep);
+    }
+
+    // Extract phone (10-11 digits with various formats)
+    const phoneMatch = cleanMsg.match(/(?:telefone|celular|fone)[:\s]*(\(?\d{2}\)?[\s-]?\d{4,5}[\s-]?\d{4})|(\(?\d{2}\)?[\s-]?\d{4,5}[\s-]?\d{4})/i);
+    if (phoneMatch) {
+      const phone = phoneMatch[1] || phoneMatch[2];
+      cleanedData.phone = this.formatPhone(phone);
+      console.log('[ChatbotService] ✅ Telefone extraído (regex):', cleanedData.phone);
+    }
+
+    // Extract birth date (DD/MM/YYYY or DD-MM-YYYY) - return as ISO string
+    const birthDateMatch = cleanMsg.match(/(?:nascimento|nasci|data)[:\s]*(\d{2})[/-](\d{2})[/-](\d{4})|(\d{2})[/-](\d{2})[/-](\d{4})/i);
+    if (birthDateMatch) {
+      let day: string, month: string, year: string;
+      if (birthDateMatch[1]) {
+        [, day, month, year] = birthDateMatch;
+      } else {
+        [, , , , day, month, year] = birthDateMatch;
+      }
+      // Return as ISO string format (YYYY-MM-DD)
+      cleanedData.birthDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      console.log('[ChatbotService] ✅ Data de nascimento extraída (regex):', cleanedData.birthDate);
+    }
+
+    // Extract profession - specific keywords to avoid conflicting with name
+    const professionMatch = cleanMsg.match(/(?:profiss[aã]o[:\s]+|trabalho como|atuo como)\s*([a-záàâãéêíóôõúç]+(?:\s+[a-záàâãéêíóôõúç]+)*)/i);
+    if (professionMatch) {
+      cleanedData.profession = professionMatch[1].trim();
+      console.log('[ChatbotService] ✅ Profissão extraída (regex):', cleanedData.profession);
+    }
+
+    // Extract address
+    const addressMatch = cleanMsg.match(/(?:endere[cç]o|moro em)[:\s]+([^,\n]+(?:,\s*[^,\n]+)*)/i);
+    if (addressMatch) {
+      cleanedData.address = addressMatch[1].trim();
+      console.log('[ChatbotService] ✅ Endereço extraído (regex):', cleanedData.address);
+    }
+
+    // Extract marital status
+    if (msgLower.includes('solteiro') || msgLower.includes('solteira')) {
+      cleanedData.maritalStatus = 'solteiro';
+      console.log('[ChatbotService] ✅ Estado civil extraído (regex): solteiro');
+    } else if (msgLower.includes('casado') || msgLower.includes('casada')) {
+      cleanedData.maritalStatus = 'casado';
+      console.log('[ChatbotService] ✅ Estado civil extraído (regex): casado');
+    } else if (msgLower.includes('divorciado') || msgLower.includes('divorciada')) {
+      cleanedData.maritalStatus = 'divorciado';
+      console.log('[ChatbotService] ✅ Estado civil extraído (regex): divorciado');
+    } else if (msgLower.includes('viúvo') || msgLower.includes('viúva')) {
+      cleanedData.maritalStatus = 'viúvo';
+      console.log('[ChatbotService] ✅ Estado civil extraído (regex): viúvo');
+    } else if (msgLower.includes('união estável')) {
+      cleanedData.maritalStatus = 'união estável';
+      console.log('[ChatbotService] ✅ Estado civil extraído (regex): união estável');
+    }
+
+    console.log('[ChatbotService] ✅ Fallback local concluído. Campos extraídos:', Object.keys(cleanedData).join(', '));
+    return cleanedData;
+  }
+
+  /**
    * Extrai dados pessoais estruturados de uma mensagem usando GPT-4
    * @param message - Mensagem do cliente contendo dados pessoais
    * @param existingData - Dados já coletados anteriormente
@@ -4218,12 +4325,14 @@ Retorne um objeto JSON com APENAS os campos extraídos da mensagem.`;
       return cleanedData;
 
     } catch (error) {
-      console.error('[ChatbotService] ❌ Erro ao extrair dados pessoais:', error);
+      console.error('[ChatbotService] ❌ Erro ao extrair dados pessoais com GPT-4:', error);
       if (error instanceof Error) {
         console.error('[ChatbotService] ❌ Mensagem de erro:', error.message);
-        console.error('[ChatbotService] ❌ Stack trace:', error.stack);
       }
-      return {};
+      
+      // FALLBACK: Use local regex extraction when OpenAI fails
+      console.log('[ChatbotService] 🔄 OpenAI falhou, usando extração local como fallback...');
+      return this.extractPersonalDataLocalFallback(message);
     }
   }
 
