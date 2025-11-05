@@ -242,11 +242,10 @@ export class ChatbotService {
       let buffer = this.messageBuffers.get(phone);
       
       if (!buffer) {
-        // For first message, use shorter timeout for better responsiveness
-        const isFirstMessage = true;
-        const timeout = isFirstMessage ? 3000 : await this.getBufferTimeout(); // 3 seconds for first message
+        // Use configured buffer timeout
+        const timeout = await this.getBufferTimeout();
         
-        console.log(`[ChatbotService] Starting new ${timeout/1000}s buffer for ${phone} (first message: ${isFirstMessage})`);
+        console.log(`[ChatbotService] Starting new ${timeout/1000}s buffer for ${phone}`);
         buffer = {
           phone,
           messages: [],
@@ -255,13 +254,13 @@ export class ChatbotService {
         };
         this.messageBuffers.set(phone, buffer);
         
-        // Start timer with dynamic timeout
+        // Start timer with configured timeout
         buffer.timer = setTimeout(() => {
           void this.flushBuffer(phone).catch(err => {
             console.error(`[ChatbotService] Error flushing buffer for ${phone}:`, err);
             this.messageBuffers.delete(phone);
           });
-        }, timeout); // Use shorter timeout for first message
+        }, timeout);
       }
       
       // Adicionar mensagem ao buffer
