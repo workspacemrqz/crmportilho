@@ -3595,112 +3595,144 @@ Retorne um JSON com:
     }
   }
 
-  // Understand user intent using OpenAI
+  // Understand user intent using intelligent local pattern matching (no OpenAI needed)
   private async understandMenuIntent(userMessage: string): Promise<string> {
-    try {
-      console.log(`[ChatbotService] 🔍 Analisando intenção do menu para: "${userMessage}"`);
-      
-      const systemPrompt = `Você é um assistente inteligente que entende a intenção do usuário ao escolher opções de um menu de seguros.
-
-O menu apresentado ao usuário tem as seguintes opções:
-1️⃣ Seguros Novos – Geral → Solicitar nova cotação para produtos diversos
-2️⃣ Seguros Novos – Autorio → Solicitar nova cotação da Autorio
-3️⃣ Renovação de Seguro → Atualizar ou renovar sua apólice
-4️⃣ Endosso / Alteração → Alterações na apólice
-5️⃣ Parcelas, Boletos ou 2ª via → Consultar ou emitir
-6️⃣ Sinistros / Assistências → Abrir sinistro, solicitar assistência
-
-REGRAS DE INTERPRETAÇÃO:
-1. Se o usuário digitar apenas o número (1, 2, 3, 4, 5, ou 6), retorne esse número.
-2. Se o usuário usar linguagem natural, identifique a opção correspondente.
-3. Se o usuário usar saudações simples ("oi", "olá", "ola", "hey", "bom dia", etc.) SEM mencionar especificamente outro serviço, interprete como interesse geral em seguros e retorne "1" (opção mais comum para novos clientes).
-4. Se a mensagem for ambígua ou não relacionada a nenhuma opção específica, retorne "0".
-
-EXEMPLOS DE RECONHECIMENTO:
-
-Para OPÇÃO 1:
-- "1" → "1"
-- "ola" → "1" (saudação simples indica interesse geral)
-- "oi" → "1"
-- "olá" → "1"
-- "quero fazer um seguro" → "1"
-- "preciso de cotação" → "1"
-- "seguro novo" → "1"
-- "quero contratar seguro" → "1"
-- "gostaria de informações sobre seguros" → "1"
-
-Para OPÇÃO 2:
-- "2" → "2"
-- "autorio" → "2"
-- "auto rio" → "2"
-- "seguro autorio" → "2"
-
-Para OPÇÃO 3:
-- "3" → "3"
-- "renovar" → "3"
-- "renovação" → "3"
-- "meu seguro está vencendo" → "3"
-- "venceu" → "3"
-
-Para OPÇÃO 4:
-- "4" → "4"
-- "alterar" → "4"
-- "mudança" → "4"
-- "endosso" → "4"
-- "correção" → "4"
-
-Para OPÇÃO 5:
-- "5" → "5"
-- "boleto" → "5"
-- "parcela" → "5"
-- "2ª via" → "5"
-- "segunda via" → "5"
-- "pagamento" → "5"
-
-Para OPÇÃO 6:
-- "6" → "6"
-- "sinistro" → "6"
-- "acidente" → "6"
-- "batida" → "6"
-- "assistência" → "6"
-- "guincho" → "6"
-
-IMPORTANTE: Retorne APENAS o número da opção (1, 2, 3, 4, 5, 6 ou 0), sem nenhuma explicação ou texto adicional.`;
-
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userMessage }
-        ],
-        temperature: 0.2,
-        max_tokens: 10
-      });
-
-      const intent = response.choices[0]?.message?.content?.trim() || '0';
-      console.log(`[ChatbotService] 🤖 IA identificou intenção: ${intent} para mensagem: "${userMessage}"`);
-      return intent;
-    } catch (error) {
-      console.error('[ChatbotService] ❌ Erro ao entender intenção do menu:', error);
-      // Fallback to exact matching if OpenAI fails
-      const trimmed = userMessage.trim().toLowerCase();
-      
-      // Check for exact number match
-      if (['1', '2', '3', '4', '5', '6'].includes(trimmed)) {
-        console.log(`[ChatbotService] 🔄 Fallback: número direto detectado: ${trimmed}`);
-        return trimmed;
+    console.log(`[ChatbotService] 🔍 Analisando intenção do menu para: "${userMessage}"`);
+    
+    const msg = userMessage.trim().toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, ''); // Remove accents
+    
+    // 1. Check for direct number input (most common)
+    const directNumber = msg.match(/^(\d+)$/);
+    if (directNumber) {
+      const num = directNumber[1];
+      if (['1', '2', '3', '4', '5', '6'].includes(num)) {
+        console.log(`[ChatbotService] ✅ Número direto detectado: ${num}`);
+        return num;
       }
-      
-      // Fallback for common greetings -> assume option 1
-      const greetings = ['oi', 'ola', 'olá', 'hey', 'opa', 'e ai', 'e aí', 'bom dia', 'boa tarde', 'boa noite'];
-      if (greetings.some(greeting => trimmed.includes(greeting))) {
-        console.log(`[ChatbotService] 🔄 Fallback: saudação detectada, assumindo opção 1`);
+    }
+    
+    // 2. Check for written numbers in Portuguese
+    const writtenNumbers: Record<string, string> = {
+      'um': '1', 'uma': '1', 'primeiro': '1', 'primeira': '1',
+      'dois': '2', 'duas': '2', 'segundo': '2', 'segunda': '2',
+      'tres': '3', 'terceiro': '3', 'terceira': '3',
+      'quatro': '4', 'quarto': '4', 'quarta': '4',
+      'cinco': '5', 'quinto': '5', 'quinta': '5',
+      'seis': '6', 'sexto': '6', 'sexta': '6'
+    };
+    
+    for (const [word, number] of Object.entries(writtenNumbers)) {
+      if (msg === word || msg === `opcao ${word}` || msg === `opcao numero ${word}`) {
+        console.log(`[ChatbotService] ✅ Número por extenso detectado: ${word} → ${number}`);
+        return number;
+      }
+    }
+    
+    // 3. Check for emoji numbers (1️⃣, 2️⃣, etc.)
+    const emojiMatch = userMessage.match(/[1-6]️⃣/);
+    if (emojiMatch) {
+      const num = emojiMatch[0].charAt(0);
+      console.log(`[ChatbotService] ✅ Emoji número detectado: ${num}`);
+      return num;
+    }
+    
+    // 4. Check for greetings (default to option 1 - most common for new customers)
+    const greetings = [
+      'oi', 'ola', 'opa', 'hey', 'e ai', 'eai', 'oii', 'oie',
+      'bom dia', 'boa tarde', 'boa noite', 'bomdia', 'boatarde', 'boanoite'
+    ];
+    
+    for (const greeting of greetings) {
+      if (msg === greeting || msg.startsWith(greeting + ' ') || msg.startsWith(greeting + '!')) {
+        console.log(`[ChatbotService] ✅ Saudação detectada: "${greeting}" → opção 1 (padrão para novos clientes)`);
         return '1';
       }
-      
-      console.log(`[ChatbotService] 🔄 Fallback: não foi possível identificar intenção`);
-      return '0';
     }
+    
+    // 5. Check for keywords related to each option
+    
+    // OPTION 1: Seguros Novos - Geral
+    const option1Keywords = [
+      'seguro novo', 'seguro geral', 'cotacao', 'quero fazer', 'preciso de',
+      'contratar', 'informacoes', 'gostaria', 'fazer seguro', 'novo seguro',
+      'produtos diversos', 'geral'
+    ];
+    
+    for (const keyword of option1Keywords) {
+      if (msg.includes(keyword)) {
+        console.log(`[ChatbotService] ✅ Palavra-chave opção 1 detectada: "${keyword}"`);
+        return '1';
+      }
+    }
+    
+    // OPTION 2: Seguros Novos - Autorio
+    const option2Keywords = [
+      'autorio', 'auto rio', 'seguro autorio', 'cotacao autorio'
+    ];
+    
+    for (const keyword of option2Keywords) {
+      if (msg.includes(keyword)) {
+        console.log(`[ChatbotService] ✅ Palavra-chave opção 2 detectada: "${keyword}"`);
+        return '2';
+      }
+    }
+    
+    // OPTION 3: Renovação
+    const option3Keywords = [
+      'renovar', 'renovacao', 'venceu', 'vencendo', 'renovar seguro',
+      'atualizar', 'apolice vencendo', 'vence', 'vencida'
+    ];
+    
+    for (const keyword of option3Keywords) {
+      if (msg.includes(keyword)) {
+        console.log(`[ChatbotService] ✅ Palavra-chave opção 3 detectada: "${keyword}"`);
+        return '3';
+      }
+    }
+    
+    // OPTION 4: Endosso / Alteração
+    const option4Keywords = [
+      'endosso', 'alterar', 'alteracao', 'mudanca', 'mudar',
+      'correcao', 'corrigir', 'modificar', 'trocar dados'
+    ];
+    
+    for (const keyword of option4Keywords) {
+      if (msg.includes(keyword)) {
+        console.log(`[ChatbotService] ✅ Palavra-chave opção 4 detectada: "${keyword}"`);
+        return '4';
+      }
+    }
+    
+    // OPTION 5: Parcelas, Boletos
+    const option5Keywords = [
+      'boleto', 'parcela', '2a via', 'segunda via', 'pagamento',
+      'pagar', 'fatura', 'cobranca', 'mensalidade', 'vencimento'
+    ];
+    
+    for (const keyword of option5Keywords) {
+      if (msg.includes(keyword)) {
+        console.log(`[ChatbotService] ✅ Palavra-chave opção 5 detectada: "${keyword}"`);
+        return '5';
+      }
+    }
+    
+    // OPTION 6: Sinistros / Assistências
+    const option6Keywords = [
+      'sinistro', 'acidente', 'batida', 'assistencia', 'guincho',
+      'socorro', 'ajuda urgente', 'reboque', 'pane', 'quebrou'
+    ];
+    
+    for (const keyword of option6Keywords) {
+      if (msg.includes(keyword)) {
+        console.log(`[ChatbotService] ✅ Palavra-chave opção 6 detectada: "${keyword}"`);
+        return '6';
+      }
+    }
+    
+    // 6. If nothing matched, return 0 (not understood)
+    console.log(`[ChatbotService] ⚠️ Não foi possível identificar a intenção para: "${userMessage}"`);
+    return '0';
   }
 
   // Understand Menu 1 intent using OpenAI
