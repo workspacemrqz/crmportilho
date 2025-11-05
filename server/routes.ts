@@ -346,6 +346,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('[WAHA-WEBHOOK] 🔍 Parsed message type:', parsedMessage.type);
         console.log('[WAHA-WEBHOOK] 🔍 Parsed message ID:', parsedMessage.messageId);
         console.log('[WAHA-WEBHOOK] 🔍 Has media:', parsedMessage.media ? 'YES' : 'NO');
+        
+        // CRITICAL: Check if conversation is permanently handed off BEFORE processing ANY customer message
+        const leadCheck = await storage.getLeadByPhone(phone.replace(/\D/g, ''));
+        if (leadCheck) {
+          const conversationsCheck = await storage.getConversations({ leadId: leadCheck.id, status: 'active' });
+          if (conversationsCheck.length > 0) {
+            const conversationCheck = conversationsCheck[0];
+            
+            // Check both in-memory guard and database
+            if (chatbotService.isPermanentHandoff(conversationCheck.id, phone)) {
+              console.log('[WAHA-WEBHOOK] 🛑 PERMANENT HANDOFF ACTIVE - Ignoring message to prevent bot response');
+              
+              // Still save the customer message for history, but don't let bot process it
+              await storage.createMessage({
+                conversationId: conversationCheck.id,
+                content: parsedMessage.message || '',
+                isBot: false,
+                messageType: parsedMessage.type || 'text',
+                metadata: { 
+                  ...parsedMessage,
+                  ignoredDueToHandoff: true
+                }
+              });
+              
+              return res.status(200).json({ status: 'ignored', reason: 'permanent-handoff-active' });
+            }
+          }
+        }
 
         // Verificar se a mensagem já foi processada (deduplicação) - ANTES de processar áudio
         const messageId = (validatedData as any).payload?.id || (validatedData as any).id;

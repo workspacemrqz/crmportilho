@@ -106,6 +106,11 @@ export class ChatbotService {
   public isPermanentHandoffActive(conversationId: string): boolean {
     return this.permanentHandoffConversations.has(conversationId);
   }
+  
+  // Method with both conversationId and phone (for routes.ts compatibility)
+  public isPermanentHandoff(conversationId: string, phone?: string): boolean {
+    return this.permanentHandoffConversations.has(conversationId);
+  }
 
   public clearPermanentHandoff(conversationId: string): void {
     console.log(`[ChatbotService] ♻️ Removendo handoff permanente da memória para conversation ${conversationId}`);
