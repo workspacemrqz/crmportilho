@@ -34,10 +34,19 @@ export default function ChatInterface({ conversationId, protocol, contactName, s
     queryKey: ['/api/conversations', conversationId, 'messages'],
   });
 
-  // Sort messages chronologically (oldest first)
-  const messages = [...messagesData].sort((a, b) => 
-    new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-  );
+  // Filter out system messages and remove duplicates, then sort chronologically (oldest first)
+  const messages = [...messagesData]
+    .filter((message, index, self) => {
+      // Remove system messages (messageType === 'system')
+      if (message.messageType === 'system') {
+        return false;
+      }
+      // Remove duplicates by id (keep first occurrence)
+      return self.findIndex(m => m.id === message.id) === index;
+    })
+    .sort((a, b) => 
+      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    );
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
