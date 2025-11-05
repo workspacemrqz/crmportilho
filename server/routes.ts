@@ -1,4 +1,5 @@
 import type { Express, Request, Response } from "express";
+import express from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { ChatbotService } from "./chatbot.service";
@@ -57,9 +58,23 @@ function addToCache(messageId: string) {
   processedMessageIds.add(messageId);
 }
 
-// Configure file upload (using memory storage for Supabase upload)
+// Ensure uploads directory exists
+const uploadsDir = path.join(process.cwd(), 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// Configure file upload with disk storage
 const upload = multer({
-  storage: multer.memoryStorage(),
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, uploadsDir);
+    },
+    filename: (req, file, cb) => {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      cb(null, uniqueSuffix + path.extname(file.originalname));
+    }
+  }),
   limits: {
     fileSize: 10 * 1024 * 1024 // 10MB limit
   },
@@ -79,6 +94,9 @@ const upload = multer({
 export async function registerRoutes(app: Express): Promise<Server> {
   // Apply rate limiting to all API endpoints
   app.use('/api/', apiRateLimiter);
+  
+  // Serve uploaded files statically
+  app.use('/uploads', express.static(uploadsDir));
   
   // Authentication endpoints (no auth required)
   app.post('/api/auth/login', async (req: Request, res: Response) => {
@@ -1347,9 +1365,13 @@ Retorne APENAS o JSON array, sem texto adicional.`;
         return res.status(404).json({ error: 'Lead not found' });
       }
 
-      // Create public URL for the file
-      const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+      // Create public URL for the file using Replit domain
+      const domain = process.env.REPLIT_DEV_DOMAIN || req.get('host') || 'localhost:3000';
+      const fileUrl = `https://${domain}/uploads/${req.file.filename}`;
       const caption = req.body.caption || req.file.originalname;
+      
+      console.log(`[API] 📁 File uploaded: ${req.file.filename}`);
+      console.log(`[API] 📍 Public URL: ${fileUrl}`);
 
       // Send file via WAHA API (without saving to DB - we'll do it here)
       const result = await wahaAPI.sendDocument(lead.whatsappPhone, fileUrl, caption);
