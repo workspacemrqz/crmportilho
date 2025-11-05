@@ -84,23 +84,34 @@ Full-stack TypeScript application with:
 
 ## Environment Variables
 
-### Required
-- `DATABASE_URL` - PostgreSQL connection string (auto-provisioned)
-- `LOGIN` - Admin username (set to "1")
-- `SENHA` - Admin password (set to "1")
-- `SESSION_SECRET` - Express session secret (auto-generated)
+### Required (Core Application)
+- `DATABASE_URL` - PostgreSQL connection string (auto-provisioned by Replit)
+- `LOGIN` - Admin username for authentication (default: "1")
+- `SENHA` - Admin password for authentication (default: "1")
+- `SESSION_SECRET` - Express session secret for secure cookies (auto-generated)
 
-### Optional (WhatsApp Integration)
-- `WAHA_API` - WAHA API endpoint
-- `WAHA_API_KEY` - WAHA API key
-- `WAHA_INSTANCIA` - WAHA instance name
-- `EVOLUTION_URL` - Evolution API endpoint
-- `EVOLUTION_KEY` - Evolution API key
-- `EVOLUTION_WEBHOOK_SECRET` - Webhook authentication secret
+### Optional (Database Migration)
+- `SUPABASE_DATABASE_URL` - Supabase PostgreSQL connection string for database migration
+
+### Optional (WhatsApp Integration - WAHA)
+- `WAHA_API` - WAHA API endpoint URL (e.g., https://waha.evolutiaoficial.com)
+- `WAHA_API_KEY` - WAHA API authentication key (**REQUIRED** if using WAHA)
+- `WAHA_INSTANCIA` - WAHA instance/session name (default: "ChatwootApi")
+
+### Optional (WhatsApp Integration - Evolution API)
+- `EVOLUTION_URL` - Evolution API endpoint URL
+- `EVOLUTION_KEY` - Evolution API authentication key
+- `EVOLUTION_WEBHOOK_SECRET` - Webhook signature validation secret
 - `INSTANCIA` - Evolution instance name
 
 ### Optional (AI Features)
-- `OPENAI_API_KEY` - OpenAI API key for chatbot functionality
+- `OPENAI_API_KEY` - OpenAI API key for advanced chatbot functionality
+
+### Security Notes
+- **NEVER** hardcode secrets or API keys in the code
+- All sensitive values must be stored in Replit Secrets
+- Scripts will fail with clear error messages if required secrets are missing
+- Rotate all API keys and passwords after any suspected exposure
 
 ## Project Structure
 

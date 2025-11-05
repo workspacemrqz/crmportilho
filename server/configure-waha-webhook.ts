@@ -1,8 +1,14 @@
 // Script to configure webhook in WAHA using the correct API
 export {};
 
+if (!process.env.WAHA_API_KEY) {
+  console.error('❌ Erro: A variável de ambiente WAHA_API_KEY não está configurada.');
+  console.error('Por favor, configure a API key do WAHA nos Replit Secrets.');
+  process.exit(1);
+}
+
 const WAHA_API_CONFIG = process.env.WAHA_API || 'https://waha.evolutiaoficial.com';
-const WAHA_API_KEY_CONFIG = process.env.WAHA_API_KEY || 'ce47b12436b7b1f61490eaf59dbb61f3';
+const WAHA_API_KEY_CONFIG = process.env.WAHA_API_KEY!;
 const WAHA_INSTANCIA_CONFIG = process.env.WAHA_INSTANCIA || 'ChatwootApi';
 const WEBHOOK_URL_CONFIG = process.env.WEBHOOK_URL || 'http://localhost:3000/api/webhook/waha';
 

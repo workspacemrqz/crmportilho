@@ -1,6 +1,12 @@
 // Script de teste para simular webhook de mensagem de cliente
 // Execute com: tsx server/test-webhook.ts
 
+if (!process.env.WAHA_API_KEY) {
+  console.error('❌ Erro: A variável de ambiente WAHA_API_KEY não está configurada.');
+  console.error('Por favor, configure a API key do WAHA nos Replit Secrets.');
+  process.exit(1);
+}
+
 async function testWebhookWithClientMessage() {
   const webhookPayload = {
     "event": "message.any",
@@ -48,7 +54,7 @@ async function testWebhookWithClientMessage() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Api-Key': process.env.WAHA_API_KEY || 'ce47b12436b7b1f61490eaf59dbb61f3',
+        'X-Api-Key': process.env.WAHA_API_KEY!,
       },
       body: JSON.stringify(webhookPayload)
     });
