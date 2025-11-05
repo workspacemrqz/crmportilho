@@ -333,7 +333,7 @@ export class WAHAService {
         isFromMe: payload.fromMe || false,
         isGroup: isGroup,
         type: this.getMessageType(payload),
-        media: payload.hasMedia ? payload : null,
+        media: payload.hasMedia ? payload.media : null,
         quotedMessage: payload.quotedMsg || null,
         pushName: pushName,
         name: pushName // Alias for backward compatibility
