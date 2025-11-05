@@ -2,8 +2,14 @@ import pg from 'pg';
 
 const { Pool } = pg;
 
-// URL de conexão do Supabase fornecida
-const SUPABASE_URL = 'postgresql://postgres.qjizdwpmcntgkqceyzmw:%40Ev0luTi42025@aws-1-sa-east-1.pooler.supabase.com:6543/postgres';
+// URL de conexão do Supabase (carregada de variável de ambiente)
+const SUPABASE_URL = process.env.SUPABASE_DATABASE_URL;
+
+if (!SUPABASE_URL) {
+  console.error('❌ Erro: A variável de ambiente SUPABASE_DATABASE_URL não está configurada.');
+  console.error('Por favor, configure a URL de conexão do Supabase.');
+  process.exit(1);
+}
 
 async function testConnection() {
   console.log('🔍 Testando conexão com o banco de dados Supabase...\n');
