@@ -185,14 +185,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const phone = data.conversation?.meta?.sender?.phone_number || 
                        data.conversation?.meta?.sender?.identifier;
           
+          console.log('[CHATWOOT-WEBHOOK] 📞 Phone extracted:', phone);
+          
           if (phone) {
             const cleanPhone = phone.replace(/\D/g, '');
+            console.log('[CHATWOOT-WEBHOOK] 📞 Clean phone:', cleanPhone);
+            
             const lead = await storage.getLeadByPhone(cleanPhone);
+            console.log('[CHATWOOT-WEBHOOK] 👤 Lead found:', lead ? `ID: ${lead.id}, Protocol: ${lead.protocol}` : 'NENHUM LEAD ENCONTRADO');
             
             if (lead) {
               // Encontrar conversação ativa
               const conversations = await storage.getConversations({ leadId: lead.id });
+              console.log('[CHATWOOT-WEBHOOK] 💬 Total conversations:', conversations.length);
+              
               const activeConversation = conversations.find(conv => conv.status !== 'closed');
+              console.log('[CHATWOOT-WEBHOOK] 💬 Active conversation:', activeConversation ? `ID: ${activeConversation.id}` : 'NENHUMA ATIVA');
               
               if (activeConversation) {
                 console.log('[CHATWOOT-WEBHOOK] ✅ Marcando handoff permanente para conversation:', activeConversation.id);
@@ -234,9 +242,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   } catch (err) {
                     console.error('[CHATWOOT-WEBHOOK] Erro no broadcast:', err);
                   }
+                } else {
+                  console.log('[CHATWOOT-WEBHOOK] ⚠️ Chatbot state não encontrado para conversation:', activeConversation.id);
                 }
+              } else {
+                console.log('[CHATWOOT-WEBHOOK] ❌ Nenhuma conversa ativa encontrada para lead:', lead.protocol);
               }
+            } else {
+              console.log('[CHATWOOT-WEBHOOK] ❌ Lead não encontrado no banco para telefone:', cleanPhone);
             }
+          } else {
+            console.log('[CHATWOOT-WEBHOOK] ❌ Telefone não encontrado no payload do Chatwoot');
           }
         }
         
