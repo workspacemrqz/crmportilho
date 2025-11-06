@@ -1400,7 +1400,7 @@ export default function WorkflowsRefactored() {
                   
                   <div className="space-y-2">
                     <div className="grid gap-2">
-                      <div className="flex items-start gap-3 p-3 rounded-lg bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-900">
+                      <div className="flex items-start gap-3 p-3 rounded-lg bg-orange-500/10">
                         <CheckCircle className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
                         <div>
                           <p className="font-medium text-sm">Cliente pede para falar com alguém</p>
@@ -1411,7 +1411,7 @@ export default function WorkflowsRefactored() {
                         </div>
                       </div>
                       
-                      <div className="flex items-start gap-3 p-3 rounded-lg bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-900">
+                      <div className="flex items-start gap-3 p-3 rounded-lg bg-orange-500/10">
                         <CheckCircle className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
                         <div>
                           <p className="font-medium text-sm">Assuntos que precisam de atenção especial</p>
@@ -1422,7 +1422,7 @@ export default function WorkflowsRefactored() {
                         </div>
                       </div>
                       
-                      <div className="flex items-start gap-3 p-3 rounded-lg bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-900">
+                      <div className="flex items-start gap-3 p-3 rounded-lg bg-orange-500/10">
                         <CheckCircle className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
                         <div>
                           <p className="font-medium text-sm">Alguém da equipe responde manualmente</p>
@@ -1433,7 +1433,7 @@ export default function WorkflowsRefactored() {
                         </div>
                       </div>
                       
-                      <div className="flex items-start gap-3 p-3 rounded-lg bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-900">
+                      <div className="flex items-start gap-3 p-3 rounded-lg bg-orange-500/10">
                         <CheckCircle className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
                         <div>
                           <p className="font-medium text-sm">Acontece algum problema</p>
@@ -1448,12 +1448,12 @@ export default function WorkflowsRefactored() {
                   
                   <Separator />
                   
-                  <Alert className="border-orange-200 dark:border-orange-900 bg-orange-50 dark:bg-orange-950/20">
+                  <Alert className="bg-orange-500/10 border-0">
                     <Shield className="h-4 w-4 text-orange-600" />
-                    <AlertTitle className="text-sm font-semibold text-orange-900 dark:text-orange-100">
+                    <AlertTitle className="text-sm font-semibold">
                       Importante: Quando transfere, o assistente para de vez
                     </AlertTitle>
-                    <AlertDescription className="text-sm text-orange-800 dark:text-orange-200">
+                    <AlertDescription className="text-sm">
                       Depois que o atendimento é passado para uma pessoa, o assistente não volta a responder naquela conversa. 
                       Isso evita confusão e garante que o cliente tenha um atendimento humano completo quando necessário. 
                       A conversa fica 100% com a equipe!
@@ -1540,12 +1540,12 @@ export default function WorkflowsRefactored() {
                     </div>
                   </div>
                   
-                  <Alert className="bg-orange-50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-900">
+                  <Alert className="bg-orange-500/10 border-0">
                     <Brain className="h-4 w-4 text-orange-600" />
-                    <AlertTitle className="text-sm font-semibold text-orange-900 dark:text-orange-100">
+                    <AlertTitle className="text-sm font-semibold">
                       Conversa de verdade, não robô decorado
                     </AlertTitle>
-                    <AlertDescription className="text-sm text-orange-800 dark:text-orange-200">
+                    <AlertDescription className="text-sm">
                       A grande diferença é que você pode conversar naturalmente, como se estivesse falando com uma pessoa. 
                       Não precisa decorar comandos ou digitar de um jeito específico. Quanto mais natural você for, 
                       melhor o assistente entende!
@@ -1555,13 +1555,13 @@ export default function WorkflowsRefactored() {
               </Card>
 
               {/* Dicas para melhor experiência */}
-              <Card className="border-orange-200 dark:border-orange-900 bg-orange-50 dark:bg-orange-950/20">
+              <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg text-orange-900 dark:text-orange-100">
-                    <Sparkles className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                    <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                     Dicas para seus clientes aproveitarem melhor
                   </CardTitle>
-                  <CardDescription className="text-xs sm:text-sm text-orange-700 dark:text-orange-300">
+                  <CardDescription className="text-xs sm:text-sm">
                     Compartilhe essas orientações para uma experiência ainda melhor
                   </CardDescription>
                 </CardHeader>
@@ -1570,10 +1570,10 @@ export default function WorkflowsRefactored() {
                     <div className="flex items-start gap-2">
                       <CheckCircle className="h-4 w-4 text-orange-600 mt-1 flex-shrink-0" />
                       <div>
-                        <p className="text-sm font-medium text-orange-900 dark:text-orange-100">
+                        <p className="text-sm font-medium">
                           Pode escrever do jeito que quiser
                         </p>
-                        <p className="text-xs text-orange-700 dark:text-orange-300 mt-1">
+                        <p className="text-xs text-muted-foreground mt-1">
                           Não precisa se preocupar com formalidade ou palavras exatas. O assistente entende gírias, 
                           abreviações e até erros de digitação!
                         </p>
@@ -1583,10 +1583,10 @@ export default function WorkflowsRefactored() {
                     <div className="flex items-start gap-2">
                       <CheckCircle className="h-4 w-4 text-orange-600 mt-1 flex-shrink-0" />
                       <div>
-                        <p className="text-sm font-medium text-orange-900 dark:text-orange-100">
+                        <p className="text-sm font-medium">
                           Pode enviar várias mensagens seguidas
                         </p>
-                        <p className="text-xs text-orange-700 dark:text-orange-300 mt-1">
+                        <p className="text-xs text-muted-foreground mt-1">
                           Se tiver muita coisa para falar, pode mandar em várias mensagens. O assistente espera você 
                           terminar e lê tudo junto.
                         </p>
@@ -1596,10 +1596,10 @@ export default function WorkflowsRefactored() {
                     <div className="flex items-start gap-2">
                       <CheckCircle className="h-4 w-4 text-orange-600 mt-1 flex-shrink-0" />
                       <div>
-                        <p className="text-sm font-medium text-orange-900 dark:text-orange-100">
+                        <p className="text-sm font-medium">
                           Tem dúvida? Pode perguntar!
                         </p>
-                        <p className="text-xs text-orange-700 dark:text-orange-300 mt-1">
+                        <p className="text-xs text-muted-foreground mt-1">
                           Se não entender alguma coisa ou não souber o que fazer, é só perguntar. O assistente está 
                           programado para ajudar e esclarecer dúvidas.
                         </p>
@@ -1609,10 +1609,10 @@ export default function WorkflowsRefactored() {
                     <div className="flex items-start gap-2">
                       <CheckCircle className="h-4 w-4 text-orange-600 mt-1 flex-shrink-0" />
                       <div>
-                        <p className="text-sm font-medium text-orange-900 dark:text-orange-100">
+                        <p className="text-sm font-medium">
                           Prefere falar com uma pessoa? Sem problema!
                         </p>
-                        <p className="text-xs text-orange-700 dark:text-orange-300 mt-1">
+                        <p className="text-xs text-muted-foreground mt-1">
                           A qualquer momento pode pedir "quero falar com atendente" que o assistente transfere na hora. 
                           Ele não leva para o lado pessoal! 😊
                         </p>
