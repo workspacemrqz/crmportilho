@@ -249,10 +249,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             const lead = await storage.getLeadByPhone(phone.replace(/\D/g, ''));
             if (lead) {
-              const conversations = await storage.getConversations({ leadId: lead.id, status: 'active' });
-              if (conversations.length > 0) {
-                const conversation = conversations[0];
-                
+              // CRITICAL FIX: Find or create conversation (same logic as chatbot)
+              // Old code only looked for 'active' status, missing conversations that don't exist yet
+              // or have other statuses like 'transferred', 'waiting', etc.
+              let conversation = null;
+              
+              // First, try to find any non-closed conversation (same as chatbot does)
+              const existingConversations = await storage.getConversations({ leadId: lead.id });
+              const nonClosedConversation = existingConversations.find(conv => conv.status !== 'closed');
+              
+              if (nonClosedConversation) {
+                conversation = nonClosedConversation;
+                console.log('[WAHA-WEBHOOK] ✅ Found existing non-closed conversation:', conversation.id);
+              } else {
+                // Create new conversation if none exists
+                console.log('[WAHA-WEBHOOK] ⚠️ No existing conversation found. Creating new one for handoff.');
+                conversation = await storage.createConversation({
+                  leadId: lead.id,
+                  protocol: lead.protocol,
+                  status: 'active',
+                  currentMenu: 'initial',
+                  currentStep: 'welcome'
+                });
+                console.log('[WAHA-WEBHOOK] ✨ Created new conversation:', conversation.id);
+              }
+              
+              if (conversation) {
                 // CRITICAL: Mark handoff in memory IMMEDIATELY before any DB operations
                 // This prevents race conditions where customer messages arrive while we're updating the DB
                 chatbotService.markPermanentHandoff(conversation.id, phone);
@@ -327,10 +349,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Check if this is a bot-sent message by checking recent messages
             const lead = await storage.getLeadByPhone(phone.replace(/\D/g, ''));
             if (lead) {
-              const conversations = await storage.getConversations({ leadId: lead.id, status: 'active' });
-              if (conversations.length > 0) {
-                const conversation = conversations[0];
-                
+              // CRITICAL FIX: Find or create conversation (same as above)
+              let conversation = null;
+              const existingConversations = await storage.getConversations({ leadId: lead.id });
+              const nonClosedConversation = existingConversations.find(conv => conv.status !== 'closed');
+              
+              if (nonClosedConversation) {
+                conversation = nonClosedConversation;
+                console.log('[WAHA-WEBHOOK] ✅ Found existing non-closed conversation (fallback):', conversation.id);
+              } else {
+                // Create new conversation if none exists
+                console.log('[WAHA-WEBHOOK] ⚠️ No existing conversation found (fallback). Creating new one.');
+                conversation = await storage.createConversation({
+                  leadId: lead.id,
+                  protocol: lead.protocol,
+                  status: 'active',
+                  currentMenu: 'initial',
+                  currentStep: 'welcome'
+                });
+                console.log('[WAHA-WEBHOOK] ✨ Created new conversation (fallback):', conversation.id);
+              }
+              
+              if (conversation) {
                 // Check if we recently sent this exact message as a bot
                 const recentMessages = await storage.getMessages(conversation.id, 10);
                 const botSentThisMessage = recentMessages.some(msg => 
