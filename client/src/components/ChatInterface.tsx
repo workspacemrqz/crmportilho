@@ -15,7 +15,7 @@ interface Message {
   messageType: string;
   timestamp: string;
   metadata?: {
-    fileName?: string;
+    filename?: string;
     fileUrl?: string;
     size?: number;
   };

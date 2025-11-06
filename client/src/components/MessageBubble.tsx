@@ -7,7 +7,7 @@ interface MessageBubbleProps {
   timestamp: string;
   messageType?: string;
   metadata?: {
-    fileName?: string;
+    filename?: string;
     fileUrl?: string;
     size?: number;
   };
@@ -24,9 +24,9 @@ export default function MessageBubble({ content, isBot, timestamp, messageType, 
       )}
       data-testid={isBot ? "message-bot" : "message-user"}
     >
-      {isDocument && metadata?.fileName ? (
+      {isDocument && metadata?.filename ? (
         <FileAttachment
-          fileName={metadata.fileName}
+          fileName={metadata.filename}
           fileSize={metadata.size}
           fileUrl={metadata.fileUrl}
           isBot={isBot}
