@@ -127,3 +127,35 @@ Fixed critical race condition where the bot would continue responding after huma
     - **Supabase Storage**: For document management (bucket "portilho", `SUPABASE_SERVICE_ROLE_KEY`).
     - **Supabase PostgreSQL**: As an optional target for database migrations (`SUPABASE_DATABASE_URL`).
 - **Chatwoot**: For CRM integration, including contact and conversation management (`CHATWOOT_API_URL`, `CHATWOOT_API_TOKEN`, `CHATWOOT_ACCOUNT_ID`, `CHATWOOT_INBOX_ID`).
+
+### Chatwoot Integration Details
+
+The system is fully integrated with Chatwoot for enhanced customer relationship management:
+
+**Implemented Flows:**
+
+1. **Seguros Novos → Auto (Menu 1)**:
+   - Client with vehicle: Creates Chatwoot conversation with **priority "urgent"** and label **"realizar_cotação"**
+   - Client without vehicle: Creates Chatwoot conversation with **priority "medium"** and label **"realizar_cotação"**
+
+2. **Seguros Novos - Autorio (Menu 2)**:
+   - Client with vehicle: Creates Chatwoot conversation with **priority "urgent"** and label **"realizar_cotação"**
+   - Client without vehicle: Creates Chatwoot conversation with **priority "medium"** and label **"realizar_cotação"**
+
+**Integration Points:**
+- `handleMenu2AutorioStatus()`: Handles Autorio flow with vehicle status detection
+- `handleMenu2AutorioQuandoPega()`: Processes when client will pick up vehicle (medium priority)
+- `handleFluxoAutoStatus()`: Handles regular auto insurance flow with vehicle status
+- `handleFluxoAutoQuandoPega()`: Processes when client will pick up vehicle (medium priority)
+
+**Chatwoot Service Methods:**
+- `createInsuranceConversation()`: Main orchestration method
+- `findOrCreateContact()`: Contact management
+- `createConversation()`: Conversation creation
+- `addLabels()`: Applies labels/tags to conversations
+- `setPriority()`: Sets conversation priority (urgent/medium)
+
+**API Endpoints Used:**
+- `POST /api/v1/accounts/{id}/conversations` - Create conversation
+- `POST /api/v1/accounts/{id}/conversations/{id}/labels` - Add labels
+- `POST /api/v1/accounts/{id}/conversations/{id}/toggle_priority` - Set priority
