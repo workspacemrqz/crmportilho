@@ -29,20 +29,22 @@ Implemented optimistic updates for message sending, providing instant feedback w
 - Seamless integration with existing WebSocket infrastructure
 
 ### November 6, 2025 - Image and Document Handling
-Enhanced media file handling to properly differentiate between images and documents, with appropriate rendering components.
+Enhanced media file handling to properly send images as visual content (not documents) in WhatsApp.
 
 **Solution Implemented:**
-- Created `sendImage()` method in WAHA Service using `/api/sendImage` endpoint
+- Using WAHA `/api/sendImage` endpoint for images with **mandatory `mimetype: "image/jpeg"`** (WAHA requirement)
+- Removed caption from image sending to prevent WhatsApp from treating images as documents
 - Automatic file type detection based on MIME type (`mimetype.startsWith('image/')`)
 - Created `ImageAttachment` component for visual image display with click-to-expand
 - Updated `MessageBubble` to render images, documents, and text appropriately
-- Always use original filename as caption (no override via request body)
 - Proper message type classification in database ('image' vs 'document')
+- Documents (PDF, etc.) use `/api/sendFile` endpoint with proper mimetype and caption
 
 **Impact:**
-- Images display visually in chat instead of as file attachments
+- Images arrive in WhatsApp as visual imageMessage (not documentMessage)
+- No caption/description shown on images in WhatsApp (clean visual display)
+- Documents still arrive correctly with filename displayed
 - Proper WhatsApp API integration using correct endpoints for each media type
-- Consistent file naming across all uploads
 
 ### November 5, 2025 - WebSocket Real-Time Communication
 Implemented WebSocket infrastructure to replace HTTP polling, enabling the system to scale efficiently for hundreds of concurrent conversations.
