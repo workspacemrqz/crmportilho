@@ -1383,9 +1383,9 @@ Retorne APENAS o JSON array, sem texto adicional.`;
       // Send file via WAHA API - use appropriate method based on file type
       let result;
       if (isImage) {
-        result = await wahaAPI.sendImage(lead.whatsappPhone, fileUrl, caption);
+        result = await wahaAPI.sendImage(lead.whatsappPhone, fileUrl, caption, req.file.originalname);
       } else {
-        result = await wahaAPI.sendDocument(lead.whatsappPhone, fileUrl, caption);
+        result = await wahaAPI.sendDocument(lead.whatsappPhone, fileUrl, caption, req.file.originalname, req.file.mimetype);
       }
 
       // Store message in database

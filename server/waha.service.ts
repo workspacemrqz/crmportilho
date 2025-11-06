@@ -204,7 +204,7 @@ export class WAHAService {
     }
   }
 
-  async sendImage(phone: string, imageUrl: string, caption: string, conversationId?: string) {
+  async sendImage(phone: string, imageUrl: string, caption: string, filename?: string, conversationId?: string) {
     try {
       const chatId = this.formatPhone(phone);
       const url = `${this.baseUrl}/api/sendImage`;
@@ -212,6 +212,7 @@ export class WAHAService {
       console.log(`[WAHA] Sending image to ${chatId} via ${url}`);
       console.log(`[WAHA] Image URL: ${imageUrl}`);
       console.log(`[WAHA] Caption: ${caption}`);
+      console.log(`[WAHA] Filename: ${filename}`);
       
       const response = await fetch(url, {
         method: 'POST',
@@ -219,7 +220,8 @@ export class WAHAService {
         body: JSON.stringify({
           chatId,
           file: {
-            url: imageUrl
+            url: imageUrl,
+            filename: filename || caption
           },
           caption,
           session: this.session
@@ -242,7 +244,7 @@ export class WAHAService {
     }
   }
 
-  async sendDocument(phone: string, documentUrl: string, caption: string, conversationId?: string) {
+  async sendDocument(phone: string, documentUrl: string, caption: string, filename?: string, mimeType?: string, conversationId?: string) {
     try {
       const chatId = this.formatPhone(phone);
       const url = `${this.baseUrl}/api/sendFile`;
@@ -250,16 +252,24 @@ export class WAHAService {
       console.log(`[WAHA] Sending document to ${chatId} via ${url}`);
       console.log(`[WAHA] Document URL: ${documentUrl}`);
       console.log(`[WAHA] Caption: ${caption}`);
+      console.log(`[WAHA] Filename: ${filename}`);
+      console.log(`[WAHA] MimeType: ${mimeType}`);
+      
+      const fileObject: any = {
+        url: documentUrl,
+        filename: filename || caption
+      };
+      
+      if (mimeType) {
+        fileObject.mimetype = mimeType;
+      }
       
       const response = await fetch(url, {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({
           chatId,
-          file: {
-            url: documentUrl
-          },
-          caption,
+          file: fileObject,
           session: this.session
         })
       });
