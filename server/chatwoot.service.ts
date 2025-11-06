@@ -218,6 +218,74 @@ export class ChatwootService {
   }
 
   /**
+   * Lista todas as labels disponíveis no Chatwoot
+   */
+  async listLabels(): Promise<string[]> {
+    if (!this.isConfigured()) {
+      console.warn('[ChatwootService] Service not configured, skipping listLabels');
+      return [];
+    }
+
+    try {
+      const response = await this.client.get('/labels');
+      const labels = response.data || [];
+      return labels.map((label: any) => label.title);
+    } catch (error: any) {
+      console.error('[ChatwootService] ❌ Erro ao listar labels:', error.response?.data || error.message);
+      return [];
+    }
+  }
+
+  /**
+   * Cria uma nova label no Chatwoot
+   */
+  async createLabel(labelName: string, color: string = '#1f93ff'): Promise<boolean> {
+    if (!this.isConfigured()) {
+      console.warn('[ChatwootService] Service not configured, skipping createLabel');
+      return false;
+    }
+
+    try {
+      console.log(`[ChatwootService] 🏷️ Criando label: ${labelName}`);
+      
+      await this.client.post('/labels', {
+        title: labelName,
+        color: color,
+        description: `Label criada automaticamente: ${labelName}`,
+      });
+      
+      console.log(`[ChatwootService] ✅ Label "${labelName}" criada com sucesso`);
+      return true;
+    } catch (error: any) {
+      console.error('[ChatwootService] ❌ Erro ao criar label:', error.response?.data || error.message);
+      return false;
+    }
+  }
+
+  /**
+   * Garante que as labels existam, criando-as se necessário
+   */
+  async ensureLabelsExist(labels: string[]): Promise<void> {
+    if (!this.isConfigured()) {
+      return;
+    }
+
+    try {
+      const existingLabels = await this.listLabels();
+      console.log(`[ChatwootService] 📋 Labels existentes no Chatwoot:`, existingLabels);
+
+      for (const label of labels) {
+        if (!existingLabels.includes(label)) {
+          console.log(`[ChatwootService] ⚠️ Label "${label}" não existe, criando...`);
+          await this.createLabel(label);
+        }
+      }
+    } catch (error) {
+      console.error('[ChatwootService] ❌ Erro ao garantir existência de labels:', error);
+    }
+  }
+
+  /**
    * Adiciona labels/tags a uma conversação
    */
   async addLabels(conversationId: number, labels: string[]): Promise<boolean> {
@@ -227,6 +295,9 @@ export class ChatwootService {
     }
 
     try {
+      // Primeiro, garante que as labels existam
+      await this.ensureLabelsExist(labels);
+      
       console.log(`[ChatwootService] 🏷️ Adicionando labels à conversação ${conversationId}:`, labels);
       
       await this.client.post(`/conversations/${conversationId}/labels`, {
