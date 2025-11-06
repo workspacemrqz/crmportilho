@@ -385,12 +385,54 @@ export class ChatbotService {
       // Find or create conversation
       let conversation = await this.findOrCreateConversation(lead.id, lead.protocol);
       
-      // CRITICAL: Check in-memory guard first before any processing
-      // This prevents race conditions where human intervention was just detected
-      if (this.isPermanentHandoffActive(conversation.id)) {
-        console.log(`[ChatbotService] 🔇 GUARD EM MEMÓRIA: Bot permanentemente desativado para conversation ${conversation.id}. Ignorando mensagens.`);
-        return;
+      // Get or create chatbot state FIRST to check handoff status
+      let chatbotState = await this.getOrCreateChatbotState(conversation.id);
+      
+      // CRITICAL: Check BOTH in-memory guard AND database before any processing
+      // This prevents race conditions and ensures handoff is respected
+      const hasInMemoryHandoff = this.isPermanentHandoffActive(conversation.id);
+      const hasDatabaseHandoff = chatbotState.isPermanentHandoff;
+      
+      if (hasInMemoryHandoff || hasDatabaseHandoff) {
+        console.log(`[ChatbotService] 🛑 HANDOFF PERMANENTE DETECTADO para conversation ${conversation.id}`);
+        console.log(`[ChatbotService]   - Guard em memória: ${hasInMemoryHandoff ? 'SIM ✓' : 'NÃO'}`);
+        console.log(`[ChatbotService]   - Guard no banco: ${hasDatabaseHandoff ? 'SIM ✓' : 'NÃO'}`);
+        console.log(`[ChatbotService] 📝 Salvando mensagem do cliente apenas para histórico (BOT NÃO RESPONDERÁ)`);
+        
+        // Sincronizar estado em memória com banco de dados se necessário
+        if (hasDatabaseHandoff && !hasInMemoryHandoff) {
+          console.log(`[ChatbotService] 🔄 Sincronizando handoff do banco para memória`);
+          this.permanentHandoffConversations.add(conversation.id);
+        }
+        
+        // Store all incoming messages for history ONLY
+        for (const msg of buffer.messages) {
+          const messageType = msg.messageData?.type || 'text';
+          
+          const [savedMessage] = await db.insert(messages).values({
+            conversationId: conversation.id,
+            content: msg.content,
+            isBot: false,
+            messageType,
+            metadata: msg.messageData
+          }).returning();
+          
+          // Broadcast incoming customer message
+          try {
+            broadcastNewMessage(conversation.id, savedMessage);
+            console.log(`[ChatbotService] 📡 Mensagem do cliente salva e transmitida (handoff ativo)`);
+          } catch (broadcastError) {
+            console.error('[ChatbotService] ❌ Broadcast failed (non-fatal):', broadcastError);
+          }
+        }
+        
+        console.log(`[ChatbotService] ✅ Mensagens salvas. Bot NÃO processará devido ao handoff permanente.`);
+        console.log(`[ChatbotService] ========== FIM DO PROCESSAMENTO (HANDOFF ATIVO) ==========`);
+        return; // STOP HERE - Do not process state machine or send bot responses
       }
+      
+      // No handoff detected - proceed with normal bot processing
+      console.log(`[ChatbotService] ✅ Nenhum handoff detectado. Processamento normal do bot iniciado.`);
       
       // Store all incoming messages
       for (const msg of buffer.messages) {
@@ -443,15 +485,7 @@ export class ChatbotService {
 
       console.log(`[ChatbotService] 🔑 FlushBuffer - conversationId: ${conversation.id} | protocol: ${lead.protocol}`);
       
-      // Get or create chatbot state
-      let chatbotState = await this.getOrCreateChatbotState(conversation.id);
-
-      // Check if bot is permanently disabled due to human handoff
-      if (chatbotState.isPermanentHandoff) {
-        console.log(`[ChatbotService] 🔇 Bot PERMANENTEMENTE DESATIVADO para lead ${lead.protocol}. Apenas atendentes humanos podem responder.`);
-        return;
-      }
-
+      // chatbotState already loaded above for handoff check
       // Check for human handoff request (check all messages)
       const hasHandoffRequest = buffer.messages.some(msg => this.isHumanHandoffRequest(msg.content));
       if (hasHandoffRequest) {
