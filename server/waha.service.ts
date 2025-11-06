@@ -209,25 +209,33 @@ export class WAHAService {
       const chatId = this.formatPhone(phone);
       // IMPORTANT: WAHA /api/sendImage ONLY accepts mimetype "image/jpeg"
       // Even for PNG files, we must use "image/jpeg" for it to send as imageMessage
-      // Do NOT send caption - it makes WhatsApp treat it as document
       const url = `${this.baseUrl}/api/sendImage`;
       
       console.log(`[WAHA] Sending image to ${chatId} via ${url}`);
       console.log(`[WAHA] Image URL: ${imageUrl}`);
       console.log(`[WAHA] Filename: ${filename}`);
+      console.log(`[WAHA] Caption: ${caption}`);
+      
+      const payload: any = {
+        chatId,
+        file: {
+          mimetype: 'image/jpeg', // MUST be image/jpeg according to WAHA docs
+          url: imageUrl,
+          filename: filename || 'image.jpg'
+        },
+        session: this.session
+      };
+      
+      // Only add caption if it's not empty
+      // Empty caption = image appears clean without text in WhatsApp
+      if (caption && caption.trim()) {
+        payload.caption = caption;
+      }
       
       const response = await fetch(url, {
         method: 'POST',
         headers: this.getHeaders(),
-        body: JSON.stringify({
-          chatId,
-          file: {
-            mimetype: 'image/jpeg', // MUST be image/jpeg according to WAHA docs
-            url: imageUrl,
-            filename: filename || caption
-          },
-          session: this.session
-        })
+        body: JSON.stringify(payload)
       });
 
       if (!response.ok) {

@@ -1368,16 +1368,24 @@ Retorne APENAS o JSON array, sem texto adicional.`;
       // Create public URL for the file using Replit domain
       const domain = process.env.REPLIT_DEV_DOMAIN || req.get('host') || 'localhost:3000';
       const fileUrl = `https://${domain}/uploads/${req.file.filename}`;
-      // Always use original filename as caption
-      const caption = req.file.originalname;
+      
+      // Get caption from request body (sent by frontend)
+      // If user typed text, use it; otherwise use filename
+      const userCaption = req.body.caption || req.file.originalname;
       
       // Determine if file is an image or document
       const isImage = req.file.mimetype.startsWith('image/');
       const messageType = isImage ? 'image' : 'document';
       
+      // For images: only send caption if it's different from filename
+      // This way images without text appear clean in WhatsApp
+      const shouldSendCaption = !isImage || (userCaption !== req.file.originalname);
+      const caption = shouldSendCaption ? userCaption : '';
+      
       console.log(`[API] 📁 File uploaded: ${req.file.originalname} (type: ${messageType})`);
       console.log(`[API] 📍 Public URL: ${fileUrl}`);
-      console.log(`[API] 📝 Caption: ${caption}`);
+      console.log(`[API] 📝 User Caption: ${userCaption}`);
+      console.log(`[API] 📝 Caption to send: ${caption}`);
       console.log(`[API] 🎨 MIME Type: ${req.file.mimetype}`);
 
       // Send file via WAHA API - use appropriate method based on file type
