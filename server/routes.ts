@@ -156,6 +156,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return res.json({ isAuthenticated: false });
   });
   
+  // Webhook endpoint for Chatwoot events (no auth required for webhook)
+  app.post(
+    '/api/webhook/chatwoot',
+    webhookSecurityHeaders,
+    webhookRateLimiter,
+    async (req: Request, res: Response) => {
+      console.log('[CHATWOOT-WEBHOOK] 🎯 Webhook recebido!');
+      console.log('[CHATWOOT-WEBHOOK] Event:', req.body.event);
+      
+      try {
+        const event = req.body.event;
+        const data = req.body;
+        
+        // Detectar quando atendente envia mensagem
+        if (event === 'message_created' && data.message_type === 'outgoing') {
+          console.log('[CHATWOOT-WEBHOOK] 🚨 Atendente enviou mensagem!');
+          console.log('[CHATWOOT-WEBHOOK] Contact phone:', data.conversation?.meta?.sender?.phone_number);
+          console.log('[CHATWOOT-WEBHOOK] Message:', data.content);
+          
+          const phone = data.conversation?.meta?.sender?.phone_number || 
+                       data.conversation?.meta?.sender?.identifier;
+          
+          if (phone) {
+            const cleanPhone = phone.replace(/\D/g, '');
+            const lead = await storage.getLeadByPhone(cleanPhone);
+            
+            if (lead) {
+              // Encontrar conversação ativa
+              const conversations = await storage.getConversations({ leadId: lead.id });
+              const activeConversation = conversations.find(conv => conv.status !== 'closed');
+              
+              if (activeConversation) {
+                console.log('[CHATWOOT-WEBHOOK] ✅ Marcando handoff permanente para conversation:', activeConversation.id);
+                
+                // CRÍTICO: Marcar handoff em memória IMEDIATAMENTE
+                chatbotService.markPermanentHandoff(activeConversation.id, cleanPhone);
+                
+                // Atualizar banco de dados
+                const chatbotState = await storage.getChatbotState(activeConversation.id);
+                if (chatbotState) {
+                  await storage.updateChatbotState(chatbotState.id, {
+                    isPermanentHandoff: true
+                  });
+                  
+                  console.log('[CHATWOOT-WEBHOOK] 🔇 Bot desativado permanentemente para lead:', lead.protocol);
+                  
+                  // Registrar mensagem de sistema
+                  const systemMessage = await storage.createMessage({
+                    conversationId: activeConversation.id,
+                    content: `[SISTEMA] Atendente assumiu conversa via Chatwoot. Bot desativado permanentemente.`,
+                    isBot: true,
+                    messageType: 'system',
+                    metadata: { 
+                      handoffType: 'permanent',
+                      handoffSource: 'chatwoot',
+                      handoffReason: 'agent_message_sent',
+                      chatwootData: {
+                        conversationId: data.conversation?.id,
+                        agentId: data.sender?.id,
+                        agentName: data.sender?.name
+                      }
+                    }
+                  });
+                  
+                  // Broadcast sistema
+                  try {
+                    broadcastNewMessage(activeConversation.id, systemMessage);
+                    broadcastConversationUpdate(activeConversation.id, activeConversation);
+                  } catch (err) {
+                    console.error('[CHATWOOT-WEBHOOK] Erro no broadcast:', err);
+                  }
+                }
+              }
+            }
+          }
+        }
+        
+        res.status(200).json({ status: 'processed' });
+      } catch (error) {
+        console.error('[CHATWOOT-WEBHOOK] Erro:', error);
+        res.status(500).json({ error: 'Internal error' });
+      }
+    }
+  );
+
   // Webhook endpoint for WAHA API with security middleware (no auth required)
   app.post(
     '/api/webhook/waha',
@@ -232,6 +317,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (isGroup) {
           console.log('[WAHA-WEBHOOK] 🚫 Message from group detected - ignoring. Groups are not supported.');
           return res.status(200).json({ status: 'ignored', reason: 'group-message-not-supported' });
+        }
+        
+        // CRITICAL FIX: Ignorar TODAS as mensagens enviadas pelo bot via API
+        // Isso previne loops quando Chatwoot ou atendente envia mensagem via WAHA API
+        if (parsedMessage.isFromMe && parsedMessage.source === 'api') {
+          console.log('[WAHA-WEBHOOK] 🤖 Mensagem enviada pelo bot via API - IGNORANDO para evitar loop');
+          console.log('[WAHA-WEBHOOK] Message ID:', parsedMessage.messageId);
+          console.log('[WAHA-WEBHOOK] Content:', parsedMessage.message?.substring(0, 50));
+          return res.status(200).json({ status: 'ignored', reason: 'bot-message-via-api' });
         }
         
         // Check for human intervention - if message is from me (WhatsApp Business) but NOT from bot
