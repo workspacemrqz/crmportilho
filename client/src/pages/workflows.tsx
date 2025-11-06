@@ -1481,7 +1481,7 @@ export default function WorkflowsRefactored() {
                   </p>
                   
                   <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
-                    <div className="p-4 rounded-lg bg-orange-500/10 border border-orange-500/20">
+                    <div className="p-4 rounded-lg bg-muted/50 border-l-4 border-orange-500">
                       <div className="flex items-center gap-2 mb-2">
                         <Sparkles className="h-5 w-5 text-orange-600" />
                         <p className="font-semibold text-sm">Entende o que você quer</p>
@@ -1496,7 +1496,7 @@ export default function WorkflowsRefactored() {
                       </div>
                     </div>
                     
-                    <div className="p-4 rounded-lg bg-orange-500/10 border border-orange-500/20">
+                    <div className="p-4 rounded-lg bg-muted/50 border-l-4 border-orange-500">
                       <div className="flex items-center gap-2 mb-2">
                         <FileText className="h-5 w-5 text-orange-600" />
                         <p className="font-semibold text-sm">Organiza as informações sozinho</p>
@@ -1511,7 +1511,7 @@ export default function WorkflowsRefactored() {
                       </div>
                     </div>
                     
-                    <div className="p-4 rounded-lg bg-orange-500/10 border border-orange-500/20">
+                    <div className="p-4 rounded-lg bg-muted/50 border-l-4 border-orange-500">
                       <div className="flex items-center gap-2 mb-2">
                         <CheckCircle className="h-5 w-5 text-orange-600" />
                         <p className="font-semibold text-sm">Entende jeitos diferentes de dizer sim ou não</p>
@@ -1525,7 +1525,7 @@ export default function WorkflowsRefactored() {
                       </div>
                     </div>
                     
-                    <div className="p-4 rounded-lg bg-orange-500/10 border border-orange-500/20">
+                    <div className="p-4 rounded-lg bg-muted/50 border-l-4 border-orange-500">
                       <div className="flex items-center gap-2 mb-2">
                         <MessageSquare className="h-5 w-5 text-orange-600" />
                         <p className="font-semibold text-sm">Se adapta ao contexto</p>
