@@ -14,6 +14,11 @@ interface Message {
   isBot: boolean;
   messageType: string;
   timestamp: string;
+  metadata?: {
+    fileName?: string;
+    fileUrl?: string;
+    size?: number;
+  };
 }
 
 interface ChatInterfaceProps {
@@ -228,6 +233,8 @@ export default function ChatInterface({ conversationId, protocol, contactName, s
             content={message.content}
             isBot={message.isBot}
             timestamp={new Date(message.timestamp).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+            messageType={message.messageType}
+            metadata={message.metadata}
           />
         ))}
         <div ref={messagesEndRef} />

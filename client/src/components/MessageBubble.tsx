@@ -1,12 +1,21 @@
 import { cn } from "@/lib/utils";
+import FileAttachment from "./FileAttachment";
 
 interface MessageBubbleProps {
   content: string;
   isBot: boolean;
   timestamp: string;
+  messageType?: string;
+  metadata?: {
+    fileName?: string;
+    fileUrl?: string;
+    size?: number;
+  };
 }
 
-export default function MessageBubble({ content, isBot, timestamp }: MessageBubbleProps) {
+export default function MessageBubble({ content, isBot, timestamp, messageType, metadata }: MessageBubbleProps) {
+  const isDocument = messageType === 'document';
+  
   return (
     <div
       className={cn(
@@ -15,16 +24,25 @@ export default function MessageBubble({ content, isBot, timestamp }: MessageBubb
       )}
       data-testid={isBot ? "message-bot" : "message-user"}
     >
-      <div
-        className={cn(
-          "px-4 py-3 rounded-2xl whitespace-pre-wrap text-sm leading-relaxed",
-          isBot
-            ? "bg-primary text-primary-foreground rounded-tr-sm"
-            : "bg-card text-card-foreground rounded-tl-sm"
-        )}
-      >
-        {content}
-      </div>
+      {isDocument && metadata?.fileName ? (
+        <FileAttachment
+          fileName={metadata.fileName}
+          fileSize={metadata.size}
+          fileUrl={metadata.fileUrl}
+          isBot={isBot}
+        />
+      ) : (
+        <div
+          className={cn(
+            "px-4 py-3 rounded-2xl whitespace-pre-wrap text-sm leading-relaxed",
+            isBot
+              ? "bg-primary text-primary-foreground rounded-tr-sm"
+              : "bg-card text-card-foreground rounded-tl-sm"
+          )}
+        >
+          {content}
+        </div>
+      )}
       <span className="text-xs text-muted-foreground px-1">
         {timestamp}
       </span>
