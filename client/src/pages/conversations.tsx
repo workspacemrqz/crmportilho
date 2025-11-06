@@ -106,7 +106,7 @@ export default function Conversations() {
     id: conv.id,
     contactName: conv.lead.name || 'Cliente',
     contactPhone: conv.lead.phone,
-    lastMessage: conv.currentStep || 'Aguardando resposta',
+    lastMessage: conv.currentStep || '',
     timestamp: new Date(conv.lastActivity).toLocaleString('pt-BR'),
     unread: 0,
     isActive: conv.status === 'active'
