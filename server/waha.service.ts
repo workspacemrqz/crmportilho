@@ -207,12 +207,12 @@ export class WAHAService {
   async sendImage(phone: string, imageUrl: string, caption: string, filename?: string, mimeType?: string, conversationId?: string) {
     try {
       const chatId = this.formatPhone(phone);
-      // Use sendFile endpoint instead of sendImage - it handles all media types correctly
+      // Use sendFile endpoint - IMPORTANT: Do NOT include caption for images
+      // WhatsApp treats files WITH caption as documents, WITHOUT caption as images
       const url = `${this.baseUrl}/api/sendFile`;
       
       console.log(`[WAHA] Sending image to ${chatId} via ${url}`);
       console.log(`[WAHA] Image URL: ${imageUrl}`);
-      console.log(`[WAHA] Caption: ${caption}`);
       console.log(`[WAHA] Filename: ${filename}`);
       console.log(`[WAHA] MimeType: ${mimeType}`);
       
@@ -232,7 +232,7 @@ export class WAHAService {
         body: JSON.stringify({
           chatId,
           file: fileObject,
-          caption,
+          // NO caption - this makes WhatsApp send it as image instead of document
           session: this.session
         })
       });
