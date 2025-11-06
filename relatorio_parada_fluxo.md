@@ -289,6 +289,93 @@ Tentativa 3: Aguarda 2 segundos
 
 ---
 
+## 9. Correções Implementadas para Integração Chatwoot
+
+### 9.1 Problema Identificado
+**Descrição:** Quando um atendente humano envia mensagem via Chatwoot, a mensagem é enviada através da WAHA API com as seguintes características:
+- `isFromMe: true` (porque vem da conta business)
+- `source: "api"` (porque foi enviada via API)
+
+Isso causava **dois problemas críticos:**
+1. O bot não detectava a intervenção humana imediatamente
+2. O webhook WAHA poderia processar a mensagem do atendente e criar um loop
+
+### 9.2 Solução 1: Webhook do Chatwoot
+**Implementação:** Endpoint `/api/webhook/chatwoot`
+
+**Funcionamento:**
+- Detecta evento `message_created` com `message_type: 'outgoing'`
+- Identifica o telefone do lead através dos metadados da conversa
+- Marca handoff permanente **ANTES** da mensagem ser enviada pelo WhatsApp
+- Atualiza tanto memória (`permanentHandoffConversations`) quanto banco de dados (`isPermanentHandoff`)
+
+**Benefícios:**
+- Prevenção proativa: handoff é marcado **antes** do bot processar qualquer resposta
+- Zero race conditions: impossível do bot responder após atendente assumir
+
+### 9.3 Solução 2: Filtro de Mensagens API no Webhook WAHA
+**Implementação:** Filtro adicional no endpoint `/api/webhook/waha`
+
+**Código:**
+```typescript
+if (parsedMessage.isFromMe && parsedMessage.source === 'api') {
+  console.log('[WAHA-WEBHOOK] 🤖 Mensagem enviada pelo bot via API - IGNORANDO para evitar loop');
+  return res.status(200).json({ status: 'ignored', reason: 'bot-message-via-api' });
+}
+```
+
+**Funcionamento:**
+- Ignora **TODAS** as mensagens com `isFromMe: true` e `source: "api"`
+- Isso inclui:
+  - Mensagens enviadas pelo próprio bot
+  - Mensagens enviadas por atendentes via Chatwoot
+  - Qualquer outra mensagem enviada via API WAHA
+
+**Benefícios:**
+- Previne loops infinitos onde bot processaria suas próprias mensagens
+- Protege contra race conditions no handoff
+- Simples e efetivo
+
+### 9.4 Camadas de Proteção Implementadas
+
+O sistema agora possui **4 camadas de proteção** contra resposta indevida do bot:
+
+**Camada 1: Webhook Chatwoot (Proativa)**
+- Detecta quando atendente envia mensagem
+- Marca handoff permanente ANTES da mensagem chegar ao webhook WAHA
+
+**Camada 2: Filtro de Source API (Preventiva)**
+- Ignora mensagens com `source: "api"` no webhook WAHA
+- Evita loops e processamento desnecessário
+
+**Camada 3: Guard em Memória (Performance)**
+- Verificação em `permanentHandoffConversations` (Set)
+- Mais rápido que banco de dados
+- Previne race conditions
+
+**Camada 4: Banco de Dados (Persistência)**
+- Campo `isPermanentHandoff` no chatbot state
+- Garante que handoff persiste mesmo após reinício
+- Fonte única da verdade
+
+### 9.5 Configuração Necessária
+
+Para que o sistema funcione completamente, é necessário configurar o webhook do Chatwoot:
+
+**URL do Webhook:** `https://[SEU-DOMINIO]/api/webhook/chatwoot`
+
+**Eventos a Monitorar:**
+- `message_created` (obrigatório)
+
+**Headers:** Não são necessários headers de autenticação (endpoint público)
+
+**Observações:**
+- O webhook funciona apenas para mensagens outgoing (enviadas por atendentes)
+- O webhook não processa mensagens do bot ou do cliente
+- Recomenda-se configurar no Chatwoot: Settings > Integrations > Webhooks
+
+---
+
 ## Conclusão
 
 O sistema possui múltiplos pontos de interrupção do fluxo automatizado, desde condições planejadas (transferência para humano) até falhas técnicas (erros de API, timeouts). A maioria das interrupções são adequadamente tratadas com mecanismos de fallback ou transferência para atendimento humano, garantindo que o cliente não fique sem resposta.
