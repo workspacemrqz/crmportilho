@@ -160,6 +160,7 @@ export class ChatwootService {
 
   /**
    * Cria uma nova conversação no Chatwoot
+   * Se já existir uma conversação aberta para o contato, retorna a conversa existente
    */
   async createConversation(
     contactId: number,
@@ -193,7 +194,25 @@ export class ChatwootService {
       console.log(`[ChatwootService] ✅ Conversação criada: ID ${conversation.id}`);
       return conversation;
     } catch (error: any) {
-      console.error('[ChatwootService] ❌ Erro ao criar conversação:', error.response?.data || error.message);
+      const errorData = error.response?.data;
+      
+      // Check if error is because conversation already exists
+      if (errorData && errorData.conversation_id) {
+        console.log(`[ChatwootService] ℹ️ Conversação já existe para contato ${contactId}: ID ${errorData.conversation_id}`);
+        
+        // Return the existing conversation ID
+        return {
+          id: errorData.conversation_id,
+          account_id: parseInt(this.config.accountId),
+          inbox_id: parseInt(this.config.inboxId),
+          contact_id: contactId,
+          status: 'open',
+          priority: null as any,
+          labels: []
+        };
+      }
+      
+      console.error('[ChatwootService] ❌ Erro ao criar conversação:', errorData || error.message);
       return null;
     }
   }

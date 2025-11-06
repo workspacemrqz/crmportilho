@@ -4039,7 +4039,7 @@ Retorne APENAS uma palavra: "sim", "não" ou "unclear".`;
     labels: string[]
   ): Promise<void> {
     try {
-      console.log(`[ChatbotService] 🔗 Criando conversação Chatwoot para lead ${lead.protocol}`);
+      console.log(`[ChatbotService] 🔗 Criando/atualizando conversação Chatwoot para lead ${lead.protocol}`);
       
       // Skip if Chatwoot is not configured
       if (!chatwootService.isConfigured()) {
@@ -4047,13 +4047,8 @@ Retorne APENAS uma palavra: "sim", "não" ou "unclear".`;
         return;
       }
 
-      // Skip if lead already has a Chatwoot conversation
-      if (lead.chatwootConversationId) {
-        console.log(`[ChatbotService] ℹ️ Lead ${lead.protocol} já tem conversação Chatwoot ID ${lead.chatwootConversationId}`);
-        return;
-      }
-
-      // Create conversation in Chatwoot
+      // Create or get existing conversation in Chatwoot
+      // This will now handle existing conversations and update their priority/labels
       const result = await chatwootService.createInsuranceConversation(
         lead.name || 'Cliente',
         lead.whatsappPhone,
@@ -4065,20 +4060,22 @@ Retorne APENAS uma palavra: "sim", "não" ou "unclear".`;
       );
 
       if (result) {
-        // Update lead with Chatwoot IDs
-        await db.update(leads)
-          .set({
-            chatwootContactId: result.contactId,
-            chatwootConversationId: result.conversationId
-          })
-          .where(eq(leads.id, lead.id));
+        // Update lead with Chatwoot IDs if not already set
+        if (!lead.chatwootConversationId || !lead.chatwootContactId) {
+          await db.update(leads)
+            .set({
+              chatwootContactId: result.contactId,
+              chatwootConversationId: result.conversationId
+            })
+            .where(eq(leads.id, lead.id));
+        }
 
-        console.log(`[ChatbotService] ✅ Conversação Chatwoot criada: Contact ID ${result.contactId}, Conversation ID ${result.conversationId}`);
+        console.log(`[ChatbotService] ✅ Conversação Chatwoot configurada: Contact ID ${result.contactId}, Conversation ID ${result.conversationId}, Priority: ${priority}, Labels: ${labels.join(', ')}`);
       } else {
-        console.warn(`[ChatbotService] ⚠️ Falha ao criar conversação Chatwoot para lead ${lead.protocol}`);
+        console.warn(`[ChatbotService] ⚠️ Falha ao configurar conversação Chatwoot para lead ${lead.protocol}`);
       }
     } catch (error) {
-      console.error('[ChatbotService] ❌ Erro ao criar conversação Chatwoot:', error);
+      console.error('[ChatbotService] ❌ Erro ao configurar conversação Chatwoot:', error);
     }
   }
 
