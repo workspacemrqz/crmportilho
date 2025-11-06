@@ -22,7 +22,9 @@ type Conversation = {
     id: string;
     protocol: string;
     name: string | null;
-    phone: string;
+    whatsappName: string | null;
+    phone: string | null;
+    whatsappPhone: string;
     status: string;
     priority: string;
   };
@@ -125,8 +127,8 @@ export default function Conversations() {
   // Transform API data to match ConversationList format
   const conversations = conversationsData.map(conv => ({
     id: conv.id,
-    contactName: conv.lead.name || formatPhone(conv.lead.phone),
-    contactPhone: formatPhone(conv.lead.phone),
+    contactName: conv.lead.whatsappName || formatPhone(conv.lead.whatsappPhone),
+    contactPhone: formatPhone(conv.lead.whatsappPhone),
     lastMessage: '', // Remove currentStep - it's a technical field like "welcome"
     timestamp: new Date(conv.lastActivity).toLocaleString('pt-BR'),
     unread: 0,
