@@ -204,25 +204,34 @@ export class WAHAService {
     }
   }
 
-  async sendImage(phone: string, imageUrl: string, caption: string, filename?: string, conversationId?: string) {
+  async sendImage(phone: string, imageUrl: string, caption: string, filename?: string, mimeType?: string, conversationId?: string) {
     try {
       const chatId = this.formatPhone(phone);
-      const url = `${this.baseUrl}/api/sendImage`;
+      // Use sendFile endpoint instead of sendImage - it handles all media types correctly
+      const url = `${this.baseUrl}/api/sendFile`;
       
       console.log(`[WAHA] Sending image to ${chatId} via ${url}`);
       console.log(`[WAHA] Image URL: ${imageUrl}`);
       console.log(`[WAHA] Caption: ${caption}`);
       console.log(`[WAHA] Filename: ${filename}`);
+      console.log(`[WAHA] MimeType: ${mimeType}`);
+      
+      const fileObject: any = {
+        url: imageUrl,
+        filename: filename || caption
+      };
+      
+      // Add mimetype to help WhatsApp identify the file correctly
+      if (mimeType) {
+        fileObject.mimetype = mimeType;
+      }
       
       const response = await fetch(url, {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({
           chatId,
-          file: {
-            url: imageUrl,
-            filename: filename || caption
-          },
+          file: fileObject,
           caption,
           session: this.session
         })
