@@ -181,22 +181,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log('[CHATWOOT-WEBHOOK] 🚨 Atendente enviou mensagem!');
           console.log('[CHATWOOT-WEBHOOK] Message:', data.content);
           
-          // NOVA ABORDAGEM: Usar source_id que é o ID da nossa conversation
-          const conversationId = data.conversation?.contact_inbox?.source_id;
-          console.log('[CHATWOOT-WEBHOOK] 🔑 Conversation ID do Chatwoot:', conversationId);
+          // Pegar telefone do payload
+          const phone = data.conversation?.meta?.sender?.phone_number || 
+                       data.conversation?.meta?.sender?.identifier;
           
-          if (conversationId) {
-            // Buscar conversation diretamente pelo ID
-            const activeConversation = await storage.getConversation(conversationId);
+          console.log('[CHATWOOT-WEBHOOK] 📞 Phone from Chatwoot:', phone);
+          
+          if (phone) {
+            const cleanPhone = phone.replace(/\D/g, '');
+            console.log('[CHATWOOT-WEBHOOK] 📞 Clean phone:', cleanPhone);
             
-            if (activeConversation) {
-              console.log('[CHATWOOT-WEBHOOK] ✅ Conversation encontrada:', activeConversation.id);
-              console.log('[CHATWOOT-WEBHOOK] 👤 Lead ID:', activeConversation.leadId);
+            // Tentar buscar lead por todos os formatos de telefone possíveis
+            const phoneVariations = [
+              cleanPhone,
+              cleanPhone.replace(/^55/, ''),
+              cleanPhone.slice(-11),
+              cleanPhone.slice(-10),
+            ];
+            
+            let lead = null;
+            for (const phoneFormat of phoneVariations) {
+              lead = await storage.getLeadByPhone(phoneFormat);
+              if (lead) {
+                console.log('[CHATWOOT-WEBHOOK] ✅ Lead encontrado com telefone:', phoneFormat);
+                break;
+              }
+            }
+            
+            // Se não encontrou, buscar por todas as conversations ativas recentes
+            if (!lead) {
+              console.log('[CHATWOOT-WEBHOOK] ⚠️ Lead não encontrado por telefone, buscando conversations recentes...');
+              const allConversations = await storage.getConversations({});
+              const activeConversations = allConversations.filter(c => c.status === 'active');
+              console.log('[CHATWOOT-WEBHOOK] 📊 Total de conversations ativas:', activeConversations.length);
               
-              const lead = await storage.getLead(activeConversation.leadId);
-              console.log('[CHATWOOT-WEBHOOK] 👤 Lead:', lead ? `Protocol: ${lead.protocol}` : 'NÃO ENCONTRADO');
+              // Pegar a conversation mais recente (última que teve atividade)
+              if (activeConversations.length > 0) {
+                const mostRecentConv = activeConversations[0]; // Já vem ordenado por created_at desc
+                lead = await storage.getLead(mostRecentConv.leadId);
+                console.log('[CHATWOOT-WEBHOOK] 💡 Usando lead da conversation mais recente:', lead?.protocol);
+                
+                // Atualizar o telefone do lead se não tiver
+                if (lead && !lead.phone) {
+                  console.log('[CHATWOOT-WEBHOOK] 📝 Atualizando telefone do lead...');
+                  await storage.updateLead(lead.id, { phone: cleanPhone });
+                }
+              }
+            }
+            
+            if (lead) {
+              console.log('[CHATWOOT-WEBHOOK] 👤 Lead final:', `Protocol: ${lead.protocol}, ID: ${lead.id}`);
               
-              if (lead && activeConversation) {
+              // Encontrar conversação ativa do lead
+              const conversations = await storage.getConversations({ leadId: lead.id });
+              const activeConversation = conversations.find(conv => conv.status === 'active');
+              
+              console.log('[CHATWOOT-WEBHOOK] 💬 Conversation ativa:', activeConversation ? `ID: ${activeConversation.id}` : 'NENHUMA');
+              
+              if (activeConversation) {
                 console.log('[CHATWOOT-WEBHOOK] ✅ Marcando handoff permanente para conversation:', activeConversation.id);
                 
                 // CRÍTICO: Marcar handoff em memória IMEDIATAMENTE
@@ -240,13 +282,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   console.log('[CHATWOOT-WEBHOOK] ⚠️ Chatbot state não encontrado para conversation:', activeConversation.id);
                 }
               } else {
-                console.log('[CHATWOOT-WEBHOOK] ❌ Lead ou conversation não encontrado');
+                console.log('[CHATWOOT-WEBHOOK] ❌ Conversation ativa não encontrada para o lead');
               }
             } else {
-              console.log('[CHATWOOT-WEBHOOK] ❌ Conversation não encontrada no banco, ID:', conversationId);
+              console.log('[CHATWOOT-WEBHOOK] ❌ Lead não encontrado de nenhuma forma (telefone nem conversation recente)');
             }
           } else {
-            console.log('[CHATWOOT-WEBHOOK] ❌ Conversation ID não encontrado no payload do Chatwoot');
+            console.log('[CHATWOOT-WEBHOOK] ❌ Telefone não encontrado no payload do Chatwoot');
           }
         }
         
