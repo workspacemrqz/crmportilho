@@ -1174,12 +1174,12 @@ export default function WorkflowsRefactored() {
                       </p>
                     </div>
                     <div className="flex flex-col items-center text-center p-4 rounded-lg bg-muted/50">
-                      <Brain className="h-8 w-8 mb-2 text-purple-600" />
+                      <Brain className="h-8 w-8 mb-2 text-orange-600" />
                       <p className="font-medium text-sm">3. Inteligência lê e entende</p>
                       <p className="text-xs text-muted-foreground mt-1">Descobre o que o cliente quer e organiza as informações</p>
                     </div>
                     <div className="flex flex-col items-center text-center p-4 rounded-lg bg-muted/50">
-                      <CheckCircle className="h-8 w-8 mb-2 text-green-600" />
+                      <CheckCircle className="h-8 w-8 mb-2 text-orange-600" />
                       <p className="font-medium text-sm">4. Resposta é enviada</p>
                       <p className="text-xs text-muted-foreground mt-1">Cliente recebe a mensagem certa para ele</p>
                     </div>
@@ -1221,7 +1221,7 @@ export default function WorkflowsRefactored() {
 
                     <div className="p-4 rounded-lg border">
                       <div className="flex items-center gap-2 mb-2">
-                        <FileText className="h-5 w-5 text-green-600" />
+                        <FileText className="h-5 w-5 text-orange-600" />
                         <p className="font-semibold">Informações já passadas</p>
                       </div>
                       <p className="text-sm text-muted-foreground">
@@ -1243,7 +1243,7 @@ export default function WorkflowsRefactored() {
 
                     <div className="p-4 rounded-lg border">
                       <div className="flex items-center gap-2 mb-2">
-                        <Hash className="h-5 w-5 text-purple-600" />
+                        <Hash className="h-5 w-5 text-orange-600" />
                         <p className="font-semibold">Escolhas do cliente</p>
                       </div>
                       <p className="text-sm text-muted-foreground">
@@ -1333,8 +1333,8 @@ export default function WorkflowsRefactored() {
                       </div>
                     </div>
                     
-                    <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50 border-l-4 border-green-500">
-                      <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center text-sm font-semibold text-green-600 flex-shrink-0">2</div>
+                    <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50 border-l-4 border-orange-500">
+                      <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center text-sm font-semibold text-orange-600 flex-shrink-0">2</div>
                       <div className="flex-1">
                         <p className="font-medium text-sm mb-1">Cliente escolhe o que precisa</p>
                         <p className="text-xs text-muted-foreground">
@@ -1344,8 +1344,8 @@ export default function WorkflowsRefactored() {
                       </div>
                     </div>
                     
-                    <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50 border-l-4 border-purple-500">
-                      <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center text-sm font-semibold text-purple-600 flex-shrink-0">3</div>
+                    <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50 border-l-4 border-orange-500">
+                      <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center text-sm font-semibold text-orange-600 flex-shrink-0">3</div>
                       <div className="flex-1">
                         <p className="font-medium text-sm mb-1">Assistente faz perguntas para coletar informações</p>
                         <p className="text-xs text-muted-foreground">
@@ -1356,8 +1356,8 @@ export default function WorkflowsRefactored() {
                       </div>
                     </div>
                     
-                    <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50 border-l-4 border-blue-500">
-                      <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-sm font-semibold text-blue-600 flex-shrink-0">4</div>
+                    <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50 border-l-4 border-orange-500">
+                      <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center text-sm font-semibold text-orange-600 flex-shrink-0">4</div>
                       <div className="flex-1">
                         <p className="font-medium text-sm mb-1">Cliente envia documentos (se necessário)</p>
                         <p className="text-xs text-muted-foreground">
@@ -1367,8 +1367,8 @@ export default function WorkflowsRefactored() {
                       </div>
                     </div>
                     
-                    <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50 border-l-4 border-green-600">
-                      <div className="w-8 h-8 rounded-full bg-green-600/20 flex items-center justify-center text-sm font-semibold text-green-700 flex-shrink-0">5</div>
+                    <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50 border-l-4 border-orange-600">
+                      <div className="w-8 h-8 rounded-full bg-orange-600/20 flex items-center justify-center text-sm font-semibold text-orange-700 flex-shrink-0">5</div>
                       <div className="flex-1">
                         <p className="font-medium text-sm mb-1">Finalização ou transferência</p>
                         <p className="text-xs text-muted-foreground">
@@ -1400,8 +1400,8 @@ export default function WorkflowsRefactored() {
                   
                   <div className="space-y-2">
                     <div className="grid gap-2">
-                      <div className="flex items-start gap-3 p-3 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900">
-                        <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                      <div className="flex items-start gap-3 p-3 rounded-lg bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-900">
+                        <CheckCircle className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
                         <div>
                           <p className="font-medium text-sm">Cliente pede para falar com alguém</p>
                           <p className="text-xs text-muted-foreground mt-1">
@@ -1411,8 +1411,8 @@ export default function WorkflowsRefactored() {
                         </div>
                       </div>
                       
-                      <div className="flex items-start gap-3 p-3 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900">
-                        <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                      <div className="flex items-start gap-3 p-3 rounded-lg bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-900">
+                        <CheckCircle className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
                         <div>
                           <p className="font-medium text-sm">Assuntos que precisam de atenção especial</p>
                           <p className="text-xs text-muted-foreground mt-1">
@@ -1422,8 +1422,8 @@ export default function WorkflowsRefactored() {
                         </div>
                       </div>
                       
-                      <div className="flex items-start gap-3 p-3 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900">
-                        <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                      <div className="flex items-start gap-3 p-3 rounded-lg bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-900">
+                        <CheckCircle className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
                         <div>
                           <p className="font-medium text-sm">Alguém da equipe responde manualmente</p>
                           <p className="text-xs text-muted-foreground mt-1">
@@ -1433,8 +1433,8 @@ export default function WorkflowsRefactored() {
                         </div>
                       </div>
                       
-                      <div className="flex items-start gap-3 p-3 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900">
-                        <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                      <div className="flex items-start gap-3 p-3 rounded-lg bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-900">
+                        <CheckCircle className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
                         <div>
                           <p className="font-medium text-sm">Acontece algum problema</p>
                           <p className="text-xs text-muted-foreground mt-1">
@@ -1481,9 +1481,9 @@ export default function WorkflowsRefactored() {
                   </p>
                   
                   <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
-                    <div className="p-4 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                    <div className="p-4 rounded-lg bg-orange-500/10 border border-orange-500/20">
                       <div className="flex items-center gap-2 mb-2">
-                        <Sparkles className="h-5 w-5 text-purple-600" />
+                        <Sparkles className="h-5 w-5 text-orange-600" />
                         <p className="font-semibold text-sm">Entende o que você quer</p>
                       </div>
                       <p className="text-xs text-muted-foreground mb-2">
@@ -1496,9 +1496,9 @@ export default function WorkflowsRefactored() {
                       </div>
                     </div>
                     
-                    <div className="p-4 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                    <div className="p-4 rounded-lg bg-orange-500/10 border border-orange-500/20">
                       <div className="flex items-center gap-2 mb-2">
-                        <FileText className="h-5 w-5 text-purple-600" />
+                        <FileText className="h-5 w-5 text-orange-600" />
                         <p className="font-semibold text-sm">Organiza as informações sozinho</p>
                       </div>
                       <p className="text-xs text-muted-foreground mb-2">
@@ -1511,9 +1511,9 @@ export default function WorkflowsRefactored() {
                       </div>
                     </div>
                     
-                    <div className="p-4 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                    <div className="p-4 rounded-lg bg-orange-500/10 border border-orange-500/20">
                       <div className="flex items-center gap-2 mb-2">
-                        <CheckCircle className="h-5 w-5 text-purple-600" />
+                        <CheckCircle className="h-5 w-5 text-orange-600" />
                         <p className="font-semibold text-sm">Entende jeitos diferentes de dizer sim ou não</p>
                       </div>
                       <p className="text-xs text-muted-foreground mb-2">
@@ -1525,9 +1525,9 @@ export default function WorkflowsRefactored() {
                       </div>
                     </div>
                     
-                    <div className="p-4 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                    <div className="p-4 rounded-lg bg-orange-500/10 border border-orange-500/20">
                       <div className="flex items-center gap-2 mb-2">
-                        <MessageSquare className="h-5 w-5 text-purple-600" />
+                        <MessageSquare className="h-5 w-5 text-orange-600" />
                         <p className="font-semibold text-sm">Se adapta ao contexto</p>
                       </div>
                       <p className="text-xs text-muted-foreground mb-2">
@@ -1540,12 +1540,12 @@ export default function WorkflowsRefactored() {
                     </div>
                   </div>
                   
-                  <Alert className="bg-purple-50 dark:bg-purple-950/20 border-purple-200 dark:border-purple-900">
-                    <Brain className="h-4 w-4 text-purple-600" />
-                    <AlertTitle className="text-sm font-semibold text-purple-900 dark:text-purple-100">
+                  <Alert className="bg-orange-50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-900">
+                    <Brain className="h-4 w-4 text-orange-600" />
+                    <AlertTitle className="text-sm font-semibold text-orange-900 dark:text-orange-100">
                       Conversa de verdade, não robô decorado
                     </AlertTitle>
-                    <AlertDescription className="text-sm text-purple-800 dark:text-purple-200">
+                    <AlertDescription className="text-sm text-orange-800 dark:text-orange-200">
                       A grande diferença é que você pode conversar naturalmente, como se estivesse falando com uma pessoa. 
                       Não precisa decorar comandos ou digitar de um jeito específico. Quanto mais natural você for, 
                       melhor o assistente entende!
@@ -1555,25 +1555,25 @@ export default function WorkflowsRefactored() {
               </Card>
 
               {/* Dicas para melhor experiência */}
-              <Card className="border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/20">
+              <Card className="border-orange-200 dark:border-orange-900 bg-orange-50 dark:bg-orange-950/20">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg text-green-900 dark:text-green-100">
+                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg text-orange-900 dark:text-orange-100">
                     <Sparkles className="h-4 w-4 sm:h-5 sm:w-5" />
                     Dicas para seus clientes aproveitarem melhor
                   </CardTitle>
-                  <CardDescription className="text-xs sm:text-sm text-green-700 dark:text-green-300">
+                  <CardDescription className="text-xs sm:text-sm text-orange-700 dark:text-orange-300">
                     Compartilhe essas orientações para uma experiência ainda melhor
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     <div className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-600 mt-1 flex-shrink-0" />
+                      <CheckCircle className="h-4 w-4 text-orange-600 mt-1 flex-shrink-0" />
                       <div>
-                        <p className="text-sm font-medium text-green-900 dark:text-green-100">
+                        <p className="text-sm font-medium text-orange-900 dark:text-orange-100">
                           Pode escrever do jeito que quiser
                         </p>
-                        <p className="text-xs text-green-700 dark:text-green-300 mt-1">
+                        <p className="text-xs text-orange-700 dark:text-orange-300 mt-1">
                           Não precisa se preocupar com formalidade ou palavras exatas. O assistente entende gírias, 
                           abreviações e até erros de digitação!
                         </p>
@@ -1581,12 +1581,12 @@ export default function WorkflowsRefactored() {
                     </div>
                     
                     <div className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-600 mt-1 flex-shrink-0" />
+                      <CheckCircle className="h-4 w-4 text-orange-600 mt-1 flex-shrink-0" />
                       <div>
-                        <p className="text-sm font-medium text-green-900 dark:text-green-100">
+                        <p className="text-sm font-medium text-orange-900 dark:text-orange-100">
                           Pode enviar várias mensagens seguidas
                         </p>
-                        <p className="text-xs text-green-700 dark:text-green-300 mt-1">
+                        <p className="text-xs text-orange-700 dark:text-orange-300 mt-1">
                           Se tiver muita coisa para falar, pode mandar em várias mensagens. O assistente espera você 
                           terminar e lê tudo junto.
                         </p>
@@ -1594,12 +1594,12 @@ export default function WorkflowsRefactored() {
                     </div>
                     
                     <div className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-600 mt-1 flex-shrink-0" />
+                      <CheckCircle className="h-4 w-4 text-orange-600 mt-1 flex-shrink-0" />
                       <div>
-                        <p className="text-sm font-medium text-green-900 dark:text-green-100">
+                        <p className="text-sm font-medium text-orange-900 dark:text-orange-100">
                           Tem dúvida? Pode perguntar!
                         </p>
-                        <p className="text-xs text-green-700 dark:text-green-300 mt-1">
+                        <p className="text-xs text-orange-700 dark:text-orange-300 mt-1">
                           Se não entender alguma coisa ou não souber o que fazer, é só perguntar. O assistente está 
                           programado para ajudar e esclarecer dúvidas.
                         </p>
@@ -1607,12 +1607,12 @@ export default function WorkflowsRefactored() {
                     </div>
                     
                     <div className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-600 mt-1 flex-shrink-0" />
+                      <CheckCircle className="h-4 w-4 text-orange-600 mt-1 flex-shrink-0" />
                       <div>
-                        <p className="text-sm font-medium text-green-900 dark:text-green-100">
+                        <p className="text-sm font-medium text-orange-900 dark:text-orange-100">
                           Prefere falar com uma pessoa? Sem problema!
                         </p>
-                        <p className="text-xs text-green-700 dark:text-green-300 mt-1">
+                        <p className="text-xs text-orange-700 dark:text-orange-300 mt-1">
                           A qualquer momento pode pedir "quero falar com atendente" que o assistente transfere na hora. 
                           Ele não leva para o lado pessoal! 😊
                         </p>
