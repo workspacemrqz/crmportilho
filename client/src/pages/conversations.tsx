@@ -87,7 +87,8 @@ export default function Conversations() {
   // Transform API data to match ConversationList format
   const conversations = conversationsData.map(conv => ({
     id: conv.id,
-    contactName: conv.lead.name || conv.lead.phone,
+    contactName: conv.lead.name || 'Cliente',
+    contactPhone: conv.lead.phone,
     lastMessage: conv.currentStep || 'Aguardando resposta',
     timestamp: new Date(conv.lastActivity).toLocaleString('pt-BR'),
     unread: 0,

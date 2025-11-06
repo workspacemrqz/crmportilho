@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 interface Conversation {
   id: string;
   contactName: string;
+  contactPhone: string;
   lastMessage: string;
   timestamp: string;
   unread: number;
@@ -32,13 +33,18 @@ export default function ConversationList({ conversations, onSelect }: Conversati
           data-testid={`conversation-${conv.id}`}
         >
           <div className="flex items-start justify-between gap-2 mb-1">
-            <h4 className="font-semibold truncate flex-1" data-testid={`text-conv-name-${conv.id}`}>
-              {conv.contactName}
-            </h4>
+            <div className="flex-1 min-w-0">
+              <h4 className="font-semibold truncate text-[hsl(var(--primary))]" data-testid={`text-conv-name-${conv.id}`}>
+                {conv.contactName}
+              </h4>
+              <p className="text-xs text-muted-foreground truncate">
+                {conv.contactPhone}
+              </p>
+            </div>
             {conv.unread > 0 && (
               <Badge 
                 variant="default" 
-                className="bg-primary text-primary-foreground h-5 min-w-5 px-1.5 text-xs"
+                className="bg-primary text-primary-foreground h-5 min-w-5 px-1.5 text-xs flex-shrink-0"
                 data-testid={`badge-unread-${conv.id}`}
               >
                 {conv.unread}
