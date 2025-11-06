@@ -1128,54 +1128,82 @@ export default function WorkflowsRefactored() {
 
           <TabsContent value="guide" className="flex-1 overflow-auto px-4 sm:px-6 py-4 mt-0">
             <div className="max-w-5xl mx-auto space-y-4 sm:space-y-6">
-              {/* Fluxo de Mensagens */}
+              {/* Introdução */}
+              <Card className="border-primary/20 bg-primary/5">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                    <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                    Bem-vindo ao Guia do Assistente Virtual
+                  </CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">
+                    Entenda como funciona o atendimento automático pelo WhatsApp
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm leading-relaxed text-muted-foreground">
+                    Nosso assistente virtual foi criado para conversar com seus clientes de forma natural e inteligente. 
+                    Ele funciona 24 horas por dia, responde na hora e sabe exatamente quando precisa passar o atendimento 
+                    para uma pessoa da sua equipe. Vamos te mostrar como tudo isso acontece de um jeito bem simples!
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Como uma conversa acontece */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
                     <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-                    Fluxo de Mensagens
+                    Como uma conversa acontece
                   </CardTitle>
                   <CardDescription className="text-xs sm:text-sm">
-                    Como o sistema processa mensagens do WhatsApp
+                    Desde quando o cliente manda a primeira mensagem até receber a resposta
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-4">
+                  <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-4">
                     <div className="flex flex-col items-center text-center p-4 rounded-lg bg-muted/50">
                       <Phone className="h-8 w-8 mb-2 text-orange-600" />
-                      <p className="font-medium text-sm">Cliente envia</p>
-                      <p className="text-xs text-muted-foreground mt-1">Mensagem chega pelo WhatsApp</p>
+                      <p className="font-medium text-sm">1. Cliente manda mensagem</p>
+                      <p className="text-xs text-muted-foreground mt-1">A mensagem chega no WhatsApp da empresa</p>
                     </div>
                     <div className="flex flex-col items-center text-center p-4 rounded-lg bg-muted/50">
                       <Clock className="h-8 w-8 mb-2 text-orange-600" />
-                      <p className="font-medium text-sm">Sistema aguarda</p>
+                      <p className="font-medium text-sm">2. Assistente espera um pouco</p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Agrupa mensagens por 3-{settings?.bufferTimeoutSeconds || 30}s
+                        Dá tempo do cliente terminar de escrever tudo
                       </p>
                     </div>
                     <div className="flex flex-col items-center text-center p-4 rounded-lg bg-muted/50">
                       <Brain className="h-8 w-8 mb-2 text-purple-600" />
-                      <p className="font-medium text-sm">IA processa</p>
-                      <p className="text-xs text-muted-foreground mt-1">Entende intenção e extrai dados</p>
+                      <p className="font-medium text-sm">3. Inteligência lê e entende</p>
+                      <p className="text-xs text-muted-foreground mt-1">Descobre o que o cliente quer e organiza as informações</p>
                     </div>
                     <div className="flex flex-col items-center text-center p-4 rounded-lg bg-muted/50">
                       <CheckCircle className="h-8 w-8 mb-2 text-green-600" />
-                      <p className="font-medium text-sm">Bot responde</p>
-                      <p className="text-xs text-muted-foreground mt-1">Envia mensagem apropriada</p>
+                      <p className="font-medium text-sm">4. Resposta é enviada</p>
+                      <p className="text-xs text-muted-foreground mt-1">Cliente recebe a mensagem certa para ele</p>
                     </div>
                   </div>
+                  <Alert className="mt-4">
+                    <Info className="h-4 w-4" />
+                    <AlertDescription className="text-sm">
+                      <strong>Por que esperar alguns segundos?</strong> Imagine que você está digitando várias coisas seguidas. 
+                      O assistente dá esse tempinho para você terminar, evitando te interromper no meio da conversa. 
+                      Assim ele consegue entender tudo o que você quis dizer de uma vez só!
+                    </AlertDescription>
+                  </Alert>
                 </CardContent>
               </Card>
 
-              {/* Variáveis de Fluxo */}
+              {/* O que o assistente lembra */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
                     <Database className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-                    O que o Sistema Armazena
+                    O que o assistente lembra durante a conversa
                   </CardTitle>
                   <CardDescription className="text-xs sm:text-sm">
-                    Principais informações guardadas durante a conversa
+                    Para dar continuidade na conversa, ele guarda essas informações
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -1183,206 +1211,412 @@ export default function WorkflowsRefactored() {
                     <div className="p-4 rounded-lg border">
                       <div className="flex items-center gap-2 mb-2">
                         <GitBranch className="h-5 w-5 text-orange-600" />
-                        <p className="font-semibold">Etapa Atual</p>
+                        <p className="font-semibold">Onde a conversa está</p>
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        Em qual fase da conversa o cliente está: Selecionando menu, Preenchendo dados pessoais, Enviando documentos, etc.
+                        Sabe em que parte da conversa vocês estão. Por exemplo: se está mostrando o menu, 
+                        coletando dados do cliente, esperando documentos, etc.
                       </p>
                     </div>
 
                     <div className="p-4 rounded-lg border">
                       <div className="flex items-center gap-2 mb-2">
                         <FileText className="h-5 w-5 text-green-600" />
-                        <p className="font-semibold">Dados Coletados</p>
+                        <p className="font-semibold">Informações já passadas</p>
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        Informações fornecidas: tipo de seguro escolhido, dados pessoais (nome, CPF), dados do veículo (placa, modelo, ano).
+                        Guarda tudo que o cliente já disse: nome, CPF, tipo de seguro que quer, 
+                        placa do carro, endereço. Assim não precisa perguntar de novo!
                       </p>
                     </div>
 
                     <div className="p-4 rounded-lg border">
                       <div className="flex items-center gap-2 mb-2">
                         <Users className="h-5 w-5 text-orange-600" />
-                        <p className="font-semibold">Status de Atendimento</p>
+                        <p className="font-semibold">Quem está conversando</p>
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        Indica se conversa está com bot automático ou foi transferida para atendente humano.
+                        Sabe se a conversa está sendo feita pelo assistente automático ou se já foi 
+                        passada para um atendente da sua equipe.
                       </p>
                     </div>
 
                     <div className="p-4 rounded-lg border">
                       <div className="flex items-center gap-2 mb-2">
                         <Hash className="h-5 w-5 text-purple-600" />
-                        <p className="font-semibold">Escolhas do Menu</p>
+                        <p className="font-semibold">Escolhas do cliente</p>
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        Opção selecionada pelo cliente: 1=Seguros Novos, 2=Autorio, 3=Renovação, 4=Endosso, 5=Parcelas, 6=Sinistros.
+                        Qual opção o cliente escolheu no menu: se quer fazer seguro novo (1), 
+                        renovar (3), tirar dúvidas sobre boleto (5), etc.
                       </p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Sistema de Espera */}
+              {/* Tempo de espera */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
                     <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-                    Sistema de Espera Inteligente
+                    Por que o assistente não responde na mesma hora?
                   </CardTitle>
                   <CardDescription className="text-xs sm:text-sm">
-                    Por que o bot aguarda antes de responder
+                    Entenda o tempo que ele espera antes de responder
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Quando alguém conversa pelo WhatsApp, é comum mandar várias mensagens seguidas, certo? 
+                    O assistente foi feito para respeitar esse jeito natural de conversar:
+                  </p>
+                  
                   <div className="flex items-start gap-3 p-3 rounded-lg bg-orange-500/10">
-                    <Zap className="h-5 w-5 text-orange-600 mt-0.5" />
+                    <Zap className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
                     <div>
-                      <p className="font-medium text-sm">Primeira mensagem: 3 segundos</p>
-                      <p className="text-xs text-muted-foreground">Resposta rápida para novo contato</p>
+                      <p className="font-medium text-sm">Primeira vez que o cliente fala: 3 segundos</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Como é o primeiro contato, ele responde rapidinho para não deixar o cliente esperando. 
+                        É tipo dizer "Oi, já estou aqui!"
+                      </p>
                     </div>
                   </div>
+                  
                   <div className="flex items-start gap-3 p-3 rounded-lg bg-orange-500/10">
-                    <Clock className="h-5 w-5 text-orange-600 mt-0.5" />
+                    <Clock className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
                     <div>
                       <p className="font-medium text-sm">
-                        Mensagens seguintes: {settings?.bufferTimeoutSeconds || 30} segundos
+                        Depois das próximas mensagens: {settings?.bufferTimeoutSeconds || 30} segundos
                       </p>
-                      <p className="text-xs text-muted-foreground">Cliente pode enviar múltiplas mensagens sem interrupção</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Aqui ele dá mais tempo porque sabe que a pessoa pode estar digitando mais coisas. 
+                        Por exemplo: se o cliente mandar "Meu nome é João", depois "CPF 123.456.789-00" e 
+                        depois "moro em São Paulo", o assistente espera até ter certeza que acabou, lê tudo junto 
+                        e entende melhor o contexto completo.
+                      </p>
                     </div>
                   </div>
+                  
                   <Alert>
-                    <Info className="h-4 w-4" />
+                    <Sparkles className="h-4 w-4" />
                     <AlertDescription className="text-sm">
-                      O sistema aguarda para não interromper o cliente enquanto ele digita. Todas as mensagens são analisadas juntas para melhor compreensão.
+                      <strong>Dica:</strong> Essa espera deixa a conversa mais natural e evita aquela sensação de ser 
+                      interrompido toda hora. Quanto mais informação o cliente passar de uma vez, melhor o assistente 
+                      entende e mais completa fica a resposta!
                     </AlertDescription>
                   </Alert>
                 </CardContent>
               </Card>
 
-              {/* Etapas da Conversa */}
+              {/* Jornada do cliente */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
                     <PlayCircle className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-                    Etapas da Conversa
+                    A jornada do cliente no atendimento
                   </CardTitle>
                   <CardDescription className="text-xs sm:text-sm">
-                    Sequência do atendimento automático
+                    Veja o passo a passo de como funciona do início ao fim
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                      <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center text-sm font-semibold text-orange-600">1</div>
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50 border-l-4 border-orange-500">
+                      <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center text-sm font-semibold text-orange-600 flex-shrink-0">1</div>
                       <div className="flex-1">
-                        <p className="font-medium text-sm">Início → Boas-vindas e apresentação do menu</p>
+                        <p className="font-medium text-sm mb-1">Cliente manda a primeira mensagem</p>
+                        <p className="text-xs text-muted-foreground">
+                          Pode ser um "Oi", "Bom dia", "Quero fazer um seguro" ou qualquer coisa. 
+                          O assistente responde com boas-vindas e mostra um menu com 6 opções para o cliente escolher.
+                        </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                      <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center text-sm font-semibold text-green-600">2</div>
+                    
+                    <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50 border-l-4 border-green-500">
+                      <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center text-sm font-semibold text-green-600 flex-shrink-0">2</div>
                       <div className="flex-1">
-                        <p className="font-medium text-sm">Seleção do Menu → Cliente escolhe opção (1 a 6)</p>
+                        <p className="font-medium text-sm mb-1">Cliente escolhe o que precisa</p>
+                        <p className="text-xs text-muted-foreground">
+                          O cliente pode digitar o número (1, 2, 3...) ou escrever por extenso mesmo 
+                          ("quero fazer seguro auto", "preciso renovar"). A inteligência entende os dois jeitos!
+                        </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                      <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center text-sm font-semibold text-purple-600">3</div>
+                    
+                    <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50 border-l-4 border-purple-500">
+                      <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center text-sm font-semibold text-purple-600 flex-shrink-0">3</div>
                       <div className="flex-1">
-                        <p className="font-medium text-sm">Coleta de Dados → Sistema pergunta informações necessárias</p>
+                        <p className="font-medium text-sm mb-1">Assistente faz perguntas para coletar informações</p>
+                        <p className="text-xs text-muted-foreground">
+                          Agora ele vai perguntando o que precisa: nome, CPF, endereço, dados do veículo, etc. 
+                          Vai fazendo uma pergunta de cada vez para não confundir. O cliente pode responder tudo junto 
+                          ou separado, como preferir!
+                        </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                      <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center text-sm font-semibold text-orange-600">4</div>
+                    
+                    <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50 border-l-4 border-blue-500">
+                      <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-sm font-semibold text-blue-600 flex-shrink-0">4</div>
                       <div className="flex-1">
-                        <p className="font-medium text-sm">Documentos → Aguardando envio de fotos ou arquivos</p>
+                        <p className="font-medium text-sm mb-1">Cliente envia documentos (se necessário)</p>
+                        <p className="text-xs text-muted-foreground">
+                          Em alguns casos, como cotação de seguro, o assistente pede para enviar fotos ou documentos. 
+                          Pode ser CNH, documento do carro, fotos do veículo, etc. Só mandar pelo WhatsApp mesmo!
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50 border-l-4 border-green-600">
+                      <div className="w-8 h-8 rounded-full bg-green-600/20 flex items-center justify-center text-sm font-semibold text-green-700 flex-shrink-0">5</div>
+                      <div className="flex-1">
+                        <p className="font-medium text-sm mb-1">Finalização ou transferência</p>
+                        <p className="text-xs text-muted-foreground">
+                          Quando tudo estiver pronto, ou o assistente finaliza a coleta de informações e avisa que 
+                          a equipe vai entrar em contato, ou ele transfere direto para um atendente humano continuar.
+                        </p>
                       </div>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Transferência Humana */}
+              {/* Quando passa para humano */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
                     <Users className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-                    Transferência para Humano
+                    Quando o atendimento passa para uma pessoa
                   </CardTitle>
                   <CardDescription className="text-xs sm:text-sm">
-                    Quando o bot passa para atendente
+                    O assistente sabe a hora certa de chamar alguém da equipe
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    O assistente virtual é ótimo para começar o atendimento e coletar informações, mas ele também 
+                    sabe quando é melhor passar para uma pessoa de verdade. Isso acontece automaticamente nestas situações:
+                  </p>
+                  
                   <div className="space-y-2">
-                    <p className="font-medium text-sm">O bot transfere automaticamente quando:</p>
                     <div className="grid gap-2">
-                      <div className="flex items-start gap-2 text-sm">
-                        <CheckCircle className="h-4 w-4 text-green-600 mt-0.5" />
-                        <span>Cliente pede "quero falar com atendente"</span>
+                      <div className="flex items-start gap-3 p-3 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900">
+                        <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="font-medium text-sm">Cliente pede para falar com alguém</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Se em qualquer momento o cliente escrever "quero falar com atendente", "preciso de ajuda humana" 
+                            ou algo assim, o assistente imediatamente transfere e avisa a equipe.
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex items-start gap-2 text-sm">
-                        <CheckCircle className="h-4 w-4 text-green-600 mt-0.5" />
-                        <span>Cliente escolhe: Renovação, Endosso, Parcelas ou Sinistros</span>
+                      
+                      <div className="flex items-start gap-3 p-3 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900">
+                        <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="font-medium text-sm">Assuntos que precisam de atenção especial</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Quando o cliente escolhe Renovação (3), Endosso/Alteração (4), Parcelas (5) ou Sinistros (6), 
+                            o assistente coleta as informações básicas e já transfere para um especialista cuidar do caso.
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex items-start gap-2 text-sm">
-                        <CheckCircle className="h-4 w-4 text-green-600 mt-0.5" />
-                        <span>Ocorre erro técnico no processamento</span>
+                      
+                      <div className="flex items-start gap-3 p-3 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900">
+                        <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="font-medium text-sm">Alguém da equipe responde manualmente</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Se um atendente humano resolver entrar na conversa e mandar uma mensagem, o assistente 
+                            automaticamente para de responder. Ele sabe que agora tem gente cuidando!
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex items-start gap-2 text-sm">
-                        <CheckCircle className="h-4 w-4 text-green-600 mt-0.5" />
-                        <span>Atendente envia mensagem manual</span>
+                      
+                      <div className="flex items-start gap-3 p-3 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900">
+                        <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="font-medium text-sm">Acontece algum problema</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Se por algum motivo o assistente não conseguir processar a mensagem ou acontecer um erro, 
+                            ele automaticamente transfere para garantir que o cliente não fique sem resposta.
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>
+                  
                   <Separator />
-                  <Alert>
-                    <Shield className="h-4 w-4" />
-                    <AlertTitle className="text-sm font-semibold">Bot para permanentemente</AlertTitle>
-                    <AlertDescription className="text-sm">
-                      Após transferir nos casos acima, o bot para de responder permanentemente. Apenas atendentes humanos poderão continuar a conversa.
+                  
+                  <Alert className="border-orange-200 dark:border-orange-900 bg-orange-50 dark:bg-orange-950/20">
+                    <Shield className="h-4 w-4 text-orange-600" />
+                    <AlertTitle className="text-sm font-semibold text-orange-900 dark:text-orange-100">
+                      Importante: Quando transfere, o assistente para de vez
+                    </AlertTitle>
+                    <AlertDescription className="text-sm text-orange-800 dark:text-orange-200">
+                      Depois que o atendimento é passado para uma pessoa, o assistente não volta a responder naquela conversa. 
+                      Isso evita confusão e garante que o cliente tenha um atendimento humano completo quando necessário. 
+                      A conversa fica 100% com a equipe!
                     </AlertDescription>
                   </Alert>
                 </CardContent>
               </Card>
 
-              {/* Como a IA Ajuda */}
+              {/* Inteligência do assistente */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
                     <Brain className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-                    Como a IA Ajuda
+                    O que torna o assistente inteligente
                   </CardTitle>
                   <CardDescription className="text-xs sm:text-sm">
-                    Inteligência artificial no atendimento
+                    Como ele consegue entender o que as pessoas falam
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Sabe quando você conversa com um robô e ele não entende nada? Aqui é diferente! 
+                    Nosso assistente usa inteligência artificial para entender linguagem natural, 
+                    igual a gente conversa no dia a dia. Veja o que ele consegue fazer:
+                  </p>
+                  
+                  <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
+                    <div className="p-4 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Sparkles className="h-5 w-5 text-purple-600" />
+                        <p className="font-semibold text-sm">Entende o que você quer</p>
+                      </div>
+                      <p className="text-xs text-muted-foreground mb-2">
+                        Não precisa digitar exatamente como está no menu. Veja alguns exemplos:
+                      </p>
+                      <div className="space-y-1 text-xs">
+                        <p className="text-muted-foreground">💬 "quero fazer seguro" → Entende que é opção 1</p>
+                        <p className="text-muted-foreground">💬 "preciso renovar minha apólice" → Opção 3</p>
+                        <p className="text-muted-foreground">💬 "tive um acidente" → Opção 6 (Sinistros)</p>
+                      </div>
+                    </div>
+                    
+                    <div className="p-4 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                      <div className="flex items-center gap-2 mb-2">
+                        <FileText className="h-5 w-5 text-purple-600" />
+                        <p className="font-semibold text-sm">Organiza as informações sozinho</p>
+                      </div>
+                      <p className="text-xs text-muted-foreground mb-2">
+                        Quando você manda várias informações de uma vez, ele separa tudo certinho:
+                      </p>
+                      <div className="space-y-1 text-xs">
+                        <p className="text-muted-foreground">💬 "Sou João Silva, CPF 123.456.789-00"</p>
+                        <p className="text-muted-foreground mt-1">✅ Nome: João Silva</p>
+                        <p className="text-muted-foreground">✅ CPF: 123.456.789-00</p>
+                      </div>
+                    </div>
+                    
+                    <div className="p-4 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                      <div className="flex items-center gap-2 mb-2">
+                        <CheckCircle className="h-5 w-5 text-purple-600" />
+                        <p className="font-semibold text-sm">Entende jeitos diferentes de dizer sim ou não</p>
+                      </div>
+                      <p className="text-xs text-muted-foreground mb-2">
+                        Você pode responder do jeito que quiser:
+                      </p>
+                      <div className="space-y-1 text-xs">
+                        <p className="text-muted-foreground">💬 "pode sim", "claro", "isso mesmo" → Sim</p>
+                        <p className="text-muted-foreground">💬 "não", "negativo", "não quero" → Não</p>
+                      </div>
+                    </div>
+                    
+                    <div className="p-4 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                      <div className="flex items-center gap-2 mb-2">
+                        <MessageSquare className="h-5 w-5 text-purple-600" />
+                        <p className="font-semibold text-sm">Se adapta ao contexto</p>
+                      </div>
+                      <p className="text-xs text-muted-foreground mb-2">
+                        Dependendo da situação, ele muda a forma de responder:
+                      </p>
+                      <div className="space-y-1 text-xs">
+                        <p className="text-muted-foreground">💬 Se você está com pressa → Marca como urgente</p>
+                        <p className="text-muted-foreground">💬 Se tem tempo → Prioridade normal</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <Alert className="bg-purple-50 dark:bg-purple-950/20 border-purple-200 dark:border-purple-900">
+                    <Brain className="h-4 w-4 text-purple-600" />
+                    <AlertTitle className="text-sm font-semibold text-purple-900 dark:text-purple-100">
+                      Conversa de verdade, não robô decorado
+                    </AlertTitle>
+                    <AlertDescription className="text-sm text-purple-800 dark:text-purple-200">
+                      A grande diferença é que você pode conversar naturalmente, como se estivesse falando com uma pessoa. 
+                      Não precisa decorar comandos ou digitar de um jeito específico. Quanto mais natural você for, 
+                      melhor o assistente entende!
+                    </AlertDescription>
+                  </Alert>
+                </CardContent>
+              </Card>
+
+              {/* Dicas para melhor experiência */}
+              <Card className="border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg text-green-900 dark:text-green-100">
+                    <Sparkles className="h-4 w-4 sm:h-5 sm:w-5" />
+                    Dicas para seus clientes aproveitarem melhor
+                  </CardTitle>
+                  <CardDescription className="text-xs sm:text-sm text-green-700 dark:text-green-300">
+                    Compartilhe essas orientações para uma experiência ainda melhor
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
-                    <div className="p-3 rounded-lg bg-purple-500/10 border border-purple-500/20">
-                      <p className="font-semibold text-sm mb-1">Entende intenções</p>
-                      <p className="text-xs text-muted-foreground">
-                        "quero fazer seguro" → Opção 1<br/>
-                        "preciso renovar" → Opção 3
-                      </p>
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-600 mt-1 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium text-green-900 dark:text-green-100">
+                          Pode escrever do jeito que quiser
+                        </p>
+                        <p className="text-xs text-green-700 dark:text-green-300 mt-1">
+                          Não precisa se preocupar com formalidade ou palavras exatas. O assistente entende gírias, 
+                          abreviações e até erros de digitação!
+                        </p>
+                      </div>
                     </div>
-                    <div className="p-3 rounded-lg bg-purple-500/10 border border-purple-500/20">
-                      <p className="font-semibold text-sm mb-1">Extrai dados</p>
-                      <p className="text-xs text-muted-foreground">
-                        "João Silva, CPF 123..." → Estrutura automaticamente nome, CPF, etc.
-                      </p>
+                    
+                    <div className="flex items-start gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-600 mt-1 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium text-green-900 dark:text-green-100">
+                          Pode enviar várias mensagens seguidas
+                        </p>
+                        <p className="text-xs text-green-700 dark:text-green-300 mt-1">
+                          Se tiver muita coisa para falar, pode mandar em várias mensagens. O assistente espera você 
+                          terminar e lê tudo junto.
+                        </p>
+                      </div>
                     </div>
-                    <div className="p-3 rounded-lg bg-purple-500/10 border border-purple-500/20">
-                      <p className="font-semibold text-sm mb-1">Interpreta sim/não</p>
-                      <p className="text-xs text-muted-foreground">
-                        "pode sim", "claro" → Verdadeiro<br/>
-                        "não", "negativo" → Falso
-                      </p>
+                    
+                    <div className="flex items-start gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-600 mt-1 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium text-green-900 dark:text-green-100">
+                          Tem dúvida? Pode perguntar!
+                        </p>
+                        <p className="text-xs text-green-700 dark:text-green-300 mt-1">
+                          Se não entender alguma coisa ou não souber o que fazer, é só perguntar. O assistente está 
+                          programado para ajudar e esclarecer dúvidas.
+                        </p>
+                      </div>
                     </div>
-                    <div className="p-3 rounded-lg bg-purple-500/10 border border-purple-500/20">
-                      <p className="font-semibold text-sm mb-1">Respostas dinâmicas</p>
-                      <p className="text-xs text-muted-foreground">
-                        Gera respostas personalizadas quando necessário
-                      </p>
+                    
+                    <div className="flex items-start gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-600 mt-1 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium text-green-900 dark:text-green-100">
+                          Prefere falar com uma pessoa? Sem problema!
+                        </p>
+                        <p className="text-xs text-green-700 dark:text-green-300 mt-1">
+                          A qualquer momento pode pedir "quero falar com atendente" que o assistente transfere na hora. 
+                          Ele não leva para o lado pessoal! 😊
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
