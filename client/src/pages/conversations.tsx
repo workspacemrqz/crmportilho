@@ -101,12 +101,31 @@ export default function Conversations() {
     queryKey: ['/api/conversations'],
   });
 
+  // Format phone number to (XX) XXXXX-XXXX
+  const formatPhone = (phone: string): string => {
+    // Remove all non-digit characters
+    const cleaned = phone.replace(/\D/g, '');
+    
+    // Extract DDD and number (remove country code if present)
+    const phoneNumber = cleaned.length > 11 ? cleaned.slice(-11) : cleaned;
+    
+    if (phoneNumber.length === 11) {
+      // Format: (XX) XXXXX-XXXX
+      return `(${phoneNumber.slice(0, 2)}) ${phoneNumber.slice(2, 7)}-${phoneNumber.slice(7)}`;
+    } else if (phoneNumber.length === 10) {
+      // Format: (XX) XXXX-XXXX
+      return `(${phoneNumber.slice(0, 2)}) ${phoneNumber.slice(2, 6)}-${phoneNumber.slice(6)}`;
+    }
+    
+    return phone; // Return original if format is unexpected
+  };
+
   // Transform API data to match ConversationList format
   const conversations = conversationsData.map(conv => ({
     id: conv.id,
-    contactName: conv.lead.name || 'Cliente',
-    contactPhone: conv.lead.phone,
-    lastMessage: conv.currentStep || '',
+    contactName: conv.lead.name || formatPhone(conv.lead.phone),
+    contactPhone: formatPhone(conv.lead.phone),
+    lastMessage: '', // Remove currentStep - it's a technical field like "welcome"
     timestamp: new Date(conv.lastActivity).toLocaleString('pt-BR'),
     unread: 0,
     isActive: conv.status === 'active'
