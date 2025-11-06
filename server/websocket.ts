@@ -143,11 +143,14 @@ function sendMessage(ws: WebSocket, type: string, data: any): void {
  * Broadcast message to all connected clients
  */
 export function broadcastToAll(event: string, data: any): void {
+  let sentCount = 0;
   userConnections.forEach((connections) => {
     connections.forEach((ws) => {
       sendMessage(ws, event, data);
+      sentCount++;
     });
   });
+  console.log(`[WebSocket] Broadcast "${event}" sent to ${sentCount} clients`);
 }
 
 /**

@@ -97,6 +97,9 @@ export function useWebSocket(options?: UseWebSocketOptions): UseWebSocketReturn 
         try {
           const message: WebSocketMessage = JSON.parse(event.data);
           
+          // Log all incoming messages for debugging
+          console.log('[WebSocket] Message received:', message.type, message);
+          
           if (message.type === 'pong' || message.type === 'connected') {
             return;
           }

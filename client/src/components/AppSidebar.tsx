@@ -26,7 +26,7 @@ const menuItems = [
     icon: Users,
   },
   {
-    title: "Conversas Ativas",
+    title: "Conversas",
     url: "/conversas",
     icon: MessageSquare,
   },
