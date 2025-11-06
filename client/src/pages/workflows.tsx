@@ -187,7 +187,7 @@ const workflowFlow = [
   },
   {
     id: "menu1_flow",
-    name: "Menu 1 - Seguros Novos",
+    name: "Seguros Novos - Geral (Opção 1)",
     description: "Cliente escolhe opção 1 - Cotação de seguros novos",
     steps: [
       { key: "MENU1_ABERTURA", name: "Como conheceu a corretora?", isAI: true },
@@ -198,7 +198,7 @@ const workflowFlow = [
   },
   {
     id: "menu2_flow",
-    name: "Menu 2 - Seguros Novos - Autorio",
+    name: "Seguros Novos - Autorio (Opção 2)",
     description: "Cliente escolhe opção 2 - Cotação de seguros Autorio",
     steps: [
       { key: "MENU2_AUTORIO_STATUS", name: "Veículo já está com você?", isAI: true },
@@ -209,7 +209,7 @@ const workflowFlow = [
   },
   {
     id: "auto_flow",
-    name: "Fluxo Auto Completo",
+    name: "Seguro Auto - Fluxo Completo",
     description: "Fluxo completo quando cliente escolhe Seguro Auto",
     steps: [
       { key: "AUTO_ABERTURA", name: "Abertura do fluxo Auto", isAI: false },
@@ -228,7 +228,7 @@ const workflowFlow = [
   },
   {
     id: "menu3_flow",
-    name: "Menu 3 - Renovação",
+    name: "Renovação de Seguro (Opção 3)",
     description: "Cliente escolhe opção 3 - Renovação de seguro existente",
     steps: [
       { key: "MENU3_RENOVACAO_ABERTURA", name: "Tipo de seguro para renovar", isAI: false },
@@ -237,7 +237,7 @@ const workflowFlow = [
   },
   {
     id: "menu4_flow",
-    name: "Menu 4 - Endosso/Alteração",
+    name: "Endosso e Alterações (Opção 4)",
     description: "Cliente escolhe opção 4 - Alterações em apólice existente",
     steps: [
       { key: "MENU4_ENDOSSO_ABERTURA", name: "Tipo de alteração", isAI: false },
@@ -247,7 +247,7 @@ const workflowFlow = [
   },
   {
     id: "menu5_flow",
-    name: "Menu 5 - Parcelas/Boletos",
+    name: "Parcelas e Boletos (Opção 5)",
     description: "Cliente escolhe opção 5 - Consulta de parcelas ou 2ª via",
     steps: [
       { key: "MENU5_PARCELAS_ABERTURA", name: "Tipo de seguro para consulta", isAI: false },
@@ -256,7 +256,7 @@ const workflowFlow = [
   },
   {
     id: "menu6_flow",
-    name: "Menu 6 - Sinistros/Assistências",
+    name: "Sinistros e Assistências (Opção 6)",
     description: "Cliente escolhe opção 6 - Abertura de sinistro ou assistência",
     steps: [
       { key: "MENU6_SINISTROS_ABERTURA", name: "Tipo de seguro do sinistro", isAI: false },
