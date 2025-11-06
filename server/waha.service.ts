@@ -204,6 +204,44 @@ export class WAHAService {
     }
   }
 
+  async sendImage(phone: string, imageUrl: string, caption: string, conversationId?: string) {
+    try {
+      const chatId = this.formatPhone(phone);
+      const url = `${this.baseUrl}/api/sendImage`;
+      
+      console.log(`[WAHA] Sending image to ${chatId} via ${url}`);
+      console.log(`[WAHA] Image URL: ${imageUrl}`);
+      console.log(`[WAHA] Caption: ${caption}`);
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({
+          chatId,
+          file: {
+            url: imageUrl
+          },
+          caption,
+          session: this.session
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[WAHA] Failed to send image: ${response.status} - ${errorText}`);
+        throw new Error(`WAHA API error: ${response.status} - ${errorText}`);
+      }
+
+      const result = await response.json();
+      console.log('[WAHA] ✓ Image sent successfully:', result);
+      
+      return result;
+    } catch (error) {
+      console.error('[WAHA] Error sending image:', error);
+      throw error;
+    }
+  }
+
   async sendDocument(phone: string, documentUrl: string, caption: string, conversationId?: string) {
     try {
       const chatId = this.formatPhone(phone);

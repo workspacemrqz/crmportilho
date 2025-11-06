@@ -1368,20 +1368,32 @@ Retorne APENAS o JSON array, sem texto adicional.`;
       // Create public URL for the file using Replit domain
       const domain = process.env.REPLIT_DEV_DOMAIN || req.get('host') || 'localhost:3000';
       const fileUrl = `https://${domain}/uploads/${req.file.filename}`;
-      const caption = req.body.caption || req.file.originalname;
+      // Always use original filename as caption
+      const caption = req.file.originalname;
       
-      console.log(`[API] 📁 File uploaded: ${req.file.filename}`);
+      // Determine if file is an image or document
+      const isImage = req.file.mimetype.startsWith('image/');
+      const messageType = isImage ? 'image' : 'document';
+      
+      console.log(`[API] 📁 File uploaded: ${req.file.originalname} (type: ${messageType})`);
       console.log(`[API] 📍 Public URL: ${fileUrl}`);
+      console.log(`[API] 📝 Caption: ${caption}`);
+      console.log(`[API] 🎨 MIME Type: ${req.file.mimetype}`);
 
-      // Send file via WAHA API (without saving to DB - we'll do it here)
-      const result = await wahaAPI.sendDocument(lead.whatsappPhone, fileUrl, caption);
+      // Send file via WAHA API - use appropriate method based on file type
+      let result;
+      if (isImage) {
+        result = await wahaAPI.sendImage(lead.whatsappPhone, fileUrl, caption);
+      } else {
+        result = await wahaAPI.sendDocument(lead.whatsappPhone, fileUrl, caption);
+      }
 
       // Store message in database
       const storedMessage = await storage.createMessage({
         conversationId,
         content: caption,
         isBot: true,
-        messageType: 'document',
+        messageType,
         metadata: { 
           manual: true, 
           sentBy: req.body.userId || 'agent',
