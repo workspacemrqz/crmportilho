@@ -93,7 +93,7 @@ export default function ChatInterface({ conversationId, protocol, contactName, s
       const optimisticMessage: Message = {
         id: `temp-${Date.now()}`,
         content: message,
-        isBot: false,
+        isBot: true,
         messageType: 'text',
         timestamp: new Date().toISOString(),
       };
@@ -170,7 +170,7 @@ export default function ChatInterface({ conversationId, protocol, contactName, s
       const optimisticMessage: Message = {
         id: `temp-${Date.now()}`,
         content: caption || file.name,
-        isBot: false,
+        isBot: true,
         messageType,
         timestamp: new Date().toISOString(),
         metadata: {
