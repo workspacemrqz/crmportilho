@@ -10,6 +10,40 @@ Seguro IA is a comprehensive CRM system designed for managing leads and customer
 
 ## Recent Changes
 
+### November 6, 2025 - Optimistic UI Updates for Messages
+Implemented optimistic updates for message sending, providing instant feedback when users send messages or files without waiting for server response.
+
+**Solution Implemented:**
+- Added `onMutate` handlers to React Query mutations for both text messages and file uploads
+- Messages appear instantly in the chat interface when sent, before server confirmation
+- Temporary message IDs (`temp-${timestamp}`) created for optimistic entries
+- Automatic rollback to previous state if sending fails
+- Server response replaces optimistic message with real data via duplicate detection
+- File uploads show temporary preview for images using `URL.createObjectURL`
+- Proper `isBot: false` marking ensures messages render on correct side of chat
+
+**Impact:**
+- Zero perceived latency when sending messages - instant UI feedback
+- Improved user experience with fluid, responsive chat interface
+- Automatic error handling with rollback on failures
+- Seamless integration with existing WebSocket infrastructure
+
+### November 6, 2025 - Image and Document Handling
+Enhanced media file handling to properly differentiate between images and documents, with appropriate rendering components.
+
+**Solution Implemented:**
+- Created `sendImage()` method in WAHA Service using `/api/sendImage` endpoint
+- Automatic file type detection based on MIME type (`mimetype.startsWith('image/')`)
+- Created `ImageAttachment` component for visual image display with click-to-expand
+- Updated `MessageBubble` to render images, documents, and text appropriately
+- Always use original filename as caption (no override via request body)
+- Proper message type classification in database ('image' vs 'document')
+
+**Impact:**
+- Images display visually in chat instead of as file attachments
+- Proper WhatsApp API integration using correct endpoints for each media type
+- Consistent file naming across all uploads
+
 ### November 5, 2025 - WebSocket Real-Time Communication
 Implemented WebSocket infrastructure to replace HTTP polling, enabling the system to scale efficiently for hundreds of concurrent conversations.
 

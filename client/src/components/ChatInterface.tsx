@@ -82,8 +82,32 @@ export default function ChatInterface({ conversationId, protocol, contactName, s
         type: 'text'
       }) as Promise<{ botPaused?: boolean; pausedUntil?: string }>;
     },
+    onMutate: async (message: string) => {
+      // Cancel any outgoing refetches to avoid overwriting optimistic update
+      await queryClient.cancelQueries({ queryKey: ['/api/conversations', conversationId, 'messages'] });
+      
+      // Snapshot the previous value
+      const previousMessages = queryClient.getQueryData<Message[]>(['/api/conversations', conversationId, 'messages']);
+      
+      // Optimistically update to the new value
+      const optimisticMessage: Message = {
+        id: `temp-${Date.now()}`,
+        content: message,
+        isBot: false,
+        messageType: 'text',
+        timestamp: new Date().toISOString(),
+      };
+      
+      queryClient.setQueryData<Message[]>(
+        ['/api/conversations', conversationId, 'messages'],
+        (old = []) => [...old, optimisticMessage]
+      );
+      
+      // Return context with the previous messages
+      return { previousMessages };
+    },
     onSuccess: (data) => {
-      // Invalidate messages to refresh
+      // Invalidate messages to refresh with real data from server
       queryClient.invalidateQueries({ queryKey: ['/api/conversations', conversationId, 'messages'] });
       
       if (data?.botPaused) {
@@ -93,7 +117,15 @@ export default function ChatInterface({ conversationId, protocol, contactName, s
         });
       }
     },
-    onError: () => {
+    onError: (error, variables, context) => {
+      // Rollback to previous messages on error
+      if (context?.previousMessages) {
+        queryClient.setQueryData(
+          ['/api/conversations', conversationId, 'messages'],
+          context.previousMessages
+        );
+      }
+      
       toast({
         title: "Erro",
         description: "Falha ao enviar mensagem. Tente novamente.",
@@ -120,8 +152,44 @@ export default function ChatInterface({ conversationId, protocol, contactName, s
 
       return response.json();
     },
+    onMutate: async ({ file, caption }: { file: File; caption: string }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['/api/conversations', conversationId, 'messages'] });
+      
+      // Snapshot the previous value
+      const previousMessages = queryClient.getQueryData<Message[]>(['/api/conversations', conversationId, 'messages']);
+      
+      // Determine message type based on file mimetype
+      const isImage = file.type.startsWith('image/');
+      const messageType = isImage ? 'image' : 'document';
+      
+      // Create temporary file URL for preview (only for images)
+      const tempFileUrl = isImage ? URL.createObjectURL(file) : undefined;
+      
+      // Optimistically update with file message
+      const optimisticMessage: Message = {
+        id: `temp-${Date.now()}`,
+        content: caption || file.name,
+        isBot: false,
+        messageType,
+        timestamp: new Date().toISOString(),
+        metadata: {
+          filename: file.name,
+          fileUrl: tempFileUrl,
+          size: file.size,
+        }
+      };
+      
+      queryClient.setQueryData<Message[]>(
+        ['/api/conversations', conversationId, 'messages'],
+        (old = []) => [...old, optimisticMessage]
+      );
+      
+      // Return context with the previous messages
+      return { previousMessages };
+    },
     onSuccess: (data) => {
-      // Invalidate messages to refresh
+      // Invalidate messages to refresh with real data from server
       queryClient.invalidateQueries({ queryKey: ['/api/conversations', conversationId, 'messages'] });
       
       toast({
@@ -136,7 +204,15 @@ export default function ChatInterface({ conversationId, protocol, contactName, s
         });
       }
     },
-    onError: () => {
+    onError: (error, variables, context) => {
+      // Rollback to previous messages on error
+      if (context?.previousMessages) {
+        queryClient.setQueryData(
+          ['/api/conversations', conversationId, 'messages'],
+          context.previousMessages
+        );
+      }
+      
       toast({
         title: "Erro",
         description: "Falha ao enviar arquivo. Tente novamente.",
