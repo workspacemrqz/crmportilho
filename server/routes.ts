@@ -191,7 +191,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const cleanPhone = phone.replace(/\D/g, '');
             console.log('[CHATWOOT-WEBHOOK] 📞 Clean phone:', cleanPhone);
             
-            const lead = await storage.getLeadByPhone(cleanPhone);
+            // Tentar múltiplos formatos de telefone
+            const phoneVariations = [
+              cleanPhone,                              // 5512974041539
+              cleanPhone.replace(/^55/, ''),          // 12974041539 (sem código do país)
+              cleanPhone.slice(-11),                  // Últimos 11 dígitos
+              cleanPhone.slice(-10),                  // Últimos 10 dígitos
+            ];
+            
+            console.log('[CHATWOOT-WEBHOOK] 🔍 Tentando formatos:', phoneVariations);
+            
+            let lead = null;
+            for (const phoneFormat of phoneVariations) {
+              lead = await storage.getLeadByPhone(phoneFormat);
+              if (lead) {
+                console.log('[CHATWOOT-WEBHOOK] ✅ Lead encontrado com formato:', phoneFormat);
+                break;
+              }
+            }
+            
             console.log('[CHATWOOT-WEBHOOK] 👤 Lead found:', lead ? `ID: ${lead.id}, Protocol: ${lead.protocol}` : 'NENHUM LEAD ENCONTRADO');
             
             if (lead) {
