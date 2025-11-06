@@ -7,6 +7,7 @@ interface WebSocketMessage {
 
 interface UseWebSocketOptions {
   onMessage?: (event: WebSocketMessage) => void;
+  onReconnect?: () => void;
   enabled?: boolean;
 }
 
@@ -20,7 +21,7 @@ const INITIAL_BACKOFF_DELAY = 1000;
 const HEARTBEAT_INTERVAL = 25000;
 
 export function useWebSocket(options?: UseWebSocketOptions): UseWebSocketReturn {
-  const { onMessage, enabled = true } = options || {};
+  const { onMessage, onReconnect, enabled = true } = options || {};
   
   const [isConnected, setIsConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
@@ -28,6 +29,7 @@ export function useWebSocket(options?: UseWebSocketOptions): UseWebSocketReturn 
   const heartbeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const reconnectAttemptsRef = useRef(0);
   const isManualCloseRef = useRef(false);
+  const wasConnectedRef = useRef(false);
 
   const getWebSocketUrl = useCallback(() => {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -78,10 +80,17 @@ export function useWebSocket(options?: UseWebSocketOptions): UseWebSocketReturn 
       wsRef.current = ws;
 
       ws.onopen = () => {
+        const isReconnection = wasConnectedRef.current;
         console.log('[WebSocket] Connection established');
         setIsConnected(true);
         reconnectAttemptsRef.current = 0;
+        wasConnectedRef.current = true;
         startHeartbeat();
+        
+        if (isReconnection && onReconnect) {
+          console.log('[WebSocket] Triggering reconnect callback');
+          onReconnect();
+        }
       };
 
       ws.onmessage = (event) => {
@@ -130,11 +139,12 @@ export function useWebSocket(options?: UseWebSocketOptions): UseWebSocketReturn 
     } catch (error) {
       console.error('[WebSocket] Error creating WebSocket:', error);
     }
-  }, [getWebSocketUrl, onMessage, startHeartbeat, stopHeartbeat]);
+  }, [getWebSocketUrl, onMessage, onReconnect, startHeartbeat, stopHeartbeat]);
 
   const disconnect = useCallback(() => {
     console.log('[WebSocket] Disconnecting');
     isManualCloseRef.current = true;
+    wasConnectedRef.current = false;
     
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);

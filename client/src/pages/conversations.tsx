@@ -75,8 +75,25 @@ export default function Conversations() {
     }
   }, [queryClient]);
 
+  const handleWebSocketReconnect = useCallback(() => {
+    console.log('[Conversations] WebSocket reconnected - refetching all data');
+    // Refetch conversation list
+    queryClient.refetchQueries({ 
+      queryKey: ['/api/conversations'],
+      type: 'active'
+    });
+    // Refetch messages for selected conversation if any
+    if (selectedConversation) {
+      queryClient.refetchQueries({ 
+        queryKey: ['/api/conversations', selectedConversation, 'messages'],
+        type: 'active'
+      });
+    }
+  }, [queryClient, selectedConversation]);
+
   const { isConnected } = useWebSocket({ 
     onMessage: handleWebSocketMessage,
+    onReconnect: handleWebSocketReconnect,
     enabled: isAuthenticated 
   });
 
