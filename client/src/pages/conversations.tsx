@@ -102,7 +102,9 @@ export default function Conversations() {
   });
 
   // Format phone number to (XX) XXXXX-XXXX
-  const formatPhone = (phone: string): string => {
+  const formatPhone = (phone: string | null | undefined): string => {
+    if (!phone) return 'Sem telefone';
+    
     // Remove all non-digit characters
     const cleaned = phone.replace(/\D/g, '');
     
