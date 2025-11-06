@@ -1,6 +1,5 @@
 import { cn } from "@/lib/utils";
-import FileAttachment from "./FileAttachment";
-import ImageAttachment from "./ImageAttachment";
+import MediaBubble from "./MediaBubble";
 
 interface MessageBubbleProps {
   content: string;
@@ -17,6 +16,7 @@ interface MessageBubbleProps {
 export default function MessageBubble({ content, isBot, timestamp, messageType, metadata }: MessageBubbleProps) {
   const isDocument = messageType === 'document';
   const isImage = messageType === 'image';
+  const hasMedia = (isImage || isDocument) && metadata?.fileUrl;
   
   return (
     <div
@@ -26,17 +26,13 @@ export default function MessageBubble({ content, isBot, timestamp, messageType, 
       )}
       data-testid={isBot ? "message-bot" : "message-user"}
     >
-      {isImage && metadata?.fileUrl ? (
-        <ImageAttachment
-          imageUrl={metadata.fileUrl}
+      {hasMedia ? (
+        <MediaBubble
+          type={isImage ? 'image' : 'document'}
+          mediaUrl={metadata.fileUrl!}
           caption={content}
-          isBot={isBot}
-        />
-      ) : isDocument && metadata?.filename ? (
-        <FileAttachment
-          fileName={metadata.filename}
+          filename={metadata.filename}
           fileSize={metadata.size}
-          fileUrl={metadata.fileUrl}
           isBot={isBot}
         />
       ) : (
