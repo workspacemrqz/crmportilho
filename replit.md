@@ -10,6 +10,22 @@ Seguro IA is a comprehensive CRM system designed for managing leads and customer
 
 ## Recent Changes
 
+### November 6, 2025 - Password-Protected Clear All Feature
+Implemented password protection for the "Limpar Tudo" (Clear All) function in the leads page to prevent accidental data loss.
+
+**Solution Implemented:**
+- Added password field in the clear all confirmation dialog
+- Created POST endpoint `/api/leads/clear-all` that validates password against `SENHAPRINCIPAL` environment variable
+- Removed orange outline from confirmation button for cleaner UI
+- Only allows deletion if correct password is provided
+- Shows clear error messages for incorrect passwords
+- Maintains legacy DELETE endpoint for backward compatibility
+
+**Security:**
+- Requires `SENHAPRINCIPAL` environment variable to be configured
+- Validates password server-side before allowing any data deletion
+- Protects against accidental deletion of all leads and conversation history
+
 ### November 6, 2025 - Optimistic UI Updates for Messages
 Implemented optimistic updates for message sending, providing instant feedback when users send messages or files without waiting for server response.
 

@@ -1222,6 +1222,8 @@ export default function Leads() {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [clearPassword, setClearPassword] = useState("");
+  const [showClearDialog, setShowClearDialog] = useState(false);
   const { toast } = useToast();
 
   const { data: leads = [], isLoading } = useQuery<Lead[]>({
@@ -1263,6 +1265,48 @@ export default function Leads() {
       toast({
         title: "Erro ao criar lead",
         description: "Não foi possível criar o lead. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleClearAll = async () => {
+    if (!clearPassword) {
+      toast({
+        title: "Senha obrigatória",
+        description: "Digite a senha para confirmar a exclusão",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const response = await apiRequest("POST", "/api/leads/clear-all", { password: clearPassword });
+      const data = await response.json();
+      
+      if (!response.ok) {
+        toast({
+          title: "Senha incorreta",
+          description: "A senha digitada está incorreta",
+          variant: "destructive"
+        });
+        setClearPassword("");
+        return;
+      }
+
+      toast({
+        title: "Leads removidos com sucesso!",
+        description: data.message || `${data.count} leads e todo o histórico de conversas foram removidos.`,
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+      setShowClearDialog(false);
+      setClearPassword("");
+      
+    } catch (error) {
+      toast({
+        title: "Erro ao remover leads",
+        description: "Não foi possível remover os leads. Tente novamente.",
         variant: "destructive",
       });
     }
@@ -1354,12 +1398,15 @@ export default function Leads() {
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-2">
-            <AlertDialog>
+            <AlertDialog open={showClearDialog} onOpenChange={(open) => {
+              setShowClearDialog(open);
+              if (!open) setClearPassword("");
+            }}>
               <AlertDialogTrigger asChild>
                 <Button 
                   variant="destructive" 
                   data-testid="button-clear-all-leads"
-                  disabled={clearAllMutation.isPending || leads.length === 0}
+                  disabled={leads.length === 0}
                   className="w-full sm:w-auto"
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
@@ -1373,17 +1420,33 @@ export default function Leads() {
                     Esta ação irá remover permanentemente todos os leads e todo o histórico de conversas do sistema. Esta ação não pode ser desfeita.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
+                <div className="my-4">
+                  <Label htmlFor="clearPassword">Digite a senha para confirmar:</Label>
+                  <Input
+                    id="clearPassword"
+                    type="password"
+                    placeholder="Senha principal"
+                    value={clearPassword}
+                    onChange={(e) => setClearPassword(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleClearAll();
+                      }
+                    }}
+                    className="mt-2"
+                  />
+                </div>
                 <AlertDialogFooter>
                   <AlertDialogCancel data-testid="button-cancel-clear">
                     Cancelar
                   </AlertDialogCancel>
-                  <AlertDialogAction
+                  <Button
                     data-testid="button-confirm-clear"
-                    onClick={() => clearAllMutation.mutate()}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    onClick={handleClearAll}
+                    variant="destructive"
                   >
-                    {clearAllMutation.isPending ? "Removendo..." : "Sim, remover tudo"}
-                  </AlertDialogAction>
+                    Sim, remover tudo
+                  </Button>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>

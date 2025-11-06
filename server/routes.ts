@@ -1186,7 +1186,37 @@ Retorne APENAS o JSON array, sem texto adicional.`;
     }
   });
 
-  // Clear all leads and their history
+  // Clear all leads and their history with password validation
+  app.post('/api/leads/clear-all', async (req: Request, res: Response) => {
+    try {
+      const { password } = req.body;
+      const masterPassword = process.env.SENHAPRINCIPAL;
+
+      if (!masterPassword) {
+        console.error('[API] SENHAPRINCIPAL not configured');
+        return res.status(500).json({ error: 'Senha principal não configurada' });
+      }
+
+      if (!password || password !== masterPassword) {
+        console.log('[API] Invalid password attempt for clear-all');
+        return res.status(401).json({ error: 'Senha incorreta' });
+      }
+
+      console.log('[API] Clearing all leads and conversation history...');
+      const result = await storage.clearAllLeads();
+      console.log(`[API] Successfully cleared ${result.count} leads and all related data`);
+      res.json({ 
+        success: true, 
+        message: `Removidos ${result.count} leads e todo o histórico de conversas`,
+        count: result.count 
+      });
+    } catch (error) {
+      console.error('[API] Error clearing leads:', error);
+      res.status(500).json({ error: 'Falha ao limpar leads' });
+    }
+  });
+
+  // Legacy DELETE endpoint for backward compatibility (deprecated)
   app.delete('/api/leads/clear-all', async (req: Request, res: Response) => {
     try {
       console.log('[API] Clearing all leads and conversation history...');
