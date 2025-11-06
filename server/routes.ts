@@ -164,10 +164,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     async (req: Request, res: Response) => {
       console.log('[CHATWOOT-WEBHOOK] 🎯 Webhook recebido!');
       console.log('[CHATWOOT-WEBHOOK] Event:', req.body.event);
+      console.log('[CHATWOOT-WEBHOOK] Full payload:', JSON.stringify(req.body, null, 2));
       
       try {
         const event = req.body.event;
         const data = req.body;
+        
+        console.log('[CHATWOOT-WEBHOOK] 🔍 Checking conditions:');
+        console.log('[CHATWOOT-WEBHOOK]   - event:', event);
+        console.log('[CHATWOOT-WEBHOOK]   - message_type:', data.message_type);
+        console.log('[CHATWOOT-WEBHOOK]   - sender type:', data.sender?.type);
+        console.log('[CHATWOOT-WEBHOOK]   - private:', data.private);
         
         // Detectar quando atendente envia mensagem
         if (event === 'message_created' && data.message_type === 'outgoing') {
