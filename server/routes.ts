@@ -177,8 +177,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('[CHATWOOT-WEBHOOK]   - private:', data.private);
         
         // Detectar quando atendente envia mensagem
-        if (event === 'message_created' && data.message_type === 'outgoing') {
+        // CRITICAL: Verificar se é realmente um agente (atendente) e não um cliente
+        // sender.type pode ser: 'user' (agente), 'agent_bot' (agente), 'contact' (cliente)
+        const isAgentMessage = data.sender?.type === 'user' || data.sender?.type === 'agent_bot';
+        const isOutgoing = data.message_type === 'outgoing';
+        const isNotPrivate = !data.private; // Ignorar notas privadas internas
+        
+        if (event === 'message_created' && isOutgoing && isAgentMessage && isNotPrivate) {
           console.log('[CHATWOOT-WEBHOOK] 🚨 Atendente enviou mensagem!');
+          console.log('[CHATWOOT-WEBHOOK] Sender type:', data.sender?.type);
           console.log('[CHATWOOT-WEBHOOK] Message:', data.content);
           
           // Pegar telefone do payload
