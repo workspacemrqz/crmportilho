@@ -2883,9 +2883,7 @@ RESPOSTA:`;
         
       } else if (lowercaseMessage.includes('cadastral')) {
         // Alteração cadastral - transferir direto para humano
-        const mensagemCompleta = `Entendi! Para alterações cadastrais, vou transferir você para nosso setor de atendimento. Em breve entrarão em contato. 💚
-
-Obrigado pela paciência. Atenderemos você o mais rápido possível.`;
+        const mensagemCompleta = `Vou te transferir agora para um atendente humano, que dará continuidade ao seu atendimento e vai te ajudar da melhor forma possível. Só um momento, por favor. 💚`;
         await this.handleHumanHandoff(lead, conversation, 'Endosso - Alteração Cadastral', mensagemCompleta);
         console.log(`[ChatbotService] ✅ Transferindo para humano - Alteração Cadastral`);
         
@@ -3585,7 +3583,7 @@ Agradecemos por escolher a Portilho Corretora! 💚`;
     } else {
       await this.wahaAPI.sendText(
         lead.whatsappPhone,
-        'Obrigado pela paciência. Atenderemos você o mais rápido possível.',
+        'Vou te transferir agora para um atendente humano, que dará continuidade ao seu atendimento e vai te ajudar da melhor forma possível. Só um momento, por favor. 💚',
         conversation.id
       );
     }
