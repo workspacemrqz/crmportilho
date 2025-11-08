@@ -1554,8 +1554,8 @@ Agora vou coletar seus dados pessoais. Por favor, informe:
 
       await this.wahaAPI.sendText(lead.whatsappPhone, urgentMessage, conversation.id);
       
-      // Set custom buffer of 2 minutes (120 seconds) for collecting personal data
-      this.setCustomBufferTimeout(lead.whatsappPhone, 120000);
+      // Set custom buffer of 30 seconds for collecting personal data
+      this.setCustomBufferTimeout(lead.whatsappPhone, 30000);
       
       // Update lead priority to urgent
       await db.update(leads)
