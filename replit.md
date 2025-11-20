@@ -5,6 +5,21 @@ This is a CRM and chatbot system for "Seguro IA" (Insurance AI), designed to man
 # Recent Changes
 
 **November 20, 2025 (Latest):**
+- **Fluxo de Atendimento (Flow) Feature**: Implemented complete intelligent WhatsApp conversation flow system
+  - Created database schema with 3 new tables: `flow_configs`, `keyword_rules`, and `flow_steps`
+  - Built FlowAI service (`server/flow-ai.service.ts`) integrating OpenAI for intelligent response generation
+  - Implemented lazy initialization for OpenAI client (prevents server crashes when API key is missing)
+  - Added complete CRUD API routes for flows, keywords, and steps with Zod validation
+  - Created `/api/ia/preview` endpoint for testing AI responses in real-time
+  - Built comprehensive frontend page (`client/src/pages/fluxo.tsx`) with three sections:
+    - Standard Messages (welcome, institutional, important instructions)
+    - Keyword-based Rules (automatic responses for specific keywords)
+    - AI-powered Flow (multi-step intelligent conversations with OpenAI)
+  - Pre-populated with Prevline Seguros context (insurance-specific flow templates)
+  - Added navigation route `/fluxo` and sidebar menu item
+  - All elements include proper `data-testid` attributes for testing
+
+**Earlier Today:**
 - **Complete Supabase Removal**: Fully removed all Supabase dependencies and references
   - Uninstalled `@supabase/supabase-js` package
   - Renamed `server/supabase.service.ts` to `server/storage.service.ts`
@@ -19,7 +34,7 @@ This is a CRM and chatbot system for "Seguro IA" (Insurance AI), designed to man
   - File existence verification before URL generation (prevents enumeration attacks)
   - Strict leadId validation using basename and alphanumeric checks
 - **File Storage Location**: All uploads now stored in `/uploads` directory with organized structure
-- **Database Schema**: Successfully applied all migrations - tables created: users, leads, conversations, messages, documents, chatbotStates, vehicles, quotes, auditLogs, workflowTemplates, systemSettings
+- **Database Schema**: Successfully applied all migrations - tables created: users, leads, conversations, messages, documents, chatbotStates, vehicles, quotes, auditLogs, workflowTemplates, systemSettings, flow_configs, keyword_rules, flow_steps
 
 **Earlier Today:**
 - Updated design system to modern dark theme with vibrant blue primary color (#3B82F6)
