@@ -15,19 +15,19 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "dev"
+args = "Start application"
 
 [[workflows.workflow]]
-name = "dev"
+name = "Start application"
 author = "agent"
-
-[workflows.workflow.metadata]
-outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm run dev"
 waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
 
 [[ports]]
 localPort = 3000
@@ -36,10 +36,6 @@ externalPort = 3000
 [[ports]]
 localPort = 5000
 externalPort = 80
-
-[[ports]]
-localPort = 34917
-externalPort = 3001
 
 [[ports]]
 localPort = 36007
@@ -52,6 +48,10 @@ externalPort = 4200
 [[ports]]
 localPort = 36693
 externalPort = 5000
+
+[[ports]]
+localPort = 41875
+externalPort = 3001
 
 [[ports]]
 localPort = 46321
