@@ -1,0 +1,192 @@
+Atualize o estilo visual do site para seguir este sistema de design moderno e escuro:
+
+═══════════════════════════════════════════════════════════════
+
+🎨 PALETA DE CORES (Dark Theme - HSL format)
+
+BACKGROUNDS:
+--background: 0 0% 6%           /* Fundo principal - preto muito escuro */
+--card: 0 0% 11%                /* Superfícies elevadas - cinza muito escuro */
+--sidebar: 0 0% 10%             /* Sidebar background */
+--popover: 0 0% 12%             /* Popovers e dropdowns */
+--secondary: 0 0% 16%           /* Botões secundários */
+--accent: 218 10% 15%           /* Elementos de acento */
+--muted: 0 2% 14%               /* Elementos muted */
+--input: 0 0% 24%               /* Campos de input */
+
+FOREGROUNDS (Texto):
+--foreground: 0 0% 95%          /* Texto principal - branco quase puro */
+--card-foreground: 0 0% 95%     /* Texto em cards */
+--sidebar-foreground: 0 0% 92%  /* Texto na sidebar */
+--muted-foreground: 0 0% 62%    /* Texto secundário/terciário */
+--secondary-foreground: 0 0% 94%
+--accent-foreground: 0 0% 92%
+
+COR PRIMÁRIA (Azul vibrante):
+--primary: 218 82% 54%          /* Azul principal - #3B82F6 */
+--primary-foreground: 0 0% 98%  /* Texto sobre primário */
+--ring: 218 82% 54%             /* Focus rings */
+
+BORDAS:
+--border: 0 0% 15%              /* Bordas principais */
+--card-border: 0 0% 13%         /* Bordas de cards */
+--sidebar-border: 0 0% 15%      /* Bordas de sidebar */
+--popover-border: 0 0% 16%
+
+COR DESTRUTIVA (Vermelho):
+--destructive: 0 84% 45%        /* Vermelho para ações destrutivas */
+--destructive-foreground: 0 0% 98%
+
+SIDEBAR ESPECÍFICO:
+--sidebar-primary: 218 82% 54%  /* Mesmo azul primário */
+--sidebar-primary-foreground: 0 0% 98%
+--sidebar-accent: 218 8% 16%    /* Accent da sidebar */
+--sidebar-accent-foreground: 0 0% 95%
+--sidebar-ring: 218 82% 54%
+
+GRÁFICOS:
+--chart-1: 218 85% 65%          /* Azul claro */
+--chart-2: 200 85% 68%          /* Ciano */
+--chart-3: 280 80% 70%          /* Roxo */
+--chart-4: 45 90% 68%           /* Amarelo */
+--chart-5: 340 85% 68%          /* Rosa */
+
+═══════════════════════════════════════════════════════════════
+
+🔤 TIPOGRAFIA
+
+Fontes:
+--font-sans: Inter, system-ui, sans-serif
+--font-serif: Georgia, serif
+--font-mono: Menlo, monospace
+
+Aplicar:
+- font-sans como padrão em body
+- antialiased para suavização
+- text-sm (14px) como tamanho padrão
+
+═══════════════════════════════════════════════════════════════
+
+📐 BORDER RADIUS
+
+--radius: .5rem
+- lg: .5625rem (9px)
+- md: .375rem (6px)  ← USAR ESTE COMO PADRÃO (rounded-md)
+- sm: .1875rem (3px)
+
+NUNCA usar border-radius muito grande, exceto para círculos perfeitos.
+
+═══════════════════════════════════════════════════════════════
+
+🎭 SOMBRAS (Usar com EXTREMA parcimônia)
+
+--shadow-xs: 0px 1px 3px 0px hsl(0 0% 0% / 0.4)
+--shadow-sm: 0px 2px 4px -1px hsl(0 0% 0% / 0.3), 0px 1px 2px -1px hsl(0 0% 0% / 0.4)
+--shadow: 0px 4px 6px -1px hsl(0 0% 0% / 0.35), 0px 2px 4px -2px hsl(0 0% 0% / 0.35)
+--shadow-md: 0px 6px 12px -2px hsl(0 0% 0% / 0.45), 0px 3px 6px -3px hsl(0 0% 0% / 0.45)
+--shadow-lg: 0px 10px 20px -4px hsl(0 0% 0% / 0.5), 0px 4px 8px -4px hsl(0 0% 0% / 0.45)
+
+Aplicar sombras APENAS em modais, popovers e elementos flutuantes.
+
+═══════════════════════════════════════════════════════════════
+
+🖱️ SISTEMA DE INTERAÇÃO
+
+ELEVAÇÃO (overlays brancos semi-transparentes):
+--elevate-1: rgba(255,255,255, .05)  /* Hover sutil */
+--elevate-2: rgba(255,255,255, .10)  /* Active/Press forte */
+
+OUTLINES:
+--button-outline: rgba(255,255,255, .10)
+--badge-outline: rgba(255,255,255, .05)
+
+Implementar classes utilitárias:
+.hover-elevate     → aplica overlay de --elevate-1 ao hover
+.active-elevate-2  → aplica overlay de --elevate-2 ao active
+
+Sistema funciona com pseudo-elemento ::after que cobre o elemento.
+NÃO funciona com overflow-hidden!
+
+═══════════════════════════════════════════════════════════════
+
+🔘 BOTÕES
+
+Tamanhos:
+- default: min-h-9 (36px), px-4 py-2
+- sm: min-h-8 (32px), px-3 text-xs
+- lg: min-h-10 (40px), px-8
+- icon: h-9 w-9 (36x36px quadrado)
+
+Variantes:
+- default: bg-primary + border-primary-border
+- outline: transparente + borda sutil rgba(255,255,255,.10) + shadow-xs
+- secondary: bg-secondary + border-secondary-border
+- ghost: transparente + borda transparente
+- destructive: bg-destructive + border-destructive-border
+
+Aplicar automaticamente:
+- gap-2 entre conteúdo
+- rounded-md
+- hover-elevate active-elevate-2
+- focus-visible:ring-1 ring-ring
+- disabled:opacity-50
+
+═══════════════════════════════════════════════════════════════
+
+📦 CARDS
+
+- bg-card (hsl(0 0% 11%))
+- border: 1px solid card-border
+- rounded-md
+- Padding consistente (ex: p-4 ou p-6)
+- NUNCA aninhar Card dentro de Card
+
+═══════════════════════════════════════════════════════════════
+
+📜 SCROLLBARS
+
+scrollbar-width: thin;
+scrollbar-color: hsl(218 82% 54% / 0.3) transparent;
+
+Webkit:
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { 
+  background: hsl(218 82% 54% / 0.3);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover { 
+  background: hsl(218 82% 54% / 0.5);
+}
+
+═══════════════════════════════════════════════════════════════
+
+⚙️ REGRAS IMPORTANTES
+
+1. ✅ Usar SEMPRE hsl() com formato "H S% L%" (espaços, porcentagens em S e L)
+2. ✅ Border radius PEQUENO - padrão rounded-md (6px)
+3. ✅ Contraste SUTIL entre superfícies - diferenças mínimas perceptíveis
+4. ✅ Sombras com EXTREMA parcimônia
+5. ✅ Sistema de elevação por overlay, NÃO por mudança de cor
+6. ✅ Azul vibrante (#3B82F6) como cor primária
+7. ✅ Três níveis de texto: 95% (principal), 92% (secundário), 62% (terciário)
+8. ✅ Espaçamento consistente em todos os painéis
+9. ❌ NUNCA aplicar hover:bg-* manualmente em botões
+10. ❌ NUNCA usar border-radius muito grande
+11. ❌ NUNCA usar cores muito saturadas, exceto a primária
+
+═══════════════════════════════════════════════════════════════
+
+🎯 IDENTIDADE VISUAL
+
+TEMA: Dark mode moderno, minimalista, profissional
+COR PRINCIPAL: Azul vibrante (#3B82F6)
+ESTÉTICA: Contraste sutil, elevações por overlay, espaçamento generoso
+TIPOGRAFIA: Inter clean e moderna
+INTERAÇÕES: Suaves e responsivas com feedback visual mínimo
+
+═══════════════════════════════════════════════════════════════
+
+Aplique todas estas especificações mantendo a estrutura HTML existente.
+Certifique-se de que TODAS as cores usem o formato HSL correto.
+Configure o tailwind.config para mapear estas variáveis CSS.
