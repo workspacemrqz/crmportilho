@@ -56,9 +56,9 @@ const priorityLabels: Record<string, string> = {
 const STATUS_COLORS = [
   "#3B82F6", // blue - novo
   "#eab308", // yellow - em_atendimento
-  "#f97316", // orange - aguardando_documentos
+  "#22d3ee", // cyan - aguardando_documentos
   "#a855f7", // purple - encaminhado
-  "#D35400", // dark orange - transferido_humano
+  "#c084fc", // light purple - transferido_humano
   "#22c55e", // green - concluido
   "#6b7280", // gray - cancelado
 ];
@@ -66,7 +66,7 @@ const STATUS_COLORS = [
 const PRIORITY_COLORS = {
   baixa: "#6b7280",
   normal: "#3B82F6",
-  alta: "#f97316",
+  alta: "#eab308",
   urgente: "#ef4444",
 };
 
@@ -426,7 +426,7 @@ export default function Dashboard() {
               <CardContent className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Aguardando Docs</span>
-                  <span className="text-xl font-bold text-orange-600 dark:text-orange-400">
+                  <span className="text-xl font-bold text-cyan-600 dark:text-cyan-400">
                     {stats.pendingDocuments}
                   </span>
                 </div>
@@ -462,7 +462,7 @@ export default function Dashboard() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Conversas Ativas</span>
-                  <span className="text-xl font-bold text-orange-600 dark:text-orange-400">
+                  <span className="text-xl font-bold text-blue-600 dark:text-blue-400">
                     {stats.activeConversations}
                   </span>
                 </div>
