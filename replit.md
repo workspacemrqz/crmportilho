@@ -4,13 +4,24 @@ This is a CRM and chatbot system for "Seguro IA" (Insurance AI), designed to man
 
 # Recent Changes
 
-**November 20, 2025:**
+**November 20, 2025 (Latest):**
+- **Database Migration Complete**: Configured new PostgreSQL database (Neon) with DATABASE_URL
+- **Removed Supabase Dependency**: Replaced Supabase Storage with secure local file storage
+- **Security Hardening**: Implemented production-ready file storage with:
+  - Server-side UUID generation for filenames (prevents path traversal attacks)
+  - Path validation using realpath and relative path checks (prevents symlink vulnerabilities)
+  - File existence verification before URL generation (prevents enumeration attacks)
+  - Strict leadId validation using basename and alphanumeric checks
+- **File Storage Location**: All uploads now stored in `/uploads` directory with organized structure
+- **Database Schema**: Successfully applied all migrations - tables created: users, leads, conversations, messages, documents, chatbotStates, vehicles, quotes, auditLogs, workflowTemplates, systemSettings
+
+**Earlier Today:**
 - Updated design system to modern dark theme with vibrant blue primary color (#3B82F6)
 - Changed color palette from orange to blue across all components, charts, and UI elements
 - Updated CSS variables for backgrounds, foregrounds, borders, shadows, and elevation system
 - Updated scrollbars to use primary blue color
 - Maintained existing component structure while applying new color scheme
-- Previous changes: Removed the '/fluxos' (Workflows) page completely from the frontend
+- Removed the '/fluxos' (Workflows) page completely from the frontend
 
 # User Preferences
 
@@ -85,10 +96,16 @@ Preferred communication style: Simple, everyday language.
 - Automatic lead creation and conversation tracking
 
 **File Storage:**
-- Supabase Storage integration for file uploads
+- Local filesystem storage for file uploads (replaces Supabase)
+- Files organized in `/uploads/leads/{leadId}/` structure
+- Server-side UUID generation for secure filenames
 - Support for documents, images, and other media
-- Public URL generation for file access
-- Bucket: 'portilho'
+- Public URL generation via `/uploads` endpoint
+- Production-ready security measures:
+  - Path traversal protection
+  - Symlink vulnerability prevention
+  - File enumeration protection
+  - Strict input validation
 
 ## External Dependencies
 
@@ -100,24 +117,28 @@ Preferred communication style: Simple, everyday language.
 - Session/instance-based connection management
 
 **Environment Variables Required:**
-- `DATABASE_URL` - PostgreSQL connection string
+- `DATABASE_URL` - PostgreSQL connection string (Neon Database)
 - `SESSION_SECRET` - Express session encryption key
 - `LOGIN` / `SENHA` - Admin authentication credentials
 - `OPENAI_API_KEY` - For chatbot AI responses
-- `SUPABASE_SERVICE_ROLE_KEY` - For file storage operations
 - `WAHA_API` / `WAHA_API_KEY` / `WAHA_INSTANCIA` - WhatsApp API configuration
 - `EVOLUTION_URL` / `EVOLUTION_KEY` / `INSTANCIA` - Alternative WhatsApp API
 
+**Removed Environment Variables:**
+- `SUPABASE_SERVICE_ROLE_KEY` - No longer needed (replaced with local storage)
+
 **Third-Party Services:**
-- Supabase - PostgreSQL database hosting and file storage
+- Neon Database - PostgreSQL database hosting
 - OpenAI - GPT-based chatbot responses
 - WAHA/Evolution API - WhatsApp Business API integration
 
 **Database Provider:**
-- Supports PostgreSQL via Drizzle ORM
-- Configured for Supabase or Neon Database
+- PostgreSQL via Drizzle ORM
+- Configured for Neon Database
 - Connection pooling with pg library (max 20 connections)
 - Migrations stored in `/migrations` directory
+- Schema synced using Drizzle Kit push command
+- All tables successfully created and operational
 
 **Development Tools:**
 - Vite for frontend development server with HMR
