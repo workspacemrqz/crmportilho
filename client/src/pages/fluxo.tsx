@@ -300,11 +300,11 @@ export default function FluxoPage() {
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      <div className="flex items-center justify-between">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 max-w-7xl mx-auto">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold" data-testid="text-page-title">Fluxo de Atendimento – Prevline Seguros</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-2xl sm:text-3xl font-bold" data-testid="text-page-title">Fluxo de Atendimento – Prevline Seguros</h1>
+          <p className="text-muted-foreground mt-1 text-sm sm:text-base">
             Configure mensagens, regras e fluxo inteligente com IA para atendimento via WhatsApp
           </p>
         </div>
@@ -312,6 +312,7 @@ export default function FluxoPage() {
           onClick={() => saveMutation.mutate()}
           disabled={saveMutation.isPending}
           size="lg"
+          className="w-full sm:w-auto"
           data-testid="button-save-flow"
         >
           {saveMutation.isPending ? (
@@ -382,14 +383,14 @@ export default function FluxoPage() {
       </Card>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 space-y-0">
           <div>
             <CardTitle>2. Regras de Resposta por Palavra-chave</CardTitle>
             <CardDescription>
               Respostas automáticas simples quando o lead mencionar palavras ou frases específicas
             </CardDescription>
           </div>
-          <Button onClick={addKeyword} variant="outline" size="sm" data-testid="button-add-keyword">
+          <Button onClick={addKeyword} variant="outline" size="sm" className="w-full sm:w-auto" data-testid="button-add-keyword">
             <Plus className="w-4 h-4 mr-1" />
             Adicionar Regra
           </Button>
@@ -401,8 +402,8 @@ export default function FluxoPage() {
             </p>
           ) : (
             keywords.map((keyword, index) => (
-              <div key={index} className="flex gap-4 items-start p-4 border rounded-md">
-                <div className="flex-1 space-y-3">
+              <div key={index} className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-start p-3 sm:p-4 border rounded-md">
+                <div className="flex-1 w-full space-y-3">
                   <div className="space-y-2">
                     <Label>Palavra-chave do lead</Label>
                     <Input
@@ -427,6 +428,7 @@ export default function FluxoPage() {
                   variant="ghost"
                   size="icon"
                   onClick={() => removeKeyword(index)}
+                  className="self-end sm:self-start"
                   data-testid={`button-remove-keyword-${index}`}
                 >
                   <Trash2 className="w-4 h-4 text-destructive" />
@@ -461,9 +463,9 @@ export default function FluxoPage() {
           </div>
 
           <div className="border-t pt-6">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
               <h3 className="text-lg font-semibold">Etapas do Fluxo</h3>
-              <Button onClick={addStep} variant="outline" size="sm" data-testid="button-add-step">
+              <Button onClick={addStep} variant="outline" size="sm" className="w-full sm:w-auto" data-testid="button-add-step">
                 <Plus className="w-4 h-4 mr-1" />
                 Adicionar Etapa
               </Button>
@@ -477,9 +479,9 @@ export default function FluxoPage() {
               <div className="space-y-6">
                 {steps.map((step, index) => (
                   <Card key={index} className="border-2">
-                    <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0 pb-4">
+                    <CardHeader className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 space-y-0 pb-4">
                       <div className="flex-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <Badge variant="outline">Etapa {index + 1}</Badge>
                           <CardTitle className="text-base">{step.stepName}</CardTitle>
                         </div>
@@ -488,13 +490,14 @@ export default function FluxoPage() {
                         variant="ghost"
                         size="icon"
                         onClick={() => removeStep(index)}
+                        className="self-end sm:self-start"
                         data-testid={`button-remove-step-${index}`}
                       >
                         <Trash2 className="w-4 h-4 text-destructive" />
                       </Button>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <Label>ID da Etapa</Label>
                           <Input
@@ -556,17 +559,19 @@ export default function FluxoPage() {
 
                       <div className="border-t pt-4 space-y-3">
                         <Label>Testar com IA</Label>
-                        <div className="flex gap-2">
+                        <div className="flex flex-col sm:flex-row gap-2">
                           <Input
                             value={step.exampleMessage || ""}
                             onChange={(e) => updateStep(index, 'exampleMessage', e.target.value)}
                             placeholder="Digite uma mensagem de exemplo do cliente..."
+                            className="flex-1"
                             data-testid={`input-step-example-${index}`}
                           />
                           <Button
                             onClick={() => generatePreview(step)}
                             disabled={previewMutation.isPending}
                             variant="secondary"
+                            className="w-full sm:w-auto"
                             data-testid={`button-generate-preview-${index}`}
                           >
                             {previewMutation.isPending ? (
@@ -578,10 +583,10 @@ export default function FluxoPage() {
                         </div>
 
                         {previewResults.has(step.stepId) && (
-                          <div className="bg-muted/50 p-4 rounded-md space-y-2">
+                          <div className="bg-muted/50 p-3 sm:p-4 rounded-md space-y-2">
                             <p className="text-sm font-semibold">Resposta de exemplo da IA:</p>
-                            <p className="text-sm">{previewResults.get(step.stepId)?.mensagemAgente}</p>
-                            <div className="flex items-center gap-2 mt-3">
+                            <p className="text-sm break-words">{previewResults.get(step.stepId)?.mensagemAgente}</p>
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-3">
                               <p className="text-sm font-semibold">Próxima etapa sugerida:</p>
                               <Badge>
                                 {previewResults.get(step.stepId)?.proximaEtapaId || "Encerrar fluxo"}
@@ -634,9 +639,9 @@ export default function FluxoPage() {
 
           <div>
             <h4 className="font-semibold mb-2">Regras de Palavra-chave ({keywords.length})</h4>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {keywords.map((keyword, index) => (
-                <div key={index} className="text-sm p-2 bg-muted/30 rounded-md">
+                <div key={index} className="text-sm p-2 bg-muted/30 rounded-md break-words">
                   <span className="font-medium">{keyword.keyword}</span> → {keyword.response.substring(0, 30)}...
                 </div>
               ))}

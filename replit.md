@@ -18,6 +18,13 @@ This is a CRM and chatbot system for "Seguro IA" (Insurance AI), designed to man
   - Pre-populated with Prevline Seguros context (insurance-specific flow templates)
   - Added navigation route `/fluxo` and sidebar menu item
   - All elements include proper `data-testid` attributes for testing
+  - **Mobile Responsive Design**: Fully responsive layout with Tailwind breakpoints
+    - Adaptive padding (p-4 on mobile, p-6 on desktop)
+    - Flex layouts that stack vertically on mobile, horizontally on desktop
+    - Grid layouts (2 columns on desktop, 1 column on mobile)
+    - Full-width buttons on mobile, auto-width on desktop
+    - Responsive text sizes and spacing
+    - Break-word utilities for long text content
 
 **Earlier Today:**
 - **Complete Supabase Removal**: Fully removed all Supabase dependencies and references
