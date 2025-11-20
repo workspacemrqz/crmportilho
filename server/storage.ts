@@ -25,6 +25,12 @@ import {
   type InsertWorkflowTransition,
   type SystemSettings,
   type InsertSystemSettings,
+  type FlowConfig,
+  type InsertFlowConfig,
+  type KeywordRule,
+  type InsertKeywordRule,
+  type FlowStep,
+  type InsertFlowStep,
   users,
   leads,
   conversations,
@@ -37,7 +43,10 @@ import {
   workflowTemplates,
   workflowVersions,
   workflowTransitions,
-  systemSettings
+  systemSettings,
+  flowConfigs,
+  keywordRules,
+  flowSteps
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, like, desc, asc, sql, gte, lte } from "drizzle-orm";
@@ -119,6 +128,25 @@ export interface IStorage {
   // System Settings methods
   getSystemSettings(): Promise<SystemSettings>;
   updateSystemSettings(data: Partial<InsertSystemSettings>): Promise<SystemSettings>;
+
+  // Flow Configuration methods
+  getActiveFlowConfig(): Promise<FlowConfig | undefined>;
+  getFlowConfig(id: string): Promise<FlowConfig | undefined>;
+  createFlowConfig(data: InsertFlowConfig): Promise<FlowConfig>;
+  updateFlowConfig(id: string, data: Partial<InsertFlowConfig>): Promise<FlowConfig | undefined>;
+  setActiveFlowConfig(id: string): Promise<FlowConfig | undefined>;
+
+  // Keyword Rule methods
+  getKeywordRules(flowConfigId: string): Promise<KeywordRule[]>;
+  createKeywordRule(data: InsertKeywordRule): Promise<KeywordRule>;
+  updateKeywordRule(id: string, data: Partial<InsertKeywordRule>): Promise<KeywordRule | undefined>;
+  deleteKeywordRule(id: string): Promise<boolean>;
+
+  // Flow Step methods
+  getFlowSteps(flowConfigId: string): Promise<FlowStep[]>;
+  createFlowStep(data: InsertFlowStep): Promise<FlowStep>;
+  updateFlowStep(id: string, data: Partial<InsertFlowStep>): Promise<FlowStep | undefined>;
+  deleteFlowStep(id: string): Promise<boolean>;
 
   // Dashboard stats
   getDashboardStats(): Promise<DashboardStats>;
@@ -621,6 +649,109 @@ export class PgStorage implements IStorage {
       .returning();
     
     return updated;
+  }
+
+  // Flow Configuration methods
+  async getActiveFlowConfig(): Promise<FlowConfig | undefined> {
+    const [config] = await db.select()
+      .from(flowConfigs)
+      .where(eq(flowConfigs.isActive, true))
+      .orderBy(desc(flowConfigs.createdAt))
+      .limit(1);
+    return config || undefined;
+  }
+
+  async getFlowConfig(id: string): Promise<FlowConfig | undefined> {
+    const [config] = await db.select()
+      .from(flowConfigs)
+      .where(eq(flowConfigs.id, id));
+    return config || undefined;
+  }
+
+  async createFlowConfig(data: InsertFlowConfig): Promise<FlowConfig> {
+    const [config] = await db.insert(flowConfigs)
+      .values(data)
+      .returning();
+    return config;
+  }
+
+  async updateFlowConfig(id: string, data: Partial<InsertFlowConfig>): Promise<FlowConfig | undefined> {
+    const [updated] = await db.update(flowConfigs)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(flowConfigs.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async setActiveFlowConfig(id: string): Promise<FlowConfig | undefined> {
+    await db.update(flowConfigs)
+      .set({ isActive: false });
+    
+    const [updated] = await db.update(flowConfigs)
+      .set({ isActive: true, updatedAt: new Date() })
+      .where(eq(flowConfigs.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  // Keyword Rule methods
+  async getKeywordRules(flowConfigId: string): Promise<KeywordRule[]> {
+    const rules = await db.select()
+      .from(keywordRules)
+      .where(eq(keywordRules.flowConfigId, flowConfigId))
+      .orderBy(asc(keywordRules.createdAt));
+    return rules;
+  }
+
+  async createKeywordRule(data: InsertKeywordRule): Promise<KeywordRule> {
+    const [rule] = await db.insert(keywordRules)
+      .values(data)
+      .returning();
+    return rule;
+  }
+
+  async updateKeywordRule(id: string, data: Partial<InsertKeywordRule>): Promise<KeywordRule | undefined> {
+    const [updated] = await db.update(keywordRules)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(keywordRules.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteKeywordRule(id: string): Promise<boolean> {
+    const result = await db.delete(keywordRules)
+      .where(eq(keywordRules.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  // Flow Step methods
+  async getFlowSteps(flowConfigId: string): Promise<FlowStep[]> {
+    const steps = await db.select()
+      .from(flowSteps)
+      .where(eq(flowSteps.flowConfigId, flowConfigId))
+      .orderBy(asc(flowSteps.order), asc(flowSteps.createdAt));
+    return steps;
+  }
+
+  async createFlowStep(data: InsertFlowStep): Promise<FlowStep> {
+    const [step] = await db.insert(flowSteps)
+      .values(data)
+      .returning();
+    return step;
+  }
+
+  async updateFlowStep(id: string, data: Partial<InsertFlowStep>): Promise<FlowStep | undefined> {
+    const [updated] = await db.update(flowSteps)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(flowSteps.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteFlowStep(id: string): Promise<boolean> {
+    const result = await db.delete(flowSteps)
+      .where(eq(flowSteps.id, id));
+    return (result.rowCount ?? 0) > 0;
   }
 
   async getDashboardStats(): Promise<DashboardStats> {

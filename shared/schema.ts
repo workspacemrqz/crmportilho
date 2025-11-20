@@ -466,3 +466,70 @@ export const insertSystemSettingsSchema = createInsertSchema(systemSettings).omi
 
 export type InsertSystemSettings = z.infer<typeof insertSystemSettingsSchema>;
 export type SystemSettings = typeof systemSettings.$inferSelect;
+
+// Flow Configuration Tables
+export const flowConfigs = pgTable("flow_configs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  welcomeMessage: text("welcome_message").notNull(),
+  institutionalMessage: text("institutional_message").notNull(),
+  importantInstructions: text("important_instructions").notNull(),
+  globalPrompt: text("global_prompt").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
+});
+
+export const keywordRules = pgTable("keyword_rules", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  flowConfigId: varchar("flow_config_id").notNull().references(() => flowConfigs.id, { onDelete: "cascade" }),
+  keyword: text("keyword").notNull(),
+  response: text("response").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
+}, (table) => ({
+  flowConfigIdx: index("keyword_rules_flow_config_idx").on(table.flowConfigId)
+}));
+
+export const flowSteps = pgTable("flow_steps", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  flowConfigId: varchar("flow_config_id").notNull().references(() => flowConfigs.id, { onDelete: "cascade" }),
+  stepId: text("step_id").notNull(),
+  stepName: text("step_name").notNull(),
+  objective: text("objective").notNull(),
+  stepPrompt: text("step_prompt").notNull(),
+  routingInstructions: text("routing_instructions").notNull(),
+  order: integer("order").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
+}, (table) => ({
+  flowConfigIdx: index("flow_steps_flow_config_idx").on(table.flowConfigId),
+  stepIdIdx: index("flow_steps_step_id_idx").on(table.stepId)
+}));
+
+// Flow Configuration Insert Schemas
+export const insertFlowConfigSchema = createInsertSchema(flowConfigs).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+
+export const insertKeywordRuleSchema = createInsertSchema(keywordRules).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+
+export const insertFlowStepSchema = createInsertSchema(flowSteps).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+
+// Flow Configuration Types
+export type FlowConfig = typeof flowConfigs.$inferSelect;
+export type InsertFlowConfig = z.infer<typeof insertFlowConfigSchema>;
+export type KeywordRule = typeof keywordRules.$inferSelect;
+export type InsertKeywordRule = z.infer<typeof insertKeywordRuleSchema>;
+export type FlowStep = typeof flowSteps.$inferSelect;
+export type InsertFlowStep = z.infer<typeof insertFlowStepSchema>;

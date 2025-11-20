@@ -10,7 +10,7 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { LayoutDashboard, Users, MessageSquare, FileText, Settings } from "lucide-react";
+import { LayoutDashboard, Users, MessageSquare, FileText, Settings, Workflow } from "lucide-react";
 import logo from "@/assets/Logo Seguro IA.png";
 import { Badge } from "@/components/ui/badge";
 
@@ -29,6 +29,11 @@ const menuItems = [
     title: "Conversas",
     url: "/conversas",
     icon: MessageSquare,
+  },
+  {
+    title: "Fluxo",
+    url: "/fluxo",
+    icon: Workflow,
   },
   {
     title: "Configurações",

@@ -5,6 +5,7 @@ import { storage } from "./storage";
 import { ChatbotService } from "./chatbot.service";
 import { WAHAService } from "./waha.service";
 import { LocalStorageService } from "./storage.service";
+import { flowAIService } from "./flow-ai.service";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -15,6 +16,9 @@ import {
   insertDocumentSchema,
   insertWorkflowTemplateSchema,
   insertSystemSettingsSchema,
+  insertFlowConfigSchema,
+  insertKeywordRuleSchema,
+  insertFlowStepSchema,
   type Message
 } from "@shared/schema";
 import { 
@@ -1990,6 +1994,291 @@ Retorne APENAS o JSON array, sem texto adicional.`;
       }
       console.error('Error updating settings:', error);
       res.status(500).json({ error: 'Failed to update settings' });
+    }
+  });
+
+  // Flow AI Preview endpoint
+  const flowStepPreviewSchema = z.object({
+    promptGlobal: z.string().min(1, 'Prompt global é obrigatório'),
+    etapaAtual: z.object({
+      id: z.string().min(1, 'ID da etapa atual é obrigatório'),
+      nome: z.string().min(1, 'Nome da etapa atual é obrigatório'),
+      objetivo: z.string().min(1, 'Objetivo da etapa atual é obrigatório'),
+      promptEtapa: z.string().min(1, 'Prompt da etapa atual é obrigatório'),
+      instrucoesRoteamento: z.string().min(1, 'Instruções de roteamento são obrigatórias')
+    }),
+    etapasDefinidas: z.array(z.object({
+      id: z.string().min(1, 'ID da etapa é obrigatório'),
+      nome: z.string().min(1, 'Nome da etapa é obrigatório')
+    })).min(1, 'Pelo menos uma etapa deve ser definida'),
+    historicoConversaExemplo: z.array(z.object({
+      role: z.enum(['user', 'assistant']),
+      content: z.string()
+    })).optional(),
+    mensagemClienteExemplo: z.string().min(1, 'Mensagem de exemplo do cliente é obrigatória')
+  });
+
+  app.post('/api/ia/preview', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const validatedData = flowStepPreviewSchema.parse(req.body);
+      const response = await flowAIService.generateFlowStepPreview(validatedData);
+      res.json(response);
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          error: 'Dados inválidos',
+          message: 'Os dados enviados não estão no formato esperado',
+          details: error.errors 
+        });
+      }
+      console.error('Error generating AI preview:', error);
+      res.status(500).json({ error: error.message || 'Failed to generate AI preview' });
+    }
+  });
+
+  // Flow Configuration endpoints
+  app.get('/api/flows/active', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const config = await storage.getActiveFlowConfig();
+      if (!config) {
+        return res.status(404).json({ error: 'No active flow configuration found' });
+      }
+      
+      const keywords = await storage.getKeywordRules(config.id);
+      const steps = await storage.getFlowSteps(config.id);
+      
+      res.json({
+        ...config,
+        keywords,
+        steps
+      });
+    } catch (error) {
+      console.error('Error fetching active flow config:', error);
+      res.status(500).json({ error: 'Failed to fetch active flow configuration' });
+    }
+  });
+
+  app.get('/api/flows/:id', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const config = await storage.getFlowConfig(id);
+      
+      if (!config) {
+        return res.status(404).json({ error: 'Flow configuration not found' });
+      }
+      
+      const keywords = await storage.getKeywordRules(id);
+      const steps = await storage.getFlowSteps(id);
+      
+      res.json({
+        ...config,
+        keywords,
+        steps
+      });
+    } catch (error) {
+      console.error('Error fetching flow config:', error);
+      res.status(500).json({ error: 'Failed to fetch flow configuration' });
+    }
+  });
+
+  app.post('/api/flows', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { keywords = [], steps = [], ...configData } = req.body;
+      
+      const validated = insertFlowConfigSchema.parse(configData);
+      const config = await storage.createFlowConfig(validated);
+      
+      const createdKeywords = [];
+      for (const keyword of keywords) {
+        const validatedKeyword = insertKeywordRuleSchema.parse({
+          ...keyword,
+          flowConfigId: config.id
+        });
+        const created = await storage.createKeywordRule(validatedKeyword);
+        createdKeywords.push(created);
+      }
+      
+      const createdSteps = [];
+      for (const step of steps) {
+        const validatedStep = insertFlowStepSchema.parse({
+          ...step,
+          flowConfigId: config.id
+        });
+        const created = await storage.createFlowStep(validatedStep);
+        createdSteps.push(created);
+      }
+      
+      res.json({
+        ...config,
+        keywords: createdKeywords,
+        steps: createdSteps
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors });
+      }
+      console.error('Error creating flow config:', error);
+      res.status(500).json({ error: 'Failed to create flow configuration' });
+    }
+  });
+
+  app.put('/api/flows/:id', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { keywords, steps, ...configData } = req.body;
+      
+      if (Object.keys(configData).length > 0) {
+        const validated = insertFlowConfigSchema.partial().parse(configData);
+        await storage.updateFlowConfig(id, validated);
+      }
+      
+      const config = await storage.getFlowConfig(id);
+      if (!config) {
+        return res.status(404).json({ error: 'Flow configuration not found' });
+      }
+      
+      const updatedKeywords = await storage.getKeywordRules(id);
+      const updatedSteps = await storage.getFlowSteps(id);
+      
+      res.json({
+        ...config,
+        keywords: updatedKeywords,
+        steps: updatedSteps
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors });
+      }
+      console.error('Error updating flow config:', error);
+      res.status(500).json({ error: 'Failed to update flow configuration' });
+    }
+  });
+
+  app.post('/api/flows/:id/activate', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const config = await storage.setActiveFlowConfig(id);
+      
+      if (!config) {
+        return res.status(404).json({ error: 'Flow configuration not found' });
+      }
+      
+      res.json(config);
+    } catch (error) {
+      console.error('Error activating flow config:', error);
+      res.status(500).json({ error: 'Failed to activate flow configuration' });
+    }
+  });
+
+  // Keyword Rules endpoints
+  app.post('/api/flows/:id/keywords', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const validated = insertKeywordRuleSchema.parse({
+        ...req.body,
+        flowConfigId: id
+      });
+      
+      const keyword = await storage.createKeywordRule(validated);
+      res.json(keyword);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors });
+      }
+      console.error('Error creating keyword rule:', error);
+      res.status(500).json({ error: 'Failed to create keyword rule' });
+    }
+  });
+
+  app.put('/api/flows/:id/keywords/:keywordId', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { keywordId } = req.params;
+      const validated = insertKeywordRuleSchema.partial().parse(req.body);
+      
+      const keyword = await storage.updateKeywordRule(keywordId, validated);
+      if (!keyword) {
+        return res.status(404).json({ error: 'Keyword rule not found' });
+      }
+      
+      res.json(keyword);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors });
+      }
+      console.error('Error updating keyword rule:', error);
+      res.status(500).json({ error: 'Failed to update keyword rule' });
+    }
+  });
+
+  app.delete('/api/flows/:id/keywords/:keywordId', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { keywordId } = req.params;
+      const deleted = await storage.deleteKeywordRule(keywordId);
+      
+      if (!deleted) {
+        return res.status(404).json({ error: 'Keyword rule not found' });
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting keyword rule:', error);
+      res.status(500).json({ error: 'Failed to delete keyword rule' });
+    }
+  });
+
+  // Flow Steps endpoints
+  app.post('/api/flows/:id/steps', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const validated = insertFlowStepSchema.parse({
+        ...req.body,
+        flowConfigId: id
+      });
+      
+      const step = await storage.createFlowStep(validated);
+      res.json(step);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors });
+      }
+      console.error('Error creating flow step:', error);
+      res.status(500).json({ error: 'Failed to create flow step' });
+    }
+  });
+
+  app.put('/api/flows/:id/steps/:stepId', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { stepId } = req.params;
+      const validated = insertFlowStepSchema.partial().parse(req.body);
+      
+      const step = await storage.updateFlowStep(stepId, validated);
+      if (!step) {
+        return res.status(404).json({ error: 'Flow step not found' });
+      }
+      
+      res.json(step);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors });
+      }
+      console.error('Error updating flow step:', error);
+      res.status(500).json({ error: 'Failed to update flow step' });
+    }
+  });
+
+  app.delete('/api/flows/:id/steps/:stepId', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { stepId } = req.params;
+      const deleted = await storage.deleteFlowStep(stepId);
+      
+      if (!deleted) {
+        return res.status(404).json({ error: 'Flow step not found' });
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting flow step:', error);
+      res.status(500).json({ error: 'Failed to delete flow step' });
     }
   });
 
