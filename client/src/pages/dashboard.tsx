@@ -54,7 +54,7 @@ const priorityLabels: Record<string, string> = {
 };
 
 const STATUS_COLORS = [
-  "#E76030", // orange - novo
+  "#3B82F6", // blue - novo
   "#eab308", // yellow - em_atendimento
   "#f97316", // orange - aguardando_documentos
   "#a855f7", // purple - encaminhado
@@ -65,7 +65,7 @@ const STATUS_COLORS = [
 
 const PRIORITY_COLORS = {
   baixa: "#6b7280",
-  normal: "#E76030",
+  normal: "#3B82F6",
   alta: "#f97316",
   urgente: "#ef4444",
 };
@@ -255,7 +255,7 @@ export default function Dashboard() {
                       `${name}: ${(percent * 100).toFixed(0)}%`
                     }
                     outerRadius={80}
-                    fill="#E76030"
+                    fill="#3B82F6"
                     dataKey="value"
                   >
                     {statusData.map((entry, index) => (
@@ -286,7 +286,7 @@ export default function Dashboard() {
                   <XAxis dataKey="name" />
                   <YAxis />
                   <Tooltip />
-                  <Bar dataKey="value" fill="#E76030" radius={[8, 8, 0, 0]}>
+                  <Bar dataKey="value" fill="#3B82F6" radius={[8, 8, 0, 0]}>
                     {priorityData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.fill} />
                     ))}

@@ -5,10 +5,12 @@ This is a CRM and chatbot system for "Seguro IA" (Insurance AI), designed to man
 # Recent Changes
 
 **November 20, 2025:**
-- Removed the '/fluxos' (Workflows) page completely from the frontend
-- Removed workflows.tsx and workflows-original.tsx page components
-- Removed 'Fluxos' navigation item from sidebar menu
-- Backend workflow templates API and database schema remain intact for potential future use
+- Updated design system to modern dark theme with vibrant blue primary color (#3B82F6)
+- Changed color palette from orange to blue across all components, charts, and UI elements
+- Updated CSS variables for backgrounds, foregrounds, borders, shadows, and elevation system
+- Updated scrollbars to use primary blue color
+- Maintained existing component structure while applying new color scheme
+- Previous changes: Removed the '/fluxos' (Workflows) page completely from the frontend
 
 # User Preferences
 
@@ -26,10 +28,11 @@ Preferred communication style: Simple, everyday language.
 - Tailwind CSS for styling with custom design tokens
 
 **Design System:**
-- Dark theme with orange primary color (#E76030 - "Laranja Portilho")
-- HSL-based color system defined in CSS variables
+- Dark theme with vibrant blue primary color (#3B82F6 - Modern blue design system)
+- HSL-based color system defined in CSS variables (format: H S% L%)
 - Custom utility classes for elevation effects (hover-elevate, active-elevate-2)
 - Responsive design with mobile-first approach
+- Three-level text hierarchy: 95% (primary), 92% (secondary), 62% (tertiary)
 
 **State Management:**
 - TanStack Query handles all server state with 5-minute stale time
