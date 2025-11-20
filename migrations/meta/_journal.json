@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1763618636532,
+      "tag": "0000_flat_praxagora",
+      "breakpoints": true
+    }
+  ]
+}

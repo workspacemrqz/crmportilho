@@ -112,7 +112,6 @@ Preferred communication style: Simple, everyday language.
 - Supabase - PostgreSQL database hosting and file storage
 - OpenAI - GPT-based chatbot responses
 - WAHA/Evolution API - WhatsApp Business API integration
-- Chatwoot integration (optional, service configured but usage unclear)
 
 **Database Provider:**
 - Supports PostgreSQL via Drizzle ORM

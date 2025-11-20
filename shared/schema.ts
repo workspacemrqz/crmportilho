@@ -106,8 +106,6 @@ export const leads = pgTable("leads", {
   hasDriverUnder25: boolean("has_driver_under_25"),
   source: text("source"),
   assignedTo: text("assigned_to"),
-  chatwootContactId: integer("chatwoot_contact_id"),
-  chatwootConversationId: integer("chatwoot_conversation_id"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
 }, (table) => ({
