@@ -4,7 +4,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { ChatbotService } from "./chatbot.service";
 import { WAHAService } from "./waha.service";
-import { SupabaseStorageService } from "./supabase.service";
+import { LocalStorageService } from "./storage.service";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -43,7 +43,7 @@ import {
 // Initialize services
 const chatbotService = new ChatbotService();
 const wahaAPI = new WAHAService();
-const supabaseStorage = new SupabaseStorageService();
+const localStorage = new LocalStorageService();
 
 // Cache para deduplicação de mensagens (armazena IDs das últimas 1000 mensagens)
 const processedMessageIds = new Set<string>();
@@ -916,7 +916,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             mimeType: metadata?.mimetype || 'application/octet-stream',
             mediaUrl: metadata?.mediaUrl || metadata?.url,
             messageId: metadata?.messageId || messageId,
-            supabasePath: metadata?.supabasePath || null
+            storagePath: metadata?.storagePath || null
           };
           break;
         }
@@ -931,21 +931,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       let fileBuffer: Buffer | null = null;
       
-      // Step 1: Try downloading from Supabase Storage (cache)
-      if (documentInfo.supabasePath) {
-        console.log('[DOWNLOAD] ☁️ Attempting to download from Supabase cache:', documentInfo.supabasePath);
+      // Step 1: Try downloading from Local Storage (cache)
+      if (documentInfo.storagePath) {
+        console.log('[DOWNLOAD] ☁️ Attempting to download from Local Storage cache:', documentInfo.storagePath);
         try {
-          fileBuffer = await supabaseStorage.downloadDocument(documentInfo.supabasePath);
-          console.log('[DOWNLOAD] ✅ Successfully downloaded from Supabase cache, size:', fileBuffer.length);
-        } catch (supabaseError) {
-          console.log('[DOWNLOAD] ⚠️ Failed to download from Supabase cache, will try WAHA API:', supabaseError);
+          fileBuffer = await localStorage.downloadDocument(documentInfo.storagePath);
+          console.log('[DOWNLOAD] ✅ Successfully downloaded from Local Storage cache, size:', fileBuffer.length);
+        } catch (storageError) {
+          console.log('[DOWNLOAD] ⚠️ Failed to download from Local Storage cache, will try WAHA API:', storageError);
           fileBuffer = null;
         }
       } else {
-        console.log('[DOWNLOAD] No Supabase cache path found, will try WAHA API');
+        console.log('[DOWNLOAD] No Local Storage cache path found, will try WAHA API');
       }
       
-      // Step 2: If not in Supabase, try downloading from WAHA API
+      // Step 2: If not in Local Storage, try downloading from WAHA API
       if (!fileBuffer) {
         console.log('[DOWNLOAD] 📥 Attempting to download from WAHA API');
         const wahaDownloadAPI = new WAHAService();
@@ -958,24 +958,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         console.log('[DOWNLOAD] ✅ File downloaded from WAHA API, size:', fileBuffer.length);
         
-        // Step 3: Save to Supabase for future downloads (if not already cached)
-        if (!documentInfo.supabasePath) {
+        // Step 3: Save to Local Storage for future downloads (if not already cached)
+        if (!documentInfo.storagePath) {
           try {
-            console.log('[DOWNLOAD] ☁️ Saving to Supabase cache for future downloads');
-            const supabasePath = await supabaseStorage.uploadDocument(
+            console.log('[DOWNLOAD] ☁️ Saving to Local Storage cache for future downloads');
+            const storagePath = await localStorage.uploadDocument(
               fileBuffer,
               documentInfo.filename,
               leadId,
               documentInfo.mimeType
             );
             
-            console.log('[DOWNLOAD] ✅ Successfully cached in Supabase:', supabasePath);
+            console.log('[DOWNLOAD] ✅ Successfully cached in Local Storage:', storagePath);
             
-            // Update message metadata with Supabase path
+            // Update message metadata with storage path
             if (docMessage) {
               const updatedMetadata = {
                 ...(docMessage.metadata as any),
-                supabasePath: supabasePath
+                storagePath: storagePath
               };
               
               // Import db and messages at the top if not already imported
@@ -987,10 +987,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 .set({ metadata: updatedMetadata })
                 .where(eq(messagesTable.id, docMessage.id));
               
-              console.log('[DOWNLOAD] 📝 Updated message metadata with Supabase path');
+              console.log('[DOWNLOAD] 📝 Updated message metadata with storage path');
             }
-          } catch (supabaseError) {
-            console.error('[DOWNLOAD] ⚠️ Failed to cache in Supabase (non-fatal):', supabaseError);
+          } catch (storageError) {
+            console.error('[DOWNLOAD] ⚠️ Failed to cache in Local Storage (non-fatal):', storageError);
           }
         }
       }
@@ -1547,24 +1547,24 @@ Retorne APENAS o JSON array, sem texto adicional.`;
         return res.status(400).json({ error: 'leadId and type are required' });
       }
 
-      console.log('[UPLOAD] Uploading document to Supabase:', req.file.originalname);
+      console.log('[UPLOAD] Uploading document to Local Storage:', req.file.originalname);
 
-      // Upload file to Supabase Storage bucket 'portilho'
-      const supabasePath = await supabaseStorage.uploadDocument(
+      // Upload file to Local Storage
+      const storagePath = await localStorage.uploadDocument(
         req.file.buffer,
         req.file.originalname,
         leadId,
         req.file.mimetype
       );
 
-      console.log('[UPLOAD] Document uploaded to Supabase:', supabasePath);
+      console.log('[UPLOAD] Document uploaded to Local Storage:', storagePath);
 
-      // Store document info in database with Supabase path
+      // Store document info in database with storage path
       const document = await storage.createDocument({
         leadId,
         filename: req.file.originalname,
         type: type as any,
-        url: supabasePath, // Store Supabase path instead of local path
+        url: storagePath, // Store storage path
         mimeType: req.file.mimetype,
         size: req.file.size
       });
@@ -1598,10 +1598,10 @@ Retorne APENAS o JSON array, sem texto adicional.`;
         return res.status(404).json({ error: 'Document not found' });
       }
 
-      console.log('[DOWNLOAD] Downloading document from Supabase:', document.url);
+      console.log('[DOWNLOAD] Downloading document from Local Storage:', document.url);
 
-      // Download file from Supabase Storage
-      const fileBuffer = await supabaseStorage.downloadDocument(document.url);
+      // Download file from Local Storage
+      const fileBuffer = await localStorage.downloadDocument(document.url);
 
       // Set headers for download
       res.setHeader('Content-Type', document.mimeType || 'application/octet-stream');

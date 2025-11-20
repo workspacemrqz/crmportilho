@@ -68,7 +68,7 @@ Preferred communication style: Simple, everyday language.
 - Drizzle ORM for database operations
 
 **Database:**
-- PostgreSQL database (configured for Supabase/Neon hosting)
+- PostgreSQL database (configured for Neon hosting)
 - Drizzle ORM with schema-first approach
 - Schema defined in `shared/schema.ts` for type safety across frontend/backend
 - Tables include: users, leads, conversations, messages, documents, chatbotStates, vehicles, quotes, auditLogs, workflowTemplates, systemSettings

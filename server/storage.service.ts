@@ -10,9 +10,8 @@ const __dirname = path.dirname(__filename);
 /**
  * Local Storage Service
  * Manages file uploads and downloads from local filesystem
- * Replaces Supabase Storage with local file storage
  */
-export class SupabaseStorageService {
+export class LocalStorageService {
   private uploadsDir: string;
 
   constructor() {

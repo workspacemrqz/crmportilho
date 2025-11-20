@@ -1,0 +1,311 @@
+<prompt>
+  <role>
+    Você é um desenvolvedor focado em criar uma interface simples, clara e funcional para configuração de mensagens automáticas e fluxos de atendimento via WhatsApp de uma corretora de seguros, usando IA da OpenAI.
+  </role>
+
+  <objetivo>
+    Criar uma página web chamada Fluxo onde o usuário possa:
+    1) Ajustar os textos das mensagens padrão do agente de IA, com base no exemplo de atendimento fornecido.
+    2) Cadastrar regras de resposta automática por palavra-chave (respostas simples, diretas).
+    3) Configurar um fluxo de atendimento guiado por IA, definindo:
+       - Um prompt global do agente/fluxo.
+       - Um conjunto de etapas do fluxo, cada uma com seu próprio objetivo e instruções em linguagem natural.
+       - Regras de roteamento entre etapas descritas em texto livre, para que a IA decida sozinha para qual etapa seguir.
+    4) Testar, em cada etapa, como a IA responderia e qual seria a próxima etapa, chamando a API da OpenAI (usando a chave armazenada nas Secrets do Replit).
+  </objetivo>
+
+<contexto_negocio>
+Trata-se de uma corretora de seguros (Prevline Seguros) que atende leads via WhatsApp. Eles usam um agente de IA que precisa responder de forma cordial, profissional e objetiva, coletando informações do lead e conduzindo o fluxo até o preenchimento de um formulário de cotação.
+
+````
+```
+A seguir está um exemplo real de atendimento que deve servir como referência de tom de voz, sequência de atendimento e tipo de perguntas feitas:
+```
+````
+
+</contexto_negocio>
+
+<exemplo_conversa_whatsapp>
+[15:21, 18/11/2025] Gabriel Marquez: Boa tarde
+[15:21, 18/11/2025] +55 31 7582-2396: A Prevline Seguros, agradece o contato.
+
+```
+✅Trabalhamos com 15 Melhores Seguradoras.Ex: Porto Seguro, Azul, Allianz, HDI,Bradesco, etc.
+
+⚠Seguro é perfil de cliente não conseguimos dar preço sem análise de questionário de risco.
+
+👨‍👩‍👧‍👦 Nossa equipe é referência há mais de 15 anos.Consulte nossa avaliação no Google.
+
+🚨 IMPORTANTE 🚨
+📌 Gentileza enviar sua solicitação por escrito.
+❗ Não ouvimos áudio no WhatsApp! 🔇
+❌ Não atendemos ligações pelo WhatsApp!
+
+Vamos começar seu atendimento. 😀
+[15:21, 18/11/2025] +55 31 7582-2396: Oi, Gabriel! Tudo ótimo por aqui, e com você? Sou o IAGO, assistente do Daniel na Prevline Seguros. Você já é cliente da Prevline ou deseja fazer uma nova cotação?
+[15:21, 18/11/2025] Gabriel Marquez: uma nova
+[15:21, 18/11/2025] +55 31 7582-2396: Ótimo, Gabriel! Para começar, me confirma, por favor: você deseja um seguro novo para um carro, seguro residencial ou outro tipo de seguro?
+[15:21, 18/11/2025] Gabriel Marquez: carro
+[15:22, 18/11/2025] +55 31 7582-2396: Perfeito! Você já tem um seguro ativo desse veículo ou será um seguro novo (primeira contratação)?
+[15:22, 18/11/2025] Gabriel Marquez: primeira que faço
+[15:22, 18/11/2025] +55 31 7582-2396: Certo! E você usa o veículo para transporte de aplicativo ou entregas (Uber, 99 ou outros Apps)?
+[15:22, 18/11/2025] Gabriel Marquez: não
+[15:23, 18/11/2025] +55 31 7582-2396: Ótimo! Posso te enviar o link do formulário de cotação para preencher? É rapidinho.
+[15:25, 18/11/2025] Gabriel Marquez: manda
+[15:25, 18/11/2025] +55 31 7582-2396: Perfeito! Aqui está o link: https://prevlineseguros.aggilizador.com.br
+
+Assim que preencher, me avise!
+[15:41, 18/11/2025] Gabriel Marquez: Ok
+[15:41, 18/11/2025] Gabriel Marquez: Eu consigo preencher por aqui? O link não tá abrindo
+[15:45, 18/11/2025] +55 31 7582-2396: Somente pelo link mesmo
+[15:45, 18/11/2025] +55 31 7582-2396: https://prevlineseguros.aggilizador.com.br/auto
+[15:46, 18/11/2025] +55 31 7582-2396: Segue um link direcionado para a página de cotação de seguro de carro
+```
+
+</exemplo_conversa_whatsapp>
+
+<requisitos_funcionais>
+A página deve se chamar Fluxo (título visível na interface).
+
+```
+A página deve ter, no mínimo, três áreas principais:
+
+1) Área de Mensagens Padrão
+   - Campos de texto editáveis (multi-linha) para:
+     a) Mensagem de boas-vindas.
+     b) Mensagem institucional/explicativa da corretora (como o texto sobre seguradoras, perfil de risco e avaliação no Google).
+     c) Mensagem de instruções importantes (como o texto sobre não ouvir áudio, não atender ligações, etc.).
+   - Esses campos devem vir pré-preenchidos com textos baseados no exemplo de conversa acima, mas o usuário deve poder editar livremente.
+
+2) Área de Regras de Resposta por Palavra-chave (simples)
+   - Exibir uma lista de regras de resposta.
+   - Cada regra deve conter:
+     a) Um campo de texto para a Palavra-chave ou frase do lead (por exemplo: "oi", "bom dia", "link", "formulário").
+     b) Um campo de texto multi-linha para a Mensagem de resposta que será enviada quando a mensagem do lead contiver essa palavra/frase.
+   - Deve haver um botão para Adicionar nova regra que cria uma nova linha/conjunto de campos.
+   - Deve haver a possibilidade de remover uma regra existente.
+   - Essas regras são apenas respostas diretas, independentes do fluxo com etapas de IA.
+
+3) Área de Configuração de Fluxo com IA (sem uso de palavra-chave para escolher etapa)
+   - Será detalhada em &lt;configuracao_ia_fluxo&gt; e deve aparecer visualmente separada das outras áreas.
+   - O fluxo entre etapas não deve ser controlado por if/else ou palavras-chave no código.
+   - A decisão de qual etapa vem depois deve ser feita pela IA, com base:
+     • No prompt global do fluxo.
+     • Na definição em linguagem natural de cada etapa.
+     • Nas instruções de roteamento em linguagem natural escritas pelo usuário.
+     • No histórico da conversa e na mensagem atual do cliente.
+
+Botões gerais:
+- Um botão para Salvar ou Atualizar configuração, que:
+  - Simula o salvamento apenas na memória da própria página (estado/variáveis no frontend).
+  - Exibe em uma área de resumo o estado atual:
+    • Mensagens padrão.
+    • Regras de palavra-chave.
+    • Configuração do fluxo com IA (prompt global, etapas e instruções de roteamento).
+
+Importante:
+- Nada precisa estar integrado ao WhatsApp de verdade; é apenas uma tela de configuração e testes.
+- A interface deve deixar claro que:
+  "O fluxo entre as etapas é decidido pela IA com base nas instruções em linguagem natural que você escrever (ex.: 'Siga para a etapa exemplo01 se o cliente demonstrar interesse, ou siga para a etapa exemplo02 se quiser plano de automóvel')."
+```
+
+</requisitos_funcionais>
+
+<configuracao_ia_fluxo>
+A Área de Configuração de Fluxo com IA deve permitir ao usuário montar um fluxo de atendimento totalmente guiado por IA, sem uso de palavra-chave para selecionar etapas.
+
+```
+Estrutura mínima:
+
+1) Prompt Global do Fluxo / Agente de IA
+   - Campo de texto multi-linha: "Prompt global do agente / fluxo".
+   - Pré-preencher com um texto padrão baseado no contexto:
+     - Papel do agente (assistente da Prevline Seguros).
+     - Tom de voz (cordial, profissional, objetivo).
+     - Objetivo geral (conduzir o lead até o preenchimento do formulário de cotação).
+     - Regra geral de comportamento (sempre seguir as etapas definidas e usar as instruções de roteamento em linguagem natural).
+   - O usuário pode editar esse texto livremente.
+   - Este prompt será usado como contexto/sistema em todas as chamadas à IA.
+
+2) Lista de Etapas do Fluxo (configuradas por IA)
+   - Exibir uma lista dinâmica de etapas.
+   - Cada etapa deve conter, no mínimo:
+     a) Campo de texto: "ID da etapa" (ex.: "exemplo01", "exemplo02", "boas_vindas", "coleta_dados_auto").
+        - Texto curto, sem espaços, para referência interna.
+     b) Campo de texto: "Nome da etapa" (rótulo amigável para o usuário).
+     c) Campo multi-linha: "Objetivo da etapa" (o que essa etapa deve alcançar).
+     d) Campo multi-linha: "Prompt da etapa" (texto em linguagem natural dizendo como o agente deve se comportar naquela etapa).
+        - Exemplo de orientação para o usuário (placeholder):
+          "Nesta etapa, faça perguntas para descobrir se o cliente tem interesse real em fechar, peça os dados X e Y. Não ofereça preço. Se o cliente demonstrar falta de interesse claro, considere encerrar o fluxo com educação."
+     e) Campo multi-linha: "Instruções de roteamento em linguagem natural"
+        - Campo onde o usuário escreve regras como:
+          "Siga para a etapa 'exemplo01' se o cliente demonstrar interesse em fechar.
+           Siga para a etapa 'exemplo02' se ele quiser plano de automóvel.
+           Se o cliente recusar totalmente, siga para a etapa 'encerrar_fluxo'."
+        - Essas instruções NÃO serão convertidas em if/else no código; serão apenas texto passado para a IA.
+     f) Campo multi-linha opcional: "Exemplo de mensagem do cliente para teste".
+     g) Um botão "Gerar resposta de exemplo com IA" para essa etapa.
+
+   - Deve haver um botão "Adicionar etapa" que cria um novo bloco de campos de etapa.
+   - Deve haver a possibilidade de remover uma etapa existente.
+
+   - Nenhuma etapa deve ter campo de "palavras-chave gatilho". Todo o roteamento é feito pela IA com base nessas instruções textuais.
+
+3) Lógica de chamada à API da OpenAI (preview/teste de etapa)
+   - Ao clicar em "Gerar resposta de exemplo com IA" em uma etapa:
+     - O frontend deve enviar uma requisição POST para um endpoint backend, por exemplo: /api/ia/preview.
+     - O corpo da requisição (JSON) deve conter, no mínimo:
+
+       {
+         promptGlobal,
+         etapaAtual: {
+           id,
+           nome,
+           objetivo,
+           promptEtapa,
+           instrucoesRoteamento
+         },
+         etapasDefinidas: [lista completa das etapas com seus ids e nomes],
+         historicoConversaExemplo: [array simples de mensagens, opcional],
+         mensagemClienteExemplo: "texto digitado ou configurado para teste"
+       }
+
+     - O backend deve:
+       a) Montar um "prompt técnico fixo" de orquestração (hard-coded) que instrui a IA a:
+          - Ler o promptGlobal.
+          - Ler os dados da etapaAtual e as instrucoesRoteamento.
+          - Usar historicoConversaExemplo e mensagemClienteExemplo.
+          - Decidir:
+            • Qual texto o agente deve responder agora.
+            • Qual deve ser a próxima etapa (proximaEtapaId), usando os IDs configurados.
+          - Sempre responder em JSON válido, por exemplo:
+
+            {
+              "mensagemAgente": "texto que será enviado ao cliente",
+              "proximaEtapaId": "exemplo01"
+            }
+
+            Onde "proximaEtapaId" pode ser:
+            - O ID de alguma etapa existente da lista.
+            - Null ou "encerrar" para finalizar o fluxo.
+
+       b) Chamar a API de chat da OpenAI usando a variável de ambiente process.env.OPENAI_API_KEY (Secrets do Replit).
+       c) Utilizar um modelo de chat leve (ex.: "gpt-4.1-mini" ou similar).
+       d) Devolver ao frontend o JSON já parseado (mensagemAgente, proximaEtapaId).
+
+   - No frontend, a resposta da IA deve ser exibida logo abaixo dos campos da etapa, em um painel do tipo:
+     - Título: "Resposta de exemplo da IA para esta etapa".
+     - Mostrar:
+       • "Mensagem do agente:" (texto gerado).
+       • "Próxima etapa sugerida pela IA:" (id retornado).
+
+4) Resumo do Fluxo
+   - Abaixo da área de configuração de fluxo com IA, exibir um painel de resumo com:
+     - Prompt global atual.
+     - Lista de etapas (id, nome, objetivo).
+     - Para cada etapa, uma visualização compacta das instrucoesRoteamento.
+   - Esse resumo serve apenas para visualização na interface, sem necessidade de persistência em banco de dados.
+
+5) Regra central:
+   - Nenhuma transição entre etapas deve ser baseada em comparação de string ou palavras-chave no código.
+   - O código sempre deve delegar à IA a escolha da próxima etapa, de acordo com o texto configurado pelo usuário em "Prompt da etapa" e "Instruções de roteamento em linguagem natural".
+```
+
+</configuracao_ia_fluxo>
+
+<interface_esperada>
+A interface deve ser intuitiva e organizada, com:
+
+```
+- Título da página: "Fluxo de Atendimento – Prevline Seguros".
+- Seções visualmente separadas para:
+  1) Mensagens padrão.
+  2) Regras de resposta por palavra-chave (simples).
+  3) Fluxo com IA (prompt global + etapas e roteamento por IA).
+
+Em cada seção, identifique claramente os rótulos dos campos, por exemplo:
+- "Mensagem de boas-vindas"
+- "Mensagem institucional"
+- "Instruções importantes"
+- "Palavra-chave do lead"
+- "Resposta automática"
+- "Prompt global do agente / fluxo"
+- "ID da etapa"
+- "Nome da etapa"
+- "Objetivo da etapa"
+- "Prompt da etapa"
+- "Instruções de roteamento em linguagem natural"
+- "Exemplo de mensagem do cliente"
+- "Gerar resposta de exemplo com IA"
+- "Adicionar regra"
+- "Adicionar etapa"
+- "Remover"
+- "Salvar fluxo"
+
+Todos os textos, rótulos e placeholders devem estar em português do Brasil.
+```
+
+</interface_esperada>
+
+<comportamento_dinamico>
+- Ao clicar em "Adicionar regra", deve aparecer um novo bloco de campos para cadastrar mais uma combinação Palavra-chave → Resposta automática simples.
+- Ao clicar em "Remover" em uma regra, essa regra deve ser removida da listagem.
+
+```
+- Ao clicar em "Adicionar etapa", deve aparecer um novo bloco de campos para cadastrar mais uma etapa do fluxo com IA (ID, nome, objetivo, prompt da etapa, instruções de roteamento).
+- Ao clicar em "Remover" em uma etapa, essa etapa deve ser removida da listagem.
+
+- Ao clicar em "Gerar resposta de exemplo com IA" em uma etapa:
+  - O frontend envia a requisição para o backend com os dados do fluxo e da etapa atual.
+  - O backend consulta a API da OpenAI conforme descrito em &lt;configuracao_ia_fluxo&gt;.
+  - A resposta (mensagemAgente e proximaEtapaId) é exibida na interface, abaixo da etapa.
+
+- Ao clicar em "Salvar fluxo":
+  - Simule o salvamento em memória (por exemplo, usando estado em JavaScript).
+  - Exiba claramente, em um painel de resumo:
+    • As mensagens padrão.
+    • As regras de palavra-chave.
+    • O prompt global.
+    • A lista de etapas, com seus objetivos e instruções de roteamento.
+```
+
+</comportamento_dinamico>
+
+<tom_e_estilo>
+- Estilo visual simples e limpo, com boa legibilidade.
+- Tom dos textos da interface profissional, cordial e objetivo.
+</tom_e_estilo>
+
+  <saida>
+    Gere o código completo necessário para:
+
+````
+1) Um backend simples em Node.js com Express (ou equivalente) que:
+   - Sirva a página Fluxo.
+   - Exponha um endpoint POST /api/ia/preview (ou nome semelhante) que:
+     • Leia process.env.OPENAI_API_KEY.
+     • Monte o prompt técnico de orquestração.
+     • Chame a API de chat da OpenAI.
+     • Retorne a resposta da IA em JSON (mensagemAgente, proximaEtapaId).
+
+2) Um frontend em HTML, CSS e JavaScript puro com a página Fluxo, contendo todas as seções e comportamentos descritos.
+
+O projeto deve ser compatível com um ambiente simples do Replit (Node.js + HTML estático).
+
+```
+Não escreva explicações, comentários externos ou instruções adicionais fora do código.
+Responda apenas com o código final dos arquivos do projeto (backend e frontend), sem texto extra antes ou depois.
+Se precisar de mais de um arquivo, inclua todos no mesmo bloco de resposta, deixando claro o nome de cada arquivo (por exemplo, usando comentários no início).
+```
+````
+
+  </saida>
+
+  <restricoes>
+    - Não utilizar integrações reais com API do WhatsApp; tudo é apenas interface de configuração e testes de resposta.
+    - Manter todos os textos da interface em português.
+    - É obrigatório usar a API da OpenAI para gerar as respostas de exemplo e decidir a próxima etapa, lendo a chave da variável de ambiente OPENAI_API_KEY (Secrets do Replit) no backend.
+    - Não expor a chave da OpenAI no frontend.
+    - Não adicionar funcionalidades além das descritas neste prompt.
+  </restricoes>
+</prompt>
