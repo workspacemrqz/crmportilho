@@ -5,9 +5,15 @@ This is a CRM and chatbot system for "Seguro IA" (Insurance AI), designed to man
 # Recent Changes
 
 **November 20, 2025 (Latest):**
+- **Complete Supabase Removal**: Fully removed all Supabase dependencies and references
+  - Uninstalled `@supabase/supabase-js` package
+  - Renamed `server/supabase.service.ts` to `server/storage.service.ts`
+  - Renamed class `SupabaseStorageService` to `LocalStorageService`
+  - Replaced all `supabasePath` field references with `storagePath` throughout codebase
+  - Updated all imports in `server/routes.ts` and `server/chatbot.service.ts`
+- **Complete Chatwoot Removal**: Removed all Chatwoot references from active code (historical migration preserved)
 - **Database Migration Complete**: Configured new PostgreSQL database (Neon) with DATABASE_URL
-- **Removed Supabase Dependency**: Replaced Supabase Storage with secure local file storage
-- **Security Hardening**: Implemented production-ready file storage with:
+- **Security Hardening**: Implemented production-ready local file storage with:
   - Server-side UUID generation for filenames (prevents path traversal attacks)
   - Path validation using realpath and relative path checks (prevents symlink vulnerabilities)
   - File existence verification before URL generation (prevents enumeration attacks)
