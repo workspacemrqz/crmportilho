@@ -1,5 +1,5 @@
 import { useState } from "react";
-import logo from "@/assets/Logo laranja.png";
+import logo from "@/assets/Logo Seguro IA.png";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";

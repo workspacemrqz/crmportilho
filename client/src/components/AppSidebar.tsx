@@ -11,7 +11,7 @@ import {
   SidebarFooter,
 } from "@/components/ui/sidebar";
 import { LayoutDashboard, Users, MessageSquare, FileText, Workflow, Settings } from "lucide-react";
-import logo from "@/assets/Logo laranja.png";
+import logo from "@/assets/Logo Seguro IA.png";
 import { Badge } from "@/components/ui/badge";
 
 const menuItems = [
