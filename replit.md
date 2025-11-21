@@ -4,11 +4,17 @@ This project is a CRM and chatbot system named "Seguro IA" (Insurance AI), desig
 
 # Recent Changes
 
-**November 21, 2025 - Fixed Visual Flow Editor Bug**
+**November 21, 2025 - Fixed Visual Flow Editor Node Deletion Bug**
 - Fixed a critical bug in the visual flow editor (`/fluxo`) where deleted nodes would reappear when clicking "Adicionar Etapa" (Add Step)
-- Root cause: The `handleAddNode` callback in `FlowEditor.tsx` was capturing a stale reference to the `steps` array due to JavaScript closure
-- Solution: Modified `onStepsChange` prop type to accept both array values and functional updaters: `(steps: FlowStep[] | ((prev: FlowStep[]) => FlowStep[]) => void`
-- Updated `handleAddNode` to use functional update pattern: `onStepsChange((currentSteps) => [...currentSteps, newStep])` ensuring it always works with the most current state
+- Root cause: Two related issues:
+  1. The `handleAddNode` callback in `FlowEditor.tsx` was capturing a stale reference to the `steps` array due to JavaScript closure
+  2. When users deleted nodes using the Delete key (React Flow native functionality), the `handleNodesChange` handler wasn't updating the parent component's `steps` state
+- Solution:
+  - Modified `onStepsChange` prop type to accept both array values and functional updaters: `(steps: FlowStep[] | ((prev: FlowStep[]) => FlowStep[]) => void`
+  - Updated `handleAddNode` to use functional update pattern: `onStepsChange((currentSteps) => [...currentSteps, newStep])`
+  - Added handler for `change.type === 'remove'` events in `handleNodesChange` to properly sync node deletions with parent state
+  - Converted both position updates and node removals in `handleNodesChange` to use functional updates, preventing stale data issues
+- Node deletion now works correctly via both Delete key and the edit panel's delete button
 
 # User Preferences
 
