@@ -22,12 +22,14 @@ import ReactFlow, {
   EdgeProps,
   getBezierPath,
   useStoreApi,
-  useReactFlow,
+  OnConnectStart,
+  OnConnectEnd,
+  ConnectionLineType,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { FlowStepNode as FlowStepNodeType, StepTransition } from '@shared/schema';
 import { Button } from '@/components/ui/button';
-import { Plus, AlertCircle, Star, X } from 'lucide-react';
+import { Plus, AlertCircle, Star, X, GripVertical } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 type FlowStep = {
@@ -56,7 +58,7 @@ const FlowStepNode = memo(({ data, selected }: any) => {
   
   return (
     <div 
-      className={`px-4 py-3 rounded-md border-2 bg-card min-w-[200px] shadow-lg transition-all hover:shadow-xl ${
+      className={`px-4 py-3 rounded-md border-2 bg-card min-w-[200px] shadow-lg transition-all hover:shadow-xl relative ${
         selected 
           ? 'border-primary ring-2 ring-primary/20' 
           : isStart 
@@ -65,6 +67,14 @@ const FlowStepNode = memo(({ data, selected }: any) => {
       }`}
       data-testid={`node-${data.stepId}`}
     >
+      {/* Drag handle - only this area allows moving the node */}
+      <div 
+        className="drag-handle absolute top-0 left-0 h-full w-8 flex items-center justify-center cursor-move opacity-0 hover:opacity-100 transition-opacity"
+        data-testid={`drag-handle-${data.stepId}`}
+      >
+        <GripVertical className="w-4 h-4 text-muted-foreground" />
+      </div>
+      
       <div className="space-y-1">
         <div className="flex items-center justify-between gap-2">
           <div className="font-semibold text-sm flex-1">{data.stepName}</div>
@@ -84,7 +94,7 @@ const FlowStepNode = memo(({ data, selected }: any) => {
         )}
       </div>
       
-      {/* Handle de entrada (esquerda) - principal */}
+      {/* Visible handles for visual feedback */}
       <Handle
         type="target"
         position={Position.Left}
@@ -94,7 +104,6 @@ const FlowStepNode = memo(({ data, selected }: any) => {
         data-testid={`handle-target-left-${data.stepId}`}
       />
       
-      {/* Handle de saída (direita) - principal */}
       <Handle
         type="source"
         position={Position.Right}
@@ -102,6 +111,45 @@ const FlowStepNode = memo(({ data, selected }: any) => {
         style={{ right: -6 }}
         title="Arrastar para conectar a outra etapa"
         data-testid={`handle-source-right-${data.stepId}`}
+      />
+      
+      {/* Invisible full-body handles for Easy Connect - click anywhere to connect */}
+      <Handle
+        type="source"
+        position={Position.Top}
+        className="!opacity-0 !w-full !h-full !inset-0 !rounded-md !border-0"
+        style={{ 
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          background: 'transparent',
+          border: 'none',
+          cursor: 'crosshair',
+          transform: 'none',
+        }}
+        title="Clique para conectar a outra etapa"
+        data-testid={`handle-source-body-${data.stepId}`}
+      />
+      
+      <Handle
+        type="target"
+        position={Position.Bottom}
+        className="!opacity-0 !w-full !h-full !inset-0 !rounded-md !border-0"
+        style={{ 
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          background: 'transparent',
+          border: 'none',
+          cursor: 'crosshair',
+          transform: 'none',
+        }}
+        title="Conectar de outra etapa para esta"
+        data-testid={`handle-target-body-${data.stepId}`}
       />
     </div>
   );
@@ -172,6 +220,7 @@ const edgeTypes = {
 };
 
 const MIN_DISTANCE = 150; // Distância mínima para Proximity Connect
+const TEMP_PROXIMITY_EDGE = 'TEMP_PROXIMITY_EDGE'; // Fixed ID for temporary proximity edge
 
 // Função para calcular hash estrutural (ignora transitions e positions)
 function getStructuralHash(steps: FlowStep[]): string {
@@ -185,10 +234,10 @@ function FlowEditorInner({ steps, onStepsChange, onNodeSelect, selectedNodeId }:
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [invalidTransitions, setInvalidTransitions] = useState<string[]>([]);
+  const [isConnecting, setIsConnecting] = useState(false);
 
-  // Proximity Connect
+  // Proximity Connect - Store API
   const store = useStoreApi();
-  const { getInternalNode } = useReactFlow();
 
   // PRIMARY state refs - source of truth
   const positionsRef = useRef<Record<string, {x: number, y: number}>>({});
@@ -298,6 +347,7 @@ function FlowEditorInner({ steps, onStepsChange, onNodeSelect, selectedNodeId }:
             id: step.stepId,
             type: 'flowStep',
             position,
+            dragHandle: '.drag-handle',
             data: {
               stepId: step.stepId,
               stepName: step.stepName,
@@ -432,13 +482,18 @@ function FlowEditorInner({ steps, onStepsChange, onNodeSelect, selectedNodeId }:
   const onConnect = useCallback((connection: Connection) => {
     if (!connection.source || !connection.target) return;
 
+    // Guard: Prevent self-connections
+    if (connection.source === connection.target) {
+      return;
+    }
+
     // Encontra as etapas de origem e destino
     const sourceStep = steps.find(s => s.stepId === connection.source);
     const targetStep = steps.find(s => s.stepId === connection.target);
     
     if (!sourceStep || !targetStep) return;
 
-    // Verifica se já existe uma transição para este destino
+    // Guard: Prevent duplicate connections
     const existingTransitions = Array.isArray(sourceStep.transitions) ? sourceStep.transitions : [];
     const alreadyConnected = existingTransitions.some(t => t.targetStepId === connection.target);
     
@@ -467,6 +522,14 @@ function FlowEditorInner({ steps, onStepsChange, onNodeSelect, selectedNodeId }:
 
     onStepsChange(updatedSteps);
   }, [steps, onStepsChange]);
+
+  const onConnectStart: OnConnectStart = useCallback(() => {
+    setIsConnecting(true);
+  }, []);
+
+  const onConnectEnd: OnConnectEnd = useCallback(() => {
+    setIsConnecting(false);
+  }, []);
 
   const handleNodeDoubleClick = useCallback((_event: any, node: Node) => {
     const step = steps.find(s => s.stepId === node.id);
@@ -500,20 +563,20 @@ function FlowEditorInner({ steps, onStepsChange, onNodeSelect, selectedNodeId }:
 
   // Proximity Connect - encontra o node mais próximo
   const getClosestEdge = useCallback((node: Node) => {
-    const { nodeLookup } = store.getState();
-    const internalNode = getInternalNode(node.id);
+    const { nodeInternals } = store.getState();
+    const currentNode = nodeInternals.get(node.id);
 
-    if (!internalNode) return null;
+    if (!currentNode || !currentNode.positionAbsolute) return null;
 
-    const closestNode = Array.from(nodeLookup.values()).reduce(
+    const closestNode = Array.from(nodeInternals.values()).reduce(
       (res: any, n: any) => {
-        if (n.id !== internalNode.id) {
+        if (n.id !== currentNode.id && n.positionAbsolute && currentNode.positionAbsolute) {
           const dx =
-            n.internals.positionAbsolute.x -
-            internalNode.internals.positionAbsolute.x;
+            n.positionAbsolute.x -
+            currentNode.positionAbsolute.x;
           const dy =
-            n.internals.positionAbsolute.y -
-            internalNode.internals.positionAbsolute.y;
+            n.positionAbsolute.y -
+            currentNode.positionAbsolute.y;
           const d = Math.sqrt(dx * dx + dy * dy);
 
           if (d < res.distance && d < MIN_DISTANCE) {
@@ -530,13 +593,13 @@ function FlowEditorInner({ steps, onStepsChange, onNodeSelect, selectedNodeId }:
       },
     );
 
-    if (!closestNode.node) {
+    if (!closestNode.node || !closestNode.node.positionAbsolute || !currentNode.positionAbsolute) {
       return null;
     }
 
     const closeNodeIsSource =
-      closestNode.node.internals.positionAbsolute.x <
-      internalNode.internals.positionAbsolute.x;
+      closestNode.node.positionAbsolute.x <
+      currentNode.positionAbsolute.x;
 
     return {
       id: closeNodeIsSource
@@ -544,8 +607,10 @@ function FlowEditorInner({ steps, onStepsChange, onNodeSelect, selectedNodeId }:
         : `${node.id}-${closestNode.node.id}`,
       source: closeNodeIsSource ? closestNode.node.id : node.id,
       target: closeNodeIsSource ? node.id : closestNode.node.id,
+      type: 'custom' as const,
+      animated: true,
     };
-  }, [store, getInternalNode]);
+  }, [store]);
 
   // Proximity Connect - enquanto arrasta, mostra conexão temporária
   const onNodeDrag = useCallback(
@@ -553,18 +618,38 @@ function FlowEditorInner({ steps, onStepsChange, onNodeSelect, selectedNodeId }:
       const closeEdge = getClosestEdge(node);
 
       setEdges((es) => {
-        const nextEdges = es.filter((e) => e.className !== 'temp');
+        // Remove temp edge by fixed ID
+        const nextEdges = es.filter((e) => e.id !== TEMP_PROXIMITY_EDGE);
 
-        if (
-          closeEdge &&
-          !nextEdges.find(
-            (ne) =>
-              ne.source === closeEdge.source && ne.target === closeEdge.target,
-          )
-        ) {
-          closeEdge.className = 'temp';
-          closeEdge.style = { ...closeEdge.style, strokeDasharray: 5, opacity: 0.5 };
-          nextEdges.push(closeEdge as Edge);
+        if (closeEdge) {
+          // Guard: Prevent self-connections
+          if (closeEdge.source === closeEdge.target) {
+            return nextEdges;
+          }
+
+          // Guard: Prevent duplicate connections
+          const alreadyExists = nextEdges.find(
+            (ne) => ne.source === closeEdge.source && ne.target === closeEdge.target,
+          );
+
+          if (!alreadyExists) {
+            // Create temp edge with fixed ID
+            const tempEdge: Edge = {
+              id: TEMP_PROXIMITY_EDGE,
+              source: closeEdge.source,
+              target: closeEdge.target,
+              type: 'custom',
+              animated: true,
+              style: { strokeDasharray: '5', opacity: 0.5, stroke: 'hsl(var(--primary))' },
+              markerEnd: {
+                type: MarkerType.ArrowClosed,
+                width: 20,
+                height: 20,
+                color: 'hsl(var(--primary))',
+              },
+            };
+            nextEdges.push(tempEdge);
+          }
         }
 
         return nextEdges;
@@ -578,36 +663,33 @@ function FlowEditorInner({ steps, onStepsChange, onNodeSelect, selectedNodeId }:
     (_: any, node: Node) => {
       const closeEdge = getClosestEdge(node);
 
-      setEdges((es) => {
-        const nextEdges = es.filter((e) => e.className !== 'temp');
+      // Remove temp edge by ID
+      setEdges((es) => es.filter((e) => e.id !== TEMP_PROXIMITY_EDGE));
 
-        if (
-          closeEdge &&
-          !nextEdges.find(
-            (ne) =>
-              ne.source === closeEdge.source && ne.target === closeEdge.target,
-          )
-        ) {
-          const sourceStep = steps.find(s => s.stepId === closeEdge.source);
-          const targetStep = steps.find(s => s.stepId === closeEdge.target);
-          
-          if (sourceStep && targetStep) {
-            // Verificar se já existe transição
-            const existingTransitions = Array.isArray(sourceStep.transitions) ? sourceStep.transitions : [];
-            const alreadyConnected = existingTransitions.some(t => t.targetStepId === closeEdge.target);
-            
-            if (!alreadyConnected) {
-              // Criar transição via onConnect simulation
-              onConnect({
-                source: closeEdge.source,
-                target: closeEdge.target,
-              } as any);
-            }
-          }
+      // Create real connection if valid
+      if (closeEdge) {
+        // Guard: Prevent self-connections
+        if (closeEdge.source === closeEdge.target) {
+          return;
         }
 
-        return nextEdges;
-      });
+        const sourceStep = steps.find(s => s.stepId === closeEdge.source);
+        const targetStep = steps.find(s => s.stepId === closeEdge.target);
+        
+        if (sourceStep && targetStep) {
+          // Guard: Prevent duplicate connections
+          const existingTransitions = Array.isArray(sourceStep.transitions) ? sourceStep.transitions : [];
+          const alreadyConnected = existingTransitions.some(t => t.targetStepId === closeEdge.target);
+          
+          if (!alreadyConnected) {
+            // Create real connection via onConnect
+            onConnect({
+              source: closeEdge.source,
+              target: closeEdge.target,
+            } as Connection);
+          }
+        }
+      }
     },
     [getClosestEdge, steps, onConnect, setEdges],
   );
@@ -631,6 +713,8 @@ function FlowEditorInner({ steps, onStepsChange, onNodeSelect, selectedNodeId }:
         onNodesChange={handleNodesChange}
         onEdgesChange={handleEdgesChange}
         onConnect={onConnect}
+        onConnectStart={onConnectStart}
+        onConnectEnd={onConnectEnd}
         onNodeDoubleClick={handleNodeDoubleClick}
         onPaneClick={handlePaneClick}
         onNodeDrag={onNodeDrag}
@@ -644,6 +728,11 @@ function FlowEditorInner({ steps, onStepsChange, onNodeSelect, selectedNodeId }:
           type: 'custom',
           animated: false,
         }}
+        connectionLineStyle={{
+          strokeWidth: 2.5,
+          stroke: 'hsl(var(--primary))',
+        }}
+        connectionLineType={ConnectionLineType.Bezier}
       >
         <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
         <Controls />
