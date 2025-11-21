@@ -29,7 +29,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { FlowStepNode as FlowStepNodeType, StepTransition } from '@shared/schema';
 import { Button } from '@/components/ui/button';
-import { Plus, AlertCircle, Star, X, Save, Loader2, Trash2, Copy } from 'lucide-react';
+import { Plus, AlertCircle, Star, X, Save, Loader2, Trash2, Copy, Files } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 
@@ -134,6 +134,13 @@ const FlowStepNode = memo(({ data, selected }: any) => {
       data.onDelete(data.stepId);
     }
   };
+
+  const handleDuplicate = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (data.onDuplicate) {
+      data.onDuplicate(data.stepId);
+    }
+  };
   
   return (
     <div 
@@ -158,6 +165,18 @@ const FlowStepNode = memo(({ data, selected }: any) => {
             data-testid={`button-copy-id-${data.stepId}`}
           >
             <Copy className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+        <div className="bg-background rounded-md p-1 shadow-lg border border-border">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-7 w-7 hover-elevate active-elevate-2"
+            onClick={handleDuplicate}
+            title="Duplicar etapa"
+            data-testid={`button-duplicate-${data.stepId}`}
+          >
+            <Files className="h-3.5 w-3.5" />
           </Button>
         </div>
         <div className="bg-background rounded-md p-1 shadow-lg border border-border">
@@ -498,6 +517,7 @@ function FlowEditorInnerComponent(
               isStart: index === 0,
               transitionsCount: Array.isArray(step.transitions) ? step.transitions.length : 0,
               onDelete: onNodeDelete,
+              onDuplicate: handleDuplicateNode,
             },
           };
           
@@ -534,6 +554,7 @@ function FlowEditorInnerComponent(
               stepName: step.stepName,
               isStart: index === 0,
               onDelete: onNodeDelete,
+              onDuplicate: handleDuplicateNode,
             }
           };
           nodesMapRef.current.set(step.stepId, updatedNode);
@@ -574,6 +595,7 @@ function FlowEditorInnerComponent(
               ...node.data,
               transitionsCount: newTransitionsCount,
               onDelete: onNodeDelete,
+              onDuplicate: handleDuplicateNode,
             }
           };
         }
@@ -722,6 +744,36 @@ function FlowEditorInnerComponent(
       };
 
       return [...currentSteps, newStep];
+    });
+  }, [onStepsChange]);
+
+  const handleDuplicateNode = useCallback((stepId: string) => {
+    onStepsChange((currentSteps: FlowStep[]) => {
+      const stepToDuplicate = currentSteps.find(s => s.stepId === stepId);
+      if (!stepToDuplicate) return currentSteps;
+
+      const existingIds = currentSteps.map(s => s.stepId);
+      const newStepName = `${stepToDuplicate.stepName} (cópia)`;
+      const newStepId = generateStepId(newStepName, existingIds);
+      
+      const duplicatedStep: FlowStep = {
+        ...stepToDuplicate,
+        stepId: newStepId,
+        stepName: newStepName,
+        order: currentSteps.length,
+        position: stepToDuplicate.position 
+          ? { 
+              x: stepToDuplicate.position.x + 50, 
+              y: stepToDuplicate.position.y + 50 
+            }
+          : { 
+              x: 100 + (currentSteps.length % 3) * 300, 
+              y: 100 + Math.floor(currentSteps.length / 3) * 200 
+            },
+        transitions: [], // Não duplicar as transições
+      };
+
+      return [...currentSteps, duplicatedStep];
     });
   }, [onStepsChange]);
 
