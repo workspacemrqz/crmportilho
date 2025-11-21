@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Loader2, Plus, Trash2, Save, Sparkles } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import FlowEditor from "@/components/FlowEditor";
+import FlowEditor, { generateStepId, type FlowEditorRef } from "@/components/FlowEditor";
 import NodeEditPanel from "@/components/NodeEditPanel";
 
 type FlowConfig = {
@@ -130,6 +130,7 @@ const DEFAULT_STEPS: FlowStep[] = [
 
 export default function FluxoPage() {
   const { toast } = useToast();
+  const flowEditorRef = useRef<FlowEditorRef>(null);
   
   const [config, setConfig] = useState<FlowConfig>({
     welcomeMessage: DEFAULT_WELCOME_MESSAGE,
@@ -320,6 +321,103 @@ export default function FluxoPage() {
     setSelectedNodeId(null);
   };
 
+  const handleRegenerateStepId = (oldStepId: string, newTitle: string) => {
+    // Encontrar o step que será atualizado
+    const stepToUpdate = steps.find(s => s.stepId === oldStepId);
+    if (!stepToUpdate) {
+      toast({
+        title: "Erro",
+        description: "Etapa não encontrada.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Gerar novo ID baseado no título
+    const existingIds = steps
+      .filter(s => s.stepId !== oldStepId)
+      .map(s => s.stepId);
+    
+    const newStepId = generateStepId(newTitle, existingIds);
+
+    // Se o ID não mudou, não fazer nada
+    if (newStepId === oldStepId) {
+      toast({
+        title: "ID não alterado",
+        description: "O ID gerado é o mesmo que o atual.",
+      });
+      return;
+    }
+
+    // Atualizar todos os steps de forma coordenada
+    const updatedSteps = steps.map(step => {
+      // Atualizar o stepId do step específico
+      if (step.stepId === oldStepId) {
+        // IMPORTANTE: Também atualizar self-referential transitions
+        // (transitions dentro do próprio step que apontam para ele mesmo)
+        const updatedTransitions = step.transitions && Array.isArray(step.transitions)
+          ? step.transitions.map(t =>
+              t.targetStepId === oldStepId
+                ? { ...t, targetStepId: newStepId }
+                : t
+            )
+          : step.transitions;
+        
+        return { ...step, stepId: newStepId, transitions: updatedTransitions };
+      }
+
+      // Atualizar transitions que apontam para o ID antigo (em outros steps)
+      if (step.transitions && Array.isArray(step.transitions)) {
+        const hasTransitionToOldId = step.transitions.some(
+          t => t.targetStepId === oldStepId
+        );
+
+        if (hasTransitionToOldId) {
+          return {
+            ...step,
+            transitions: step.transitions.map(t =>
+              t.targetStepId === oldStepId
+                ? { ...t, targetStepId: newStepId }
+                : t
+            )
+          };
+        }
+      }
+
+      return step;
+    });
+
+    // PRIMEIRO: Migrar caches e React Flow state via método imperativo
+    // Isso deve acontecer ANTES de atualizar o state para evitar flickering
+    // Passar updatedSteps para reconstruir edges imediatamente
+    flowEditorRef.current?.applyStepIdRename({ oldId: oldStepId, newId: newStepId }, updatedSteps);
+
+    // SEGUNDO: Migrar previewResults Map
+    if (previewResults.has(oldStepId)) {
+      const oldPreview = previewResults.get(oldStepId);
+      const newPreviewResults = new Map(previewResults);
+      newPreviewResults.delete(oldStepId);
+      if (oldPreview) {
+        newPreviewResults.set(newStepId, oldPreview);
+      }
+      setPreviewResults(newPreviewResults);
+    }
+
+    // TERCEIRO: Atualizar states
+    setSteps(updatedSteps);
+
+    // QUARTO: Atualizar selectedNodeId se necessário
+    if (selectedNodeId === oldStepId) {
+      setSelectedNodeId(newStepId);
+    }
+
+    // QUINTO: Feedback ao usuário
+    toast({
+      title: "ID atualizado",
+      description: `ID alterado de "${oldStepId}" para "${newStepId}". Todas as conexões foram atualizadas.`,
+    });
+  };
+
   const handleNodeSelect = (step: FlowStep | null) => {
     setSelectedNodeId(step?.stepId || null);
   };
@@ -362,6 +460,7 @@ export default function FluxoPage() {
 
       <div className="flex-1 overflow-hidden p-4">
         <FlowEditor
+          ref={flowEditorRef}
           steps={steps}
           onStepsChange={setSteps}
           onNodeSelect={handleNodeSelect}
@@ -373,6 +472,7 @@ export default function FluxoPage() {
           allSteps={steps}
           onNodeUpdate={handleNodeUpdate}
           onNodeDelete={handleNodeDelete}
+          onRegenerateStepId={handleRegenerateStepId}
           onTestWithAI={(step) => {
             if (!step.exampleMessage || step.exampleMessage.trim() === "") {
               toast({

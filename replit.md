@@ -4,6 +4,37 @@ This project is a CRM and chatbot system named "Seguro IA" (Insurance AI), desig
 
 # Recent Changes
 
+**November 21, 2025 - Implemented Automatic Step ID Generation System (COMPLETE)**
+- Implemented automatic generation of step IDs based on step titles in the visual flow editor
+- **Feature**: Step IDs are automatically generated from titles (e.g., "Identificação Inicial" → "identificacao_inicial")
+- **Implementation Details**:
+  - **generateStepId() utility**: Normalizes Unicode (removes accents), converts to lowercase, replaces spaces/special chars with underscores, validates uniqueness with numeric suffix
+  - **Read-only step ID field**: Campo stepId é disabled para garantir que todas as mudanças passem pelo sistema coordenado
+  - **"Gerar ID a partir do Título" button**: RefreshCw icon triggers coordinated ID regeneration
+  - **Robust forwardRef Architecture**:
+    * FlowEditor uses forwardRef + useImperativeHandle to expose `applyStepIdRename(mapping, updatedSteps)`
+    * Coordinator pattern: fluxo.tsx's `handleRegenerateStepId` orchestrates ALL updates atomically
+  - **Atomic Coordinated Updates**:
+    1. Generate newStepId with collision detection
+    2. Build updatedSteps with ALL transitions updated (including self-referential loops)
+    3. Call flowEditorRef.applyStepIdRename() SYNCHRONOUSLY:
+       - Migrates positionsRef and nodesMapRef
+       - Updates React Flow nodes state immediately
+       - Reconstructs edges IMMEDIATELY from updatedSteps (no flickering)
+       - Uses node state as fallback if cache missing
+    4. Migrate previewResults Map
+    5. Update parent states (setSteps, setSelectedNodeId)
+  - **Structures Updated Atomically**:
+    * React Flow nodes state (via setNodes)
+    * React Flow edges state (via setEdges - rebuilt immediately)
+    * positionsRef cache
+    * nodesMapRef cache
+    * steps[].stepId (renamed step)
+    * steps[].transitions[].targetStepId (ALL transitions including self-loops)
+    * previewResults Map
+    * selectedNodeId
+- **User Experience**: Click refresh button to generate clean IDs from titles while preserving all connections, layout, and cache. Edges appear immediately without visual glitches. Saving flow persists correct IDs.
+
 **November 21, 2025 - Fixed Visual Flow Editor Node Deletion Bug**
 - Fixed a critical bug in the visual flow editor (`/fluxo`) where deleted nodes would reappear when clicking "Adicionar Etapa" (Add Step)
 - Root cause: Two related issues:

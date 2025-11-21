@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Plus, Sparkles, Loader2, X } from 'lucide-react';
+import { Trash2, Plus, Sparkles, Loader2, X, RefreshCw } from 'lucide-react';
 import { StepTransition } from '@shared/schema';
 import {
   Select,
@@ -41,6 +41,7 @@ type NodeEditPanelProps = {
   allSteps: FlowStep[];
   onNodeUpdate: (updatedNode: FlowStep) => void;
   onNodeDelete: (stepId: string) => void;
+  onRegenerateStepId: (oldStepId: string, newTitle: string) => void;
   onTestWithAI: (step: FlowStep) => void;
   isTestingAI: boolean;
   aiPreviewResult?: {
@@ -55,6 +56,7 @@ export default function NodeEditPanel({
   allSteps,
   onNodeUpdate,
   onNodeDelete,
+  onRegenerateStepId,
   onTestWithAI,
   isTestingAI,
   aiPreviewResult,
@@ -162,6 +164,33 @@ export default function NodeEditPanel({
               placeholder="Identificação Inicial"
               data-testid="input-edit-step-name"
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="step-id">
+              ID da Etapa
+              <span className="text-xs text-muted-foreground ml-2">
+                (clique no botão para gerar a partir do título)
+              </span>
+            </Label>
+            <div className="flex gap-2">
+              <Input
+                id="step-id"
+                value={editedNode.stepId}
+                disabled
+                className="flex-1 bg-muted"
+                data-testid="input-edit-step-id"
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => onRegenerateStepId(editedNode.stepId, editedNode.stepName)}
+                title="Gerar ID a partir do título"
+                data-testid="button-regenerate-step-id"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
 
           <div className="space-y-2">

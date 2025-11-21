@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, useRef, memo, useMemo } from 'react';
+import { useCallback, useEffect, useState, useRef, memo, useMemo, forwardRef, useImperativeHandle } from 'react';
 import ReactFlow, {
   Node,
   Edge,
@@ -51,6 +51,40 @@ type FlowEditorProps = {
   onNodeSelect: (step: FlowStep | null) => void;
   selectedNodeId: string | null;
 };
+
+export type FlowEditorRef = {
+  applyStepIdRename: (mapping: { oldId: string; newId: string }, updatedSteps: FlowStep[]) => void;
+};
+
+// Função para gerar ID slug a partir do nome da etapa
+export function generateStepId(stepName: string, existingIds: string[] = []): string {
+  // Remover acentos e normalizar
+  const normalized = stepName
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+  
+  // Converter para minúsculas e substituir espaços/caracteres especiais por underscores
+  let slug = normalized
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, ''); // Remover underscores no início/fim
+  
+  // Se o slug estiver vazio, usar um padrão
+  if (!slug) {
+    slug = 'etapa';
+  }
+  
+  // Verificar se já existe e adicionar sufixo numérico se necessário
+  let finalSlug = slug;
+  let counter = 1;
+  while (existingIds.includes(finalSlug)) {
+    finalSlug = `${slug}_${counter}`;
+    counter++;
+  }
+  
+  return finalSlug;
+}
 
 const FlowStepNode = memo(({ data, selected }: any) => {
   const isStart = data.isStart;
@@ -189,7 +223,7 @@ function getStructuralHash(steps: FlowStep[]): string {
     .join('::');
 }
 
-function FlowEditorInner({ steps, onStepsChange, onNodeSelect, selectedNodeId }: FlowEditorProps) {
+const FlowEditorInner = forwardRef<FlowEditorRef, FlowEditorProps>(({ steps, onStepsChange, onNodeSelect, selectedNodeId }, ref) => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [invalidTransitions, setInvalidTransitions] = useState<string[]>([]);
@@ -209,6 +243,78 @@ function FlowEditorInner({ steps, onStepsChange, onNodeSelect, selectedNodeId }:
   
   // Hash estrutural para detectar mudanças estruturais (exclui transitions e positions)
   const structuralHash = useMemo(() => getStructuralHash(steps), [steps]);
+  
+  // Expor método imperativo para migração de IDs
+  useImperativeHandle(ref, () => ({
+    applyStepIdRename: (mapping: { oldId: string; newId: string }, updatedSteps: FlowStep[]) => {
+      const { oldId, newId } = mapping;
+      
+      // Migrar positionsRef
+      const oldPosition = positionsRef.current[oldId];
+      if (oldPosition && !positionsRef.current[newId]) {
+        positionsRef.current[newId] = oldPosition;
+      }
+      delete positionsRef.current[oldId];
+      
+      // Migrar nodesMapRef
+      const oldNode = nodesMapRef.current.get(oldId);
+      if (oldNode && !nodesMapRef.current.has(newId)) {
+        nodesMapRef.current.set(newId, {
+          ...oldNode,
+          id: newId,
+          data: { ...oldNode.data, stepId: newId }
+        });
+      }
+      nodesMapRef.current.delete(oldId);
+      
+      // Atualizar React Flow nodes state IMEDIATAMENTE
+      // Usa nodes state atual como fallback se não houver cache
+      setNodes(prevNodes => 
+        prevNodes.map(node => {
+          if (node.id === oldId) {
+            const migratedNode = nodesMapRef.current.get(newId);
+            return migratedNode || {
+              ...node,
+              id: newId,
+              data: { ...node.data, stepId: newId }
+            };
+          }
+          return node;
+        })
+      );
+      
+      // Atualizar edges IMEDIATAMENTE usando updatedSteps para reconstruir
+      // Isso garante que edges refletem os novos IDs sem esperar useEffect
+      const newEdges: Edge[] = [];
+      const validStepIds = new Set(updatedSteps.map(s => s.stepId));
+      
+      updatedSteps.forEach((step) => {
+        const transitions = Array.isArray(step.transitions) ? step.transitions : [];
+        
+        transitions.forEach((transition: StepTransition) => {
+          const isValid = validStepIds.has(transition.targetStepId);
+          
+          if (isValid) {
+            newEdges.push({
+              id: transition.id,
+              source: step.stepId,
+              target: transition.targetStepId,
+              type: 'custom',
+              label: transition.label || '',
+              markerEnd: {
+                type: MarkerType.ArrowClosed,
+                width: 20,
+                height: 20,
+              },
+              data: { onDelete: () => {} }
+            });
+          }
+        });
+      });
+      
+      setEdges(newEdges);
+    }
+  }), [setNodes, setEdges]);
   
   // Atualizar stepsRef sempre que steps mudar
   useEffect(() => {
@@ -513,12 +619,14 @@ function FlowEditorInner({ steps, onStepsChange, onNodeSelect, selectedNodeId }:
   }, [onNodeSelect]);
 
   const handleAddNode = useCallback(() => {
-    const newStepId = `etapa_${Date.now()}`;
-    
     onStepsChange((currentSteps: FlowStep[]) => {
+      const stepName = 'Nova Etapa';
+      const existingIds = currentSteps.map(s => s.stepId);
+      const newStepId = generateStepId(stepName, existingIds);
+      
       const newStep: FlowStep = {
         stepId: newStepId,
-        stepName: 'Nova Etapa',
+        stepName,
         objective: '',
         stepPrompt: '',
         routingInstructions: '',
@@ -592,10 +700,14 @@ function FlowEditorInner({ steps, onStepsChange, onNodeSelect, selectedNodeId }:
   );
 }
 
-export default function FlowEditor(props: FlowEditorProps) {
+const FlowEditor = forwardRef<FlowEditorRef, FlowEditorProps>((props, ref) => {
   return (
     <ReactFlowProvider>
-      <FlowEditorInner {...props} />
+      <FlowEditorInner ref={ref} {...props} />
     </ReactFlowProvider>
   );
-}
+});
+
+FlowEditor.displayName = 'FlowEditor';
+
+export default FlowEditor;
