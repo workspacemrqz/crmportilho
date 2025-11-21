@@ -499,6 +499,7 @@ export const flowSteps = pgTable("flow_steps", {
   objective: text("objective").notNull(),
   stepPrompt: text("step_prompt").notNull(),
   routingInstructions: text("routing_instructions").notNull(),
+  buffer: integer("buffer").notNull().default(30),
   order: integer("order").notNull().default(0),
   position: jsonb("position").default(sql`'{"x": 0, "y": 0}'`),
   transitions: jsonb("transitions").default(sql`'[]'`),
