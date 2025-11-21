@@ -122,20 +122,13 @@ const FlowStepNode = memo(({ data, selected }: any) => {
   
   return (
     <div 
-      className={`px-4 py-3 rounded-md border-2 bg-card min-w-[200px] shadow-lg transition-all hover:shadow-xl relative ${
-        selected 
-          ? 'border-primary ring-2 ring-primary/20' 
-          : isStart 
-          ? 'border-primary/60'
-          : 'border-border'
-      }`}
-      data-testid={`node-${data.stepId}`}
+      className="relative"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Hover action buttons */}
+      {/* Hover action buttons - positioned above the node */}
       <div 
-        className="absolute top-2 right-2 flex items-center gap-1"
+        className="absolute -top-10 right-0 flex items-center gap-1 bg-background rounded-md p-1 shadow-lg border border-border"
         style={{ visibility: isHovered ? 'visible' : 'hidden' }}
       >
         <Button
@@ -160,43 +153,54 @@ const FlowStepNode = memo(({ data, selected }: any) => {
         </Button>
       </div>
       
-      <div className="space-y-1">
-        <div className="flex items-center justify-between gap-2">
-          <div className="font-semibold text-sm flex-1">{data.stepName}</div>
-          {transitionsCount > 0 && (
-            <div className="flex items-center gap-1 text-xs text-primary font-medium bg-primary/10 px-2 py-0.5 rounded-full">
-              <span>{transitionsCount}</span>
-              <span>→</span>
+      <div 
+        className={`px-4 py-3 rounded-md border-2 bg-card min-w-[200px] shadow-lg transition-all hover:shadow-xl relative ${
+          selected 
+            ? 'border-primary ring-2 ring-primary/20' 
+            : isStart 
+            ? 'border-primary/60'
+            : 'border-border'
+        }`}
+        data-testid={`node-${data.stepId}`}
+      >
+        <div className="space-y-1">
+          <div className="flex items-center justify-between gap-2">
+            <div className="font-semibold text-sm flex-1">{data.stepName}</div>
+            {transitionsCount > 0 && (
+              <div className="flex items-center gap-1 text-xs text-primary font-medium bg-primary/10 px-2 py-0.5 rounded-full">
+                <span>{transitionsCount}</span>
+                <span>→</span>
+              </div>
+            )}
+          </div>
+          <div className="text-xs text-muted-foreground truncate">ID: {data.stepId}</div>
+          {isStart && (
+            <div className="text-xs text-primary font-medium flex items-center gap-1">
+              <Star className="w-3 h-3 fill-primary" />
+              <span>Início do Fluxo</span>
             </div>
           )}
         </div>
-        <div className="text-xs text-muted-foreground truncate">ID: {data.stepId}</div>
-        {isStart && (
-          <div className="text-xs text-primary font-medium flex items-center gap-1">
-            <Star className="w-3 h-3 fill-primary" />
-            <span>Início do Fluxo</span>
-          </div>
-        )}
+        
+        {/* Visible handles for visual feedback */}
+        <Handle
+          type="target"
+          position={Position.Left}
+          className="!w-3 !h-3 !bg-primary !border-2 !border-background hover:!w-4 hover:!h-4 transition-all"
+          style={{ left: -6 }}
+          title="Conectar de outra etapa para esta"
+          data-testid={`handle-target-left-${data.stepId}`}
+        />
+        
+        <Handle
+          type="source"
+          position={Position.Right}
+          className="!w-3 !h-3 !bg-primary !border-2 !border-background hover:!w-4 hover:!h-4 transition-all"
+          style={{ right: -6 }}
+          title="Arrastar para conectar a outra etapa"
+          data-testid={`handle-source-right-${data.stepId}`}
+        />
       </div>
-      
-      {/* Visible handles for visual feedback */}
-      <Handle
-        type="target"
-        position={Position.Left}
-        className="!w-3 !h-3 !bg-primary !border-2 !border-background hover:!w-4 hover:!h-4 transition-all"
-        style={{ left: -6 }}
-        title="Conectar de outra etapa para esta"
-        data-testid={`handle-target-left-${data.stepId}`}
-      />
-      
-      <Handle
-        type="source"
-        position={Position.Right}
-        className="!w-3 !h-3 !bg-primary !border-2 !border-background hover:!w-4 hover:!h-4 transition-all"
-        style={{ right: -6 }}
-        title="Arrastar para conectar a outra etapa"
-        data-testid={`handle-source-right-${data.stepId}`}
-      />
     </div>
   );
 });
