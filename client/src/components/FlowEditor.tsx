@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, useRef, memo } from 'react';
+import { useCallback, useEffect, useState, useRef, memo, useMemo } from 'react';
 import ReactFlow, {
   Node,
   Edge,
@@ -23,29 +23,6 @@ import { FlowStepNode as FlowStepNodeType, StepTransition } from '@shared/schema
 import { Button } from '@/components/ui/button';
 import { Plus, AlertCircle, Star } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-
-// Deep equality check for steps to avoid unnecessary rebuilds
-function areStepsEqual(steps1: FlowStep[], steps2: FlowStep[]): boolean {
-  if (steps1.length !== steps2.length) return false;
-  
-  return steps1.every((step1, index) => {
-    const step2 = steps2[index];
-    if (!step2) return false;
-    
-    // Compare essential properties (excluding position which is handled separately)
-    const isSame = 
-      step1.stepId === step2.stepId &&
-      step1.stepName === step2.stepName &&
-      step1.objective === step2.objective &&
-      step1.stepPrompt === step2.stepPrompt &&
-      step1.routingInstructions === step2.routingInstructions &&
-      step1.order === step2.order &&
-      step1.exampleMessage === step2.exampleMessage &&
-      JSON.stringify(step1.transitions) === JSON.stringify(step2.transitions);
-    
-    return isSame;
-  });
-}
 
 type FlowStep = {
   id?: string;
@@ -146,38 +123,34 @@ const nodeTypes = {
   flowStep: FlowStepNode,
 };
 
+// Função para calcular hash estrutural (ignora transitions e positions)
+function getStructuralHash(steps: FlowStep[]): string {
+  return steps
+    .map(s => `${s.stepId}|${s.stepName}|${s.objective}|${s.stepPrompt}|${s.routingInstructions}|${s.order}|${s.exampleMessage || ''}`)
+    .sort()
+    .join('::');
+}
+
 function FlowEditorInner({ steps, onStepsChange, onNodeSelect, selectedNodeId }: FlowEditorProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [invalidTransitions, setInvalidTransitions] = useState<string[]>([]);
 
-  // Track previous steps and initialization state for delta reconciliation
-  const prevStepsRef = useRef<FlowStep[]>([]);
-  const isInitializedRef = useRef(false);
-  const lastFullRebuildSelectedIdRef = useRef<string | null>(null);
-
-  const convertStepsToNodes = useCallback((flowSteps: FlowStep[], selectedId: string | null = null): Node[] => {
-    return flowSteps.map((step, index) => {
-      const position = step.position && typeof step.position === 'object' && step.position.x !== undefined
-        ? step.position
-        : { x: 100 + (index % 3) * 300, y: 100 + Math.floor(index / 3) * 200 };
-
-      const transitions = Array.isArray(step.transitions) ? step.transitions : [];
-
-      return {
-        id: step.stepId,
-        type: 'flowStep',
-        position,
-        selected: step.stepId === selectedId,
-        data: {
-          stepId: step.stepId,
-          stepName: step.stepName,
-          isStart: index === 0,
-          transitionsCount: transitions.length,
-        },
-      };
-    });
-  }, []);
+  // PRIMARY state refs - source of truth
+  const positionsRef = useRef<Record<string, {x: number, y: number}>>({});
+  const nodesMapRef = useRef<Map<string, Node>>(new Map());
+  const fitViewOnInitRef = useRef(true);
+  
+  // Ref para acessar steps atual sem depender dele no effect
+  const stepsRef = useRef<FlowStep[]>(steps);
+  
+  // Hash estrutural para detectar mudanças estruturais (exclui transitions e positions)
+  const structuralHash = useMemo(() => getStructuralHash(steps), [steps]);
+  
+  // Atualizar stepsRef sempre que steps mudar
+  useEffect(() => {
+    stepsRef.current = steps;
+  }, [steps]);
 
   const convertTransitionsToEdges = useCallback((flowSteps: FlowStep[]): Edge[] => {
     const allEdges: Edge[] = [];
@@ -236,76 +209,153 @@ function FlowEditorInner({ steps, onStepsChange, onNodeSelect, selectedNodeId }:
     return allEdges;
   }, []);
 
-  // Main effect: Initialize or rebuild nodes/edges when steps structurally change
+  // Main reconciliation effect - usa structuralHash ao invés de steps!
+  // Roda APENAS quando estrutura muda (add/remove steps, change names/prompts)
+  // NÃO roda quando apenas transitions mudam
   useEffect(() => {
-    const stepsChanged = !areStepsEqual(prevStepsRef.current, steps);
+    const changes: NodeChange[] = [];
+    const currentSteps = stepsRef.current;
     
-    if (!isInitializedRef.current || stepsChanged) {
-      // Full rebuild needed - steps structure changed
-      const newNodes = convertStepsToNodes(steps, selectedNodeId);
-      const newEdges = convertTransitionsToEdges(steps);
+    setNodes((currentNodes) => {
+      const currentStepIds = new Set(currentSteps.map(s => s.stepId));
+      const existingNodeIds = new Set(currentNodes.map(n => n.id));
       
-      setNodes(newNodes);
-      setEdges(newEdges);
-      
-      prevStepsRef.current = steps;
-      isInitializedRef.current = true;
-      lastFullRebuildSelectedIdRef.current = selectedNodeId;
-    } else {
-      // Only update positions if they changed (delta update)
-      const positionChanges: NodeChange[] = [];
-      
-      steps.forEach((step) => {
-        if (step.position && typeof step.position === 'object' && step.position.x !== undefined) {
-          const prevStep = prevStepsRef.current.find(s => s.stepId === step.stepId);
-          if (prevStep?.position && 
-              (prevStep.position.x !== step.position.x || prevStep.position.y !== step.position.y)) {
-            positionChanges.push({
-              id: step.stepId,
-              type: 'position',
-              position: step.position,
-            });
-          }
+      // 1. Detectar nodes REMOVIDOS
+      existingNodeIds.forEach(id => {
+        if (!currentStepIds.has(id)) {
+          changes.push({ id, type: 'remove' });
+          nodesMapRef.current.delete(id);
+          delete positionsRef.current[id];
         }
       });
       
-      if (positionChanges.length > 0) {
-        setNodes((nds) => applyNodeChanges(positionChanges, nds));
-        prevStepsRef.current = steps;
-      }
-    }
-  }, [steps, selectedNodeId, convertStepsToNodes, convertTransitionsToEdges, setNodes, setEdges]);
-
-  // Selection effect: Update selection using delta changes when selectedNodeId changes
-  useEffect(() => {
-    if (lastFullRebuildSelectedIdRef.current !== selectedNodeId) {
-      const selectionChanges: NodeChange[] = steps.map((step) => ({
-        id: step.stepId,
-        type: 'select',
-        selected: step.stepId === selectedNodeId,
-      }));
+      // 2. Detectar nodes NOVOS
+      const nodesToAdd: Node[] = [];
+      currentSteps.forEach((step, index) => {
+        const existingNode = currentNodes.find(n => n.id === step.stepId);
+        
+        if (!existingNode) {
+          const position = positionsRef.current[step.stepId] 
+            ?? (step.position?.x !== undefined ? step.position : null)
+            ?? { x: 100 + (index % 3) * 300, y: 100 + Math.floor(index / 3) * 200 };
+          
+          const newNode: Node = {
+            id: step.stepId,
+            type: 'flowStep',
+            position,
+            data: {
+              stepId: step.stepId,
+              stepName: step.stepName,
+              isStart: index === 0,
+              transitionsCount: Array.isArray(step.transitions) ? step.transitions.length : 0,
+            },
+          };
+          
+          nodesMapRef.current.set(step.stepId, newNode);
+          positionsRef.current[step.stepId] = position;
+          nodesToAdd.push(newNode);
+        }
+      });
       
-      if (selectionChanges.length > 0) {
-        setNodes((nds) => applyNodeChanges(selectionChanges, nds));
+      // 3. Aplicar remoções e adições
+      let updated = currentNodes;
+      if (changes.length > 0) {
+        updated = applyNodeChanges(changes, updated);
       }
+      if (nodesToAdd.length > 0) {
+        updated = [...updated, ...nodesToAdd];
+      }
+      
+      // 4. Atualizar data dos nodes existentes (EXCETO transitionsCount)
+      updated = updated.map(node => {
+        const step = currentSteps.find(s => s.stepId === node.id);
+        if (!step) return node;
+        
+        const index = currentSteps.indexOf(step);
+        const needsUpdate = 
+          node.data.stepName !== step.stepName ||
+          node.data.isStart !== (index === 0);
+        
+        if (needsUpdate) {
+          const updatedNode = {
+            ...node,
+            data: {
+              ...node.data,
+              stepName: step.stepName,
+              isStart: index === 0,
+            }
+          };
+          nodesMapRef.current.set(step.stepId, updatedNode);
+          return updatedNode;
+        }
+        
+        return node;
+      });
+      
+      return updated;
+    });
+    
+    // Fit view apenas na primeira renderização
+    if (fitViewOnInitRef.current && currentSteps.length > 0) {
+      fitViewOnInitRef.current = false;
     }
-  }, [selectedNodeId, steps, setNodes]);
+  }, [structuralHash, setNodes]);
+
+  // Edges reconciliation (lightweight - always rebuild)
+  useEffect(() => {
+    const newEdges = convertTransitionsToEdges(steps);
+    setEdges(newEdges);
+  }, [steps, convertTransitionsToEdges, setEdges]);
+  
+  // Effect separado para atualizar APENAS transitionsCount quando transitions mudam
+  // Este effect pode ter steps como dependência porque só atualiza data, não recria nodes
+  useEffect(() => {
+    setNodes((currentNodes) => {
+      return currentNodes.map(node => {
+        const step = steps.find(s => s.stepId === node.id);
+        if (!step) return node;
+        
+        const newTransitionsCount = Array.isArray(step.transitions) ? step.transitions.length : 0;
+        if (node.data.transitionsCount !== newTransitionsCount) {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              transitionsCount: newTransitionsCount
+            }
+          };
+        }
+        return node;
+      });
+    });
+  }, [steps, setNodes]);
 
   const handleNodesChange = useCallback((changes: NodeChange[]) => {
     onNodesChange(changes);
     
-    // Apenas atualiza as posições dos steps quando terminar de arrastar
     changes.forEach((change) => {
-      if (change.type === 'position' && change.position && !change.dragging) {
-        const updatedSteps = steps.map((step) =>
-          step.stepId === change.id
-            ? { ...step, position: change.position }
-            : step
-        );
-        onStepsChange(updatedSteps);
+      if (change.type === 'position' && change.position) {
+        // Atualizar positionsRef IMEDIATAMENTE
+        positionsRef.current[change.id] = change.position;
+        
+        // Atualizar nodesMapRef
+        const node = nodesMapRef.current.get(change.id);
+        if (node) {
+          nodesMapRef.current.set(change.id, { ...node, position: change.position });
+        }
+        
+        // Persistir para steps quando parar de arrastar
+        if (!change.dragging) {
+          const updatedSteps = steps.map((step) =>
+            step.stepId === change.id
+              ? { ...step, position: change.position }
+              : step
+          );
+          onStepsChange(updatedSteps);
+        }
       }
     });
-  }, [onNodesChange, steps, onStepsChange]);
+  }, [steps, onStepsChange, onNodesChange]);
 
   const handleEdgesChange = useCallback((changes: EdgeChange[]) => {
     onEdgesChange(changes);
@@ -350,6 +400,7 @@ function FlowEditorInner({ steps, onStepsChange, onNodeSelect, selectedNodeId }:
       targetStepId: connection.target,
     };
 
+    // Adicionar transition SEM tocar em positions - Posições preservadas no positionsRef
     const updatedSteps = steps.map((step) => {
       if (step.stepId === connection.source) {
         const transitions = Array.isArray(step.transitions) ? step.transitions : [];
@@ -422,7 +473,7 @@ function FlowEditorInner({ steps, onStepsChange, onNodeSelect, selectedNodeId }:
         onNodeClick={handleNodeClick}
         onPaneClick={handlePaneClick}
         nodeTypes={nodeTypes}
-        fitView
+        fitView={fitViewOnInitRef.current}
         minZoom={0.2}
         maxZoom={2}
         defaultEdgeOptions={{
