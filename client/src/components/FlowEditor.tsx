@@ -29,7 +29,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { FlowStepNode as FlowStepNodeType, StepTransition } from '@shared/schema';
 import { Button } from '@/components/ui/button';
-import { Plus, AlertCircle, Star, X, Save, Loader2, Trash2, Copy, Files } from 'lucide-react';
+import { Plus, AlertCircle, Star, X, Save, Loader2, Trash2, Copy, Files, Sparkles, MessageSquare } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 
@@ -41,6 +41,7 @@ type FlowStep = {
   stepPrompt: string;
   routingInstructions: string;
   order: number;
+  stepType?: 'ai' | 'fixed';
   exampleMessage?: string;
   position?: { x: number; y: number } | any;
   transitions?: StepTransition[] | any;
@@ -722,18 +723,19 @@ function FlowEditorInnerComponent(
     onNodeSelect(null);
   }, [onNodeSelect]);
 
-  const handleAddNode = useCallback(() => {
+  const handleAddNode = useCallback((stepType: 'ai' | 'fixed' = 'ai') => {
     onStepsChange((currentSteps: FlowStep[]) => {
-      const stepName = 'Nova Etapa';
+      const stepName = stepType === 'ai' ? 'Nova Etapa IA' : 'Nova Mensagem Fixa';
       const existingIds = currentSteps.map(s => s.stepId);
       const newStepId = generateStepId(stepName, existingIds);
       
       const newStep: FlowStep = {
         stepId: newStepId,
         stepName,
-        objective: '',
-        stepPrompt: '',
-        routingInstructions: '',
+        objective: stepType === 'ai' ? '' : 'Enviar mensagem fixa ao cliente',
+        stepPrompt: stepType === 'ai' ? '' : '',
+        routingInstructions: stepType === 'ai' ? '' : '',
+        stepType,
         order: currentSteps.length,
         position: { 
           x: 100 + (currentSteps.length % 3) * 300, 
@@ -819,16 +821,28 @@ function FlowEditorInnerComponent(
         <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
         <Controls />
         <Panel position="top-left">
-          <Button
-            onClick={handleAddNode}
-            size="sm"
-            variant="outline"
-            className="bg-card shadow-md"
-            data-testid="button-add-node"
-          >
-            <Plus className="w-4 h-4 mr-1" />
-            Adicionar Etapa
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => handleAddNode('ai')}
+              size="sm"
+              variant="outline"
+              className="bg-card shadow-md"
+              data-testid="button-add-ai-step"
+            >
+              <Sparkles className="w-4 h-4 mr-1" />
+              Mensagem com IA
+            </Button>
+            <Button
+              onClick={() => handleAddNode('fixed')}
+              size="sm"
+              variant="outline"
+              className="bg-card shadow-md"
+              data-testid="button-add-fixed-step"
+            >
+              <MessageSquare className="w-4 h-4 mr-1" />
+              Mensagem fixa
+            </Button>
+          </div>
         </Panel>
         {onSave && (
           <Panel position="top-right">

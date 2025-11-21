@@ -37,6 +37,7 @@ type FlowStep = {
   stepPrompt: string;
   routingInstructions: string;
   order: number;
+  stepType?: 'ai' | 'fixed';
   buffer?: number;
   exampleMessage?: string;
   position?: { x: number; y: number } | any;
@@ -92,6 +93,7 @@ const DEFAULT_STEPS: FlowStep[] = [
     objective: "Identificar se o lead já é cliente ou se é uma nova cotação",
     stepPrompt: "Aguarde a resposta do cliente sobre se ele já é cliente da Prevline ou se deseja fazer uma nova cotação. Não envie mensagens adicionais, apenas aguarde.",
     routingInstructions: "Se o lead disser que já é cliente, siga para a etapa 'atendimento_cliente'. Se disser que quer fazer uma nova cotação, siga para a etapa 'tipo_seguro'.",
+    stepType: "ai",
     buffer: 0,
     order: 0,
     exampleMessage: "Quero fazer uma cotação"
