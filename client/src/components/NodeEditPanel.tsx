@@ -62,12 +62,43 @@ export default function NodeEditPanel({
   onClose,
 }: NodeEditPanelProps) {
   const [editedNode, setEditedNode] = useState<FlowStep | null>(null);
+  const [fixedMessages, setFixedMessages] = useState<string[]>([]);
 
   useEffect(() => {
     if (selectedNode) {
-      setEditedNode({ ...selectedNode });
+      const node = { ...selectedNode };
+      setEditedNode(node);
+      
+      // Parse fixed messages if this is a fixed type node
+      if (node.stepType === 'fixed') {
+        let messages: string[] = [];
+        
+        if (node.stepPrompt) {
+          try {
+            // Try to parse as JSON array
+            const parsed = JSON.parse(node.stepPrompt);
+            if (Array.isArray(parsed)) {
+              messages = parsed;
+            } else {
+              // Not an array, treat as single message
+              messages = [node.stepPrompt];
+            }
+          } catch {
+            // Not valid JSON, treat as single message
+            messages = [node.stepPrompt];
+          }
+        }
+        
+        // Ensure at least one message
+        if (messages.length === 0) {
+          messages = [''];
+        }
+        
+        setFixedMessages(messages);
+      }
     } else {
       setEditedNode(null);
+      setFixedMessages([]);
     }
   }, [selectedNode]);
 
@@ -122,6 +153,29 @@ export default function NodeEditPanel({
     
     console.log('[NodeEditPanel] Calling onTestWithAI with:', editedNode);
     onTestWithAI(editedNode);
+  };
+
+  const addFixedMessage = () => {
+    const newMessages = [...fixedMessages, ''];
+    setFixedMessages(newMessages);
+    updateField('stepPrompt', JSON.stringify(newMessages));
+  };
+
+  const updateFixedMessage = (index: number, value: string) => {
+    const newMessages = [...fixedMessages];
+    newMessages[index] = value;
+    setFixedMessages(newMessages);
+    updateField('stepPrompt', JSON.stringify(newMessages));
+  };
+
+  const removeFixedMessage = (index: number) => {
+    if (fixedMessages.length <= 1) {
+      alert('Deve haver pelo menos uma mensagem');
+      return;
+    }
+    const newMessages = fixedMessages.filter((_, i) => i !== index);
+    setFixedMessages(newMessages);
+    updateField('stepPrompt', JSON.stringify(newMessages));
   };
 
   const availableTargets = allSteps.filter(s => s.stepId !== editedNode.stepId);
@@ -195,16 +249,53 @@ export default function NodeEditPanel({
           </div>
 
           {isFixedType ? (
-            <div className="space-y-2">
-              <Label htmlFor="fixed-message">Mensagem Fixa</Label>
-              <Textarea
-                id="fixed-message"
-                value={editedNode.stepPrompt}
-                onChange={(e) => updateField('stepPrompt', e.target.value)}
-                rows={4}
-                placeholder="Digite a mensagem que será enviada automaticamente..."
-                data-testid="input-fixed-message"
-              />
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-semibold">Mensagens Fixas</Label>
+                <Button
+                  onClick={addFixedMessage}
+                  size="sm"
+                  variant="outline"
+                  data-testid="button-add-fixed-message"
+                >
+                  <Plus className="w-3 h-3 mr-1" />
+                  Adicionar Mensagem
+                </Button>
+              </div>
+              
+              <div className="space-y-3">
+                {fixedMessages.map((message, index) => (
+                  <Card key={index} className="p-3">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-medium">Mensagem {index + 1}</Label>
+                        {fixedMessages.length > 1 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeFixedMessage(index)}
+                            className="h-6"
+                            data-testid={`button-remove-fixed-message-${index}`}
+                          >
+                            <Trash2 className="w-3 h-3 text-destructive" />
+                          </Button>
+                        )}
+                      </div>
+                      <Textarea
+                        value={message}
+                        onChange={(e) => updateFixedMessage(index, e.target.value)}
+                        rows={3}
+                        placeholder="Digite a mensagem..."
+                        data-testid={`input-fixed-message-${index}`}
+                      />
+                    </div>
+                  </Card>
+                ))}
+              </div>
+              
+              <p className="text-xs text-muted-foreground">
+                As mensagens serão enviadas sequencialmente com intervalo de 2-4 segundos
+              </p>
             </div>
           ) : (
             <>
