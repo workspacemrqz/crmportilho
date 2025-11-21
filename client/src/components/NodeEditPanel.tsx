@@ -116,10 +116,15 @@ export default function NodeEditPanel({
   };
 
   const handleTestAI = () => {
+    console.log('[NodeEditPanel] handleTestAI called');
+    console.log('[NodeEditPanel] editedNode:', editedNode);
+    
     if (!editedNode.exampleMessage || editedNode.exampleMessage.trim() === '') {
       alert('Digite uma mensagem de exemplo para testar com a IA');
       return;
     }
+    
+    console.log('[NodeEditPanel] Calling onTestWithAI with:', editedNode);
     onTestWithAI(editedNode);
   };
 

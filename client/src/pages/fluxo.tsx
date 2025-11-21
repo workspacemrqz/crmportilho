@@ -216,7 +216,10 @@ export default function FluxoPage() {
 
   const previewMutation = useMutation({
     mutationFn: async ({ step, message }: { step: FlowStep; message: string }): Promise<AIPreviewResponse> => {
-      return apiRequest("POST", "/api/ia/preview", {
+      console.log('[FluxoPage] previewMutation called with:', { step, message });
+      console.log('[FluxoPage] config.globalPrompt:', config.globalPrompt);
+      
+      const requestData = {
         promptGlobal: config.globalPrompt,
         etapaAtual: {
           id: step.stepId,
@@ -228,9 +231,17 @@ export default function FluxoPage() {
         etapasDefinidas: steps.map(s => ({ id: s.stepId, nome: s.stepName })),
         historicoConversaExemplo: [],
         mensagemClienteExemplo: message
-      }) as unknown as Promise<AIPreviewResponse>;
+      };
+      
+      console.log('[FluxoPage] Sending request to /api/ia/preview with data:', requestData);
+      
+      const response = await apiRequest("POST", "/api/ia/preview", requestData) as unknown as AIPreviewResponse;
+      
+      console.log('[FluxoPage] Received response:', response);
+      return response;
     },
     onSuccess: (data, variables) => {
+      console.log('[FluxoPage] Preview mutation success:', data);
       setPreviewResults(prev => new Map(prev.set(variables.step.stepId, data)));
       toast({
         title: "Resposta gerada!",
@@ -238,6 +249,7 @@ export default function FluxoPage() {
       });
     },
     onError: (error: any) => {
+      console.error('[FluxoPage] Preview mutation error:', error);
       toast({
         title: "Erro ao gerar resposta",
         description: error.message || "Não foi possível gerar a resposta da IA.",
