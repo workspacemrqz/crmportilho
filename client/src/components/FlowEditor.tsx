@@ -29,7 +29,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { FlowStepNode as FlowStepNodeType, StepTransition } from '@shared/schema';
 import { Button } from '@/components/ui/button';
-import { Plus, AlertCircle, Star, X, GripVertical } from 'lucide-react';
+import { Plus, AlertCircle, Star, X, GripVertical, Save, Loader2 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 type FlowStep = {
@@ -50,6 +50,8 @@ type FlowEditorProps = {
   onStepsChange: (steps: FlowStep[] | ((prev: FlowStep[]) => FlowStep[])) => void;
   onNodeSelect: (step: FlowStep | null) => void;
   selectedNodeId: string | null;
+  onSave?: () => void;
+  isSaving?: boolean;
 };
 
 export type FlowEditorRef = {
@@ -223,7 +225,10 @@ function getStructuralHash(steps: FlowStep[]): string {
     .join('::');
 }
 
-const FlowEditorInner = forwardRef<FlowEditorRef, FlowEditorProps>(({ steps, onStepsChange, onNodeSelect, selectedNodeId }, ref) => {
+function FlowEditorInnerComponent(
+  { steps, onStepsChange, onNodeSelect, selectedNodeId, onSave, isSaving }: FlowEditorProps,
+  ref: React.ForwardedRef<FlowEditorRef>
+) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [invalidTransitions, setInvalidTransitions] = useState<string[]>([]);
@@ -695,10 +700,35 @@ const FlowEditorInner = forwardRef<FlowEditorRef, FlowEditorProps>(({ steps, onS
             Adicionar Etapa
           </Button>
         </Panel>
+        {onSave && (
+          <Panel position="top-right">
+            <Button
+              onClick={onSave}
+              disabled={isSaving}
+              size="sm"
+              className="bg-card shadow-md"
+              data-testid="button-save-flow"
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-1" />
+                  Salvar Fluxo
+                </>
+              )}
+            </Button>
+          </Panel>
+        )}
       </ReactFlow>
     </div>
   );
 }
+
+const FlowEditorInner = forwardRef<FlowEditorRef, FlowEditorProps>(FlowEditorInnerComponent);
 
 const FlowEditor = forwardRef<FlowEditorRef, FlowEditorProps>((props, ref) => {
   return (
@@ -709,5 +739,6 @@ const FlowEditor = forwardRef<FlowEditorRef, FlowEditorProps>((props, ref) => {
 });
 
 FlowEditor.displayName = 'FlowEditor';
+FlowEditorInner.displayName = 'FlowEditorInner';
 
 export default FlowEditor;

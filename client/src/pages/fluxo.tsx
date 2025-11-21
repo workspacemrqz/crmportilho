@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Loader2, Plus, Trash2, Save, Sparkles } from "lucide-react";
+import { Loader2, Plus, Trash2, Sparkles } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import FlowEditor, { generateStepId, type FlowEditorRef } from "@/components/FlowEditor";
@@ -434,30 +434,6 @@ export default function FluxoPage() {
 
   return (
     <div className="flex flex-col h-screen w-full">
-      <div className="flex items-center justify-between p-4 border-b">
-        <div>
-          <h1 className="text-2xl font-bold" data-testid="text-page-title">Editor Visual de Fluxo</h1>
-        </div>
-        <Button
-          onClick={() => saveMutation.mutate()}
-          disabled={saveMutation.isPending}
-          size="lg"
-          data-testid="button-save-flow"
-        >
-          {saveMutation.isPending ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Salvando...
-            </>
-          ) : (
-            <>
-              <Save className="w-4 h-4 mr-2" />
-              Salvar Fluxo
-            </>
-          )}
-        </Button>
-      </div>
-
       <div className="flex-1 overflow-hidden p-4">
         <FlowEditor
           ref={flowEditorRef}
@@ -465,6 +441,8 @@ export default function FluxoPage() {
           onStepsChange={setSteps}
           onNodeSelect={handleNodeSelect}
           selectedNodeId={selectedNodeId}
+          onSave={() => saveMutation.mutate()}
+          isSaving={saveMutation.isPending}
         />
         
         <NodeEditPanel
