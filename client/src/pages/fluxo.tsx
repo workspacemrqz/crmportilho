@@ -37,7 +37,10 @@ type FlowStep = {
   stepPrompt: string;
   routingInstructions: string;
   order: number;
+  buffer?: number;
   exampleMessage?: string;
+  position?: { x: number; y: number } | any;
+  transitions?: any[];
 };
 
 type AIPreviewResponse = {
@@ -45,20 +48,22 @@ type AIPreviewResponse = {
   proximaEtapaId: string | null;
 };
 
-const DEFAULT_WELCOME_MESSAGE = `A Seguro IA agradece o contato.
+const DEFAULT_WELCOME_MESSAGE = `A Prevline Seguros, agradece o contato. 
 
 ✅Trabalhamos com 15 Melhores Seguradoras.Ex: Porto Seguro, Azul, Allianz, HDI,Bradesco, etc.
 
 ⚠Seguro é perfil de cliente não conseguimos dar preço sem análise de questionário de risco.
 
-👨‍👩‍👧‍👦 Nossa equipe é referência há mais de 15 anos.Consulte nossa avaliação no Google.`;
+👨‍👩‍👧‍👦 Nossa equipe é referência há mais de 15 anos.Consulte nossa avaliação no Google.
 
-const DEFAULT_INSTITUTIONAL_MESSAGE = `🚨 IMPORTANTE 🚨
+🚨 IMPORTANTE 🚨
 📌 Gentileza enviar sua solicitação por escrito.
 ❗ Não ouvimos áudio no WhatsApp! 🔇
 ❌ Não atendemos ligações pelo WhatsApp!
 
-Vamos começar seu atendimento.`;
+Vamos começar seu atendimento. 😀`;
+
+const DEFAULT_INSTITUTIONAL_MESSAGE = `Oi, Gabriel! Tudo ótimo por aqui, e com você? Sou o IAGO, assistente do Daniel na Prevline Seguros. Você já é cliente da Prevline ou deseja fazer uma nova cotação?`;
 
 const DEFAULT_IMPORTANT_INSTRUCTIONS = `Instruções importantes:
 - Sempre responda de forma cordial e profissional
@@ -66,7 +71,7 @@ const DEFAULT_IMPORTANT_INSTRUCTIONS = `Instruções importantes:
 - Solicite todos os dados necessários antes de enviar o formulário
 - Encaminhe para formulário de cotação online da empresa`;
 
-const DEFAULT_GLOBAL_PROMPT = `Você é um assistente digital da Seguro IA, uma plataforma de seguros com experiência no mercado.
+const DEFAULT_GLOBAL_PROMPT = `Você é o IAGO, assistente digital do Daniel na Prevline Seguros, uma empresa com mais de 15 anos de experiência no mercado.
 
 Tom de voz: cordial, profissional e objetivo.
 
@@ -85,46 +90,11 @@ const DEFAULT_STEPS: FlowStep[] = [
     stepId: "identificacao_inicial",
     stepName: "Identificação Inicial",
     objective: "Identificar se o lead já é cliente ou se é uma nova cotação",
-    stepPrompt: "Cumprimente o lead de forma cordial. Pergunte se já é cliente da Seguro IA ou se deseja fazer uma nova cotação.",
+    stepPrompt: "Aguarde a resposta do cliente sobre se ele já é cliente da Prevline ou se deseja fazer uma nova cotação. Não envie mensagens adicionais, apenas aguarde.",
     routingInstructions: "Se o lead disser que já é cliente, siga para a etapa 'atendimento_cliente'. Se disser que quer fazer uma nova cotação, siga para a etapa 'tipo_seguro'.",
+    buffer: 0,
     order: 0,
-    exampleMessage: "Oi, boa tarde"
-  },
-  {
-    stepId: "tipo_seguro",
-    stepName: "Tipo de Seguro",
-    objective: "Identificar qual tipo de seguro o lead deseja (auto, residencial, etc)",
-    stepPrompt: "Pergunte qual tipo de seguro o lead deseja contratar. Mencione as opções: seguro de carro, seguro residencial ou outro tipo de seguro.",
-    routingInstructions: "Se o lead mencionar 'carro' ou 'auto', siga para a etapa 'detalhes_auto'. Se mencionar 'residencial' ou 'casa', siga para a etapa 'detalhes_residencial'. Para outros tipos, siga para 'encaminhamento_especialista'.",
-    order: 1,
-    exampleMessage: "Quero um seguro"
-  },
-  {
-    stepId: "detalhes_auto",
-    stepName: "Detalhes do Seguro Auto",
-    objective: "Coletar informações básicas sobre o seguro de veículo",
-    stepPrompt: "Faça perguntas sobre: se o veículo já possui seguro ativo, se é usado para apps de transporte (Uber, 99), e colete dados básicos do veículo.",
-    routingInstructions: "Após coletar as informações básicas e confirmar que não é para uso em apps de transporte, siga para a etapa 'envio_formulario'. Se for para uso em apps, siga para 'produto_nao_disponivel'.",
-    order: 2,
-    exampleMessage: "É para meu carro"
-  },
-  {
-    stepId: "envio_formulario",
-    stepName: "Envio do Formulário",
-    objective: "Enviar o link do formulário de cotação para o lead preencher",
-    stepPrompt: "Explique que para fazer uma cotação precisa, precisamos que ele preencha um formulário online rápido. Envie o link do formulário de cotação.",
-    routingInstructions: "Após enviar o formulário, siga para a etapa 'aguardando_preenchimento'. Se o lead recusar, siga para 'tratamento_objecao'.",
-    order: 3,
-    exampleMessage: "Sim, pode enviar"
-  },
-  {
-    stepId: "aguardando_preenchimento",
-    stepName: "Aguardando Preenchimento",
-    objective: "Confirmar que o lead recebeu o formulário e orientar sobre o preenchimento",
-    stepPrompt: "Confirme que o lead recebeu o link e peça para avisar quando preencher. Ofereça ajuda caso o link não esteja abrindo.",
-    routingInstructions: "Se o lead disser que preencheu, siga para 'confirmacao_dados'. Se disser que o link não abre, tente novamente enviando o link do formulário. Se não responder ou demorar, mantenha na mesma etapa.",
-    order: 4,
-    exampleMessage: "O link não está abrindo"
+    exampleMessage: "Quero fazer uma cotação"
   }
 ];
 
