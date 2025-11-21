@@ -20,7 +20,7 @@ import ReactFlow, {
   EdgeLabelRenderer,
   BaseEdge,
   EdgeProps,
-  getBezierPath,
+  getSmoothStepPath,
   useStoreApi,
   OnConnectStart,
   OnConnectEnd,
@@ -172,13 +172,14 @@ function CustomEdge({
   style,
   data,
 }: EdgeProps) {
-  const [edgePath, labelX, labelY] = getBezierPath({
+  const [edgePath, labelX, labelY] = getSmoothStepPath({
     sourceX,
     sourceY,
     sourcePosition,
     targetX,
     targetY,
     targetPosition,
+    borderRadius: 8,
   });
 
   const onEdgeClick = (evt: React.MouseEvent) => {
@@ -736,7 +737,7 @@ function FlowEditorInner({ steps, onStepsChange, onNodeSelect, selectedNodeId }:
           strokeWidth: 2.5,
           stroke: 'hsl(var(--primary))',
         }}
-        connectionLineType={ConnectionLineType.Bezier}
+        connectionLineType={ConnectionLineType.SmoothStep}
       >
         <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
         <Controls />
