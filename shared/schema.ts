@@ -81,6 +81,8 @@ export const insuranceTypeEnum = pgEnum("insurance_type", [
   "maquinas_agricolas"
 ]);
 
+export const stepTypeEnum = pgEnum("step_type", ["ai", "fixed"]);
+
 // Tables
 export const leads = pgTable("leads", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -500,6 +502,7 @@ export const flowSteps = pgTable("flow_steps", {
   stepPrompt: text("step_prompt").notNull(),
   routingInstructions: text("routing_instructions").notNull(),
   buffer: integer("buffer").notNull().default(30),
+  stepType: stepTypeEnum("step_type").notNull().default("ai"),
   order: integer("order").notNull().default(0),
   position: jsonb("position").default(sql`'{"x": 0, "y": 0}'`),
   transitions: jsonb("transitions").default(sql`'[]'`),
