@@ -370,8 +370,6 @@ function FlowEditorInner({ steps, onStepsChange, onNodeSelect, selectedNodeId }:
     const alreadyConnected = existingTransitions.some(t => t.targetStepId === connection.target);
     
     if (alreadyConnected) {
-      // Já existe conexão, apenas seleciona o node de origem para editar
-      onNodeSelect(sourceStep);
       return;
     }
 
@@ -395,14 +393,9 @@ function FlowEditorInner({ steps, onStepsChange, onNodeSelect, selectedNodeId }:
     });
 
     onStepsChange(updatedSteps);
-    
-    // Seleciona o node de origem para que o usuário possa editar a transição no modal
-    setTimeout(() => {
-      onNodeSelect(updatedSteps.find(s => s.stepId === connection.source) || null);
-    }, 100);
-  }, [steps, onStepsChange, onNodeSelect]);
+  }, [steps, onStepsChange]);
 
-  const handleNodeClick = useCallback((_event: any, node: Node) => {
+  const handleNodeDoubleClick = useCallback((_event: any, node: Node) => {
     const step = steps.find(s => s.stepId === node.id);
     onNodeSelect(step || null);
   }, [steps, onNodeSelect]);
@@ -430,8 +423,7 @@ function FlowEditorInner({ steps, onStepsChange, onNodeSelect, selectedNodeId }:
 
     const updatedSteps = [...steps, newStep];
     onStepsChange(updatedSteps);
-    onNodeSelect(newStep);
-  }, [steps, onStepsChange, onNodeSelect]);
+  }, [steps, onStepsChange]);
 
   return (
     <div className="w-full h-full border rounded-md bg-background relative">
@@ -452,7 +444,7 @@ function FlowEditorInner({ steps, onStepsChange, onNodeSelect, selectedNodeId }:
         onNodesChange={handleNodesChange}
         onEdgesChange={handleEdgesChange}
         onConnect={onConnect}
-        onNodeClick={handleNodeClick}
+        onNodeDoubleClick={handleNodeDoubleClick}
         onPaneClick={handlePaneClick}
         nodeTypes={nodeTypes}
         fitView={fitViewOnInitRef.current}
