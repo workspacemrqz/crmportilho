@@ -65,3 +65,8 @@ externalPort = 3003
 deploymentTarget = "autoscale"
 run = ["npm", "run", "start"]
 build = ["npm", "run", "build"]
+
+[userenv]
+
+[userenv.development]
+ALLOW_WEAK_WEBHOOK_AUTH = "true"

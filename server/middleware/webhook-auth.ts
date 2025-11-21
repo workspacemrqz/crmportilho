@@ -70,6 +70,45 @@ export function validateWebhookAuth(req: AuthenticatedRequest, res: Response, ne
       return next();
     }
     
+    // Method 1b: DEVELOPMENT MODE ONLY - session-based weak authentication
+    // ⚠️ SECURITY WARNING: This is insecure and should ONLY be used in development!
+    // Configure WAHA to send x-api-key header in production instead.
+    if (wahaInstance && req.body?.session === wahaInstance) {
+      const isProduction = process.env.NODE_ENV === 'production';
+      const allowWeakAuth = process.env.ALLOW_WEAK_WEBHOOK_AUTH === 'true';
+      
+      // BLOCK weak auth in production even if flag is set
+      if (isProduction) {
+        logSecurityEvent('WEBHOOK_WEAK_AUTH_BLOCKED', {
+          ip: req.ip,
+          session: req.body.session,
+          error: 'Weak authentication blocked in production environment',
+          action: 'Configure WAHA to send x-api-key header'
+        });
+        return res.status(401).json({ 
+          error: 'Unauthorized',
+          message: 'Header-based authentication required in production'
+        });
+      }
+      
+      // Allow weak auth ONLY in development if explicitly enabled
+      if (allowWeakAuth) {
+        console.warn('🚨 SECURITY WARNING: Using weak webhook authentication! This is INSECURE!');
+        console.warn('   Configure WAHA to send x-api-key header for production use.');
+        
+        req.isAuthenticated = true;
+        req.webhookSource = 'waha-session-weak';
+        logSecurityEvent('WEBHOOK_AUTH_SUCCESS', {
+          ip: req.ip,
+          source: 'waha-session-weak',
+          session: req.body.session,
+          environment: 'development',
+          warning: '🚨 INSECURE: Weak auth enabled! Configure x-api-key header for production'
+        });
+        return next();
+      }
+    }
+    
     // Method 2: Check Evolution API key (backward compatibility)
     if (evolutionKey) {
       if (authHeader === `Bearer ${evolutionKey}` ||
