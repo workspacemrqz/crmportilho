@@ -147,31 +147,15 @@ export default function NodeEditPanel({
         </DialogHeader>
 
         <div className="space-y-6">
-          <div className="grid grid-cols-1 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="step-id">ID da Etapa</Label>
-              <Input
-                id="step-id"
-                value={editedNode.stepId}
-                onChange={(e) => updateField('stepId', e.target.value)}
-                placeholder="identificacao_inicial"
-                data-testid="input-edit-step-id"
-              />
-              <p className="text-xs text-muted-foreground">
-                Identificador único (sem espaços)
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="step-name">Nome da Etapa</Label>
-              <Input
-                id="step-name"
-                value={editedNode.stepName}
-                onChange={(e) => updateField('stepName', e.target.value)}
-                placeholder="Identificação Inicial"
-                data-testid="input-edit-step-name"
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="step-name">Nome da Etapa</Label>
+            <Input
+              id="step-name"
+              value={editedNode.stepName}
+              onChange={(e) => updateField('stepName', e.target.value)}
+              placeholder="Identificação Inicial"
+              data-testid="input-edit-step-name"
+            />
           </div>
 
           <div className="space-y-2">
