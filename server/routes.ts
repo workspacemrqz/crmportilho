@@ -1062,6 +1062,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update lead whatsapp phone (fix incorrect phone numbers)
+  app.patch('/api/leads/:id/whatsapp', async (req: Request, res: Response) => {
+    try {
+      const leadId = req.params.id;
+      const { whatsappPhone } = req.body;
+
+      if (!whatsappPhone || typeof whatsappPhone !== 'string') {
+        return res.status(400).json({ error: 'whatsappPhone is required and must be a string' });
+      }
+
+      // Clean the phone number (remove non-digits)
+      const cleanPhone = whatsappPhone.replace(/\D/g, '');
+      
+      if (cleanPhone.length < 10 || cleanPhone.length > 15) {
+        return res.status(400).json({ error: 'Invalid phone number length' });
+      }
+
+      const updatedLead = await storage.updateLead(leadId, { whatsappPhone: cleanPhone });
+      if (!updatedLead) {
+        return res.status(404).json({ error: 'Lead not found' });
+      }
+
+      console.log(`[API] Updated lead ${leadId} whatsappPhone: ${cleanPhone}`);
+      res.json({ success: true, lead: updatedLead });
+    } catch (error) {
+      console.error('Error updating lead whatsapp phone:', error);
+      res.status(500).json({ error: 'Failed to update whatsapp phone' });
+    }
+  });
+
   app.post('/api/leads/:id/update', async (req: Request, res: Response) => {
     try {
       const leadId = req.params.id;

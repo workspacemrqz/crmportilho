@@ -399,15 +399,28 @@ export class WAHAService {
       
       // Se não achou, busca geral no JSON
       if (!phone) {
-        const str = JSON.stringify(data);
+        console.log('[WAHA] ⚠️ Phone not found in priority fields, searching entire JSON...');
+        
+        // Limpar o JSON inteiro antes de fazer a busca
+        let str = JSON.stringify(data);
+        
+        // Remover todos os IDs extras do formato ":51@s.whatsapp.net"
+        str = str.replace(/:(\d+)@(s\.whatsapp\.net|c\.us)/g, '@$2');
+        // Agora remover os sufixos
+        str = str.replace(/@(s\.whatsapp\.net|c\.us)/g, '');
+        
         const allMatches = str.match(numRegex) || [];
         const uniqueNumbers = Array.from(new Set(
           allMatches.filter(n => myNumber ? n !== myNumber : true)
         ));
+        
+        console.log('[WAHA] All numbers found in JSON:', uniqueNumbers);
+        console.log('[WAHA] My number (to ignore):', myNumber);
+        
         phone = uniqueNumbers[0] || null;
       }
       
-      console.log('[WAHA] Extracted phone number:', phone, 'from candidates');
+      console.log('[WAHA] ✅ Final extracted phone number:', phone);
       
       // Remove sufixos do WhatsApp se existirem
       if (phone) {
