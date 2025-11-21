@@ -410,16 +410,29 @@ function FlowEditorInner({ steps, onStepsChange, onNodeSelect, selectedNodeId }:
         
         // Persistir para steps quando parar de arrastar
         if (!change.dragging) {
-          const updatedSteps = steps.map((step) =>
-            step.stepId === change.id
-              ? { ...step, position: change.position }
-              : step
-          );
-          onStepsChange(updatedSteps);
+          onStepsChange((currentSteps: FlowStep[]) => {
+            return currentSteps.map((step) =>
+              step.stepId === change.id
+                ? { ...step, position: change.position }
+                : step
+            );
+          });
         }
       }
+      
+      // Handle node removal (when user presses Delete key)
+      if (change.type === 'remove') {
+        // Remove from positionsRef and nodesMapRef
+        delete positionsRef.current[change.id];
+        nodesMapRef.current.delete(change.id);
+        
+        // Update parent steps state to remove the deleted step
+        onStepsChange((currentSteps: FlowStep[]) => {
+          return currentSteps.filter((step) => step.stepId !== change.id);
+        });
+      }
     });
-  }, [steps, onStepsChange, onNodesChange]);
+  }, [onStepsChange, onNodesChange]);
 
   const handleEdgesChange = useCallback((changes: EdgeChange[]) => {
     onEdgesChange(changes);
