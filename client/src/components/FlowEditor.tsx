@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, useRef } from 'react';
+import { useCallback, useEffect, useState, useRef, memo } from 'react';
 import ReactFlow, {
   Node,
   Edge,
@@ -67,7 +67,7 @@ type FlowEditorProps = {
   selectedNodeId: string | null;
 };
 
-const FlowStepNode = ({ data, selected }: any) => {
+const FlowStepNode = memo(({ data, selected }: any) => {
   const isStart = data.isStart;
   const transitionsCount = data.transitionsCount || 0;
   
@@ -140,7 +140,7 @@ const FlowStepNode = ({ data, selected }: any) => {
       />
     </div>
   );
-};
+});
 
 const nodeTypes = {
   flowStep: FlowStepNode,
