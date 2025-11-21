@@ -34,6 +34,7 @@ type FlowStep = {
   position?: { x: number; y: number } | any;
   transitions?: StepTransition[] | any;
   buffer?: number;
+  stepType?: 'ai' | 'fixed';
 };
 
 type NodeEditPanelProps = {
@@ -124,12 +125,23 @@ export default function NodeEditPanel({
   };
 
   const availableTargets = allSteps.filter(s => s.stepId !== editedNode.stepId);
+  const isFixedType = editedNode.stepType === 'fixed';
+  const isAiType = !isFixedType;
 
   return (
     <Dialog open={!!selectedNode} onOpenChange={handleClose}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Editar Etapa: {editedNode.stepName}</DialogTitle>
+          <div className="flex items-center gap-2 mb-2">
+            <DialogTitle>Editar Etapa: {editedNode.stepName}</DialogTitle>
+            <Badge 
+              variant={isFixedType ? "default" : "secondary"}
+              className={isFixedType ? "bg-green-600 hover:bg-green-700" : "bg-blue-600 hover:bg-blue-700"}
+              data-testid="badge-step-type"
+            >
+              {isFixedType ? "Mensagem Fixa" : "Mensagem com IA"}
+            </Badge>
+          </div>
           <DialogDescription>
             Configure os detalhes desta etapa
           </DialogDescription>
@@ -182,29 +194,45 @@ export default function NodeEditPanel({
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="step-prompt">Prompt</Label>
-            <Textarea
-              id="step-prompt"
-              value={editedNode.stepPrompt}
-              onChange={(e) => updateField('stepPrompt', e.target.value)}
-              rows={4}
-              placeholder="Como o agente deve se comportar? Que perguntas fazer?"
-              data-testid="textarea-edit-prompt"
-            />
-          </div>
+          {isFixedType ? (
+            <div className="space-y-2">
+              <Label htmlFor="fixed-message">Mensagem Fixa</Label>
+              <Textarea
+                id="fixed-message"
+                value={editedNode.stepPrompt}
+                onChange={(e) => updateField('stepPrompt', e.target.value)}
+                rows={4}
+                placeholder="Digite a mensagem que será enviada automaticamente..."
+                data-testid="input-fixed-message"
+              />
+            </div>
+          ) : (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="step-prompt">Prompt</Label>
+                <Textarea
+                  id="step-prompt"
+                  value={editedNode.stepPrompt}
+                  onChange={(e) => updateField('stepPrompt', e.target.value)}
+                  rows={4}
+                  placeholder="Como o agente deve se comportar? Que perguntas fazer?"
+                  data-testid="textarea-edit-prompt"
+                />
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="routing">Instruções de Roteamento</Label>
-            <Textarea
-              id="routing"
-              value={editedNode.routingInstructions}
-              onChange={(e) => updateField('routingInstructions', e.target.value)}
-              rows={3}
-              placeholder="Como a IA deve decidir o próximo passo"
-              data-testid="textarea-edit-routing"
-            />
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="routing">Instruções de Roteamento</Label>
+                <Textarea
+                  id="routing"
+                  value={editedNode.routingInstructions}
+                  onChange={(e) => updateField('routingInstructions', e.target.value)}
+                  rows={3}
+                  placeholder="Como a IA deve decidir o próximo passo"
+                  data-testid="textarea-edit-routing"
+                />
+              </div>
+            </>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="buffer">Buffer (segundos)</Label>
@@ -293,60 +321,62 @@ export default function NodeEditPanel({
             )}
           </div>
 
-          <div className="border-t pt-6">
-            <Label className="text-sm font-semibold mb-3 block">Testar com IA</Label>
-            <div className="space-y-3">
-              <div className="space-y-2">
-                <Label className="text-xs">Mensagem de Exemplo do Cliente</Label>
-                <Textarea
-                  value={editedNode.exampleMessage || ''}
-                  onChange={(e) => updateField('exampleMessage', e.target.value)}
-                  rows={2}
-                  placeholder="Digite uma mensagem de exemplo do cliente..."
-                  data-testid="textarea-example-message"
-                />
-              </div>
+          {isAiType && (
+            <div className="border-t pt-6">
+              <Label className="text-sm font-semibold mb-3 block">Testar com IA</Label>
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label className="text-xs">Mensagem de Exemplo do Cliente</Label>
+                  <Textarea
+                    value={editedNode.exampleMessage || ''}
+                    onChange={(e) => updateField('exampleMessage', e.target.value)}
+                    rows={2}
+                    placeholder="Digite uma mensagem de exemplo do cliente..."
+                    data-testid="textarea-example-message"
+                  />
+                </div>
 
-              <Button
-                onClick={handleTestAI}
-                disabled={isTestingAI}
-                variant="outline"
-                className="w-full"
-                data-testid="button-test-ai"
-              >
-                {isTestingAI ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Gerando resposta...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    Testar Resposta
-                  </>
-                )}
-              </Button>
+                <Button
+                  onClick={handleTestAI}
+                  disabled={isTestingAI}
+                  variant="outline"
+                  className="w-full"
+                  data-testid="button-test-ai"
+                >
+                  {isTestingAI ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Gerando resposta...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Testar Resposta
+                    </>
+                  )}
+                </Button>
 
-              {aiPreviewResult && (
-                <Card className="p-3 bg-muted/30">
-                  <div className="space-y-2">
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Resposta da IA:</Label>
-                      <p className="text-sm mt-1">{aiPreviewResult.mensagemAgente}</p>
-                    </div>
-                    {aiPreviewResult.proximaEtapaId && (
+                {aiPreviewResult && (
+                  <Card className="p-3 bg-muted/30">
+                    <div className="space-y-2">
                       <div>
-                        <Label className="text-xs text-muted-foreground">Próxima Etapa:</Label>
-                        <Badge variant="outline" className="mt-1 text-xs">
-                          {aiPreviewResult.proximaEtapaId}
-                        </Badge>
+                        <Label className="text-xs text-muted-foreground">Resposta da IA:</Label>
+                        <p className="text-sm mt-1">{aiPreviewResult.mensagemAgente}</p>
                       </div>
-                    )}
-                  </div>
-                </Card>
-              )}
+                      {aiPreviewResult.proximaEtapaId && (
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Próxima Etapa:</Label>
+                          <Badge variant="outline" className="mt-1 text-xs">
+                            {aiPreviewResult.proximaEtapaId}
+                          </Badge>
+                        </div>
+                      )}
+                    </div>
+                  </Card>
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
