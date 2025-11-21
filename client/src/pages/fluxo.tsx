@@ -287,12 +287,6 @@ export default function FluxoPage() {
     setSteps(updatedSteps);
   };
 
-  const handleNodeDelete = (stepId: string) => {
-    const updatedSteps = steps.filter((step) => step.stepId !== stepId);
-    setSteps(updatedSteps);
-    setSelectedNodeId(null);
-  };
-
   const handleRegenerateStepId = (oldStepId: string, newTitle: string) => {
     // Encontrar o step que será atualizado
     const stepToUpdate = steps.find(s => s.stepId === oldStepId);
@@ -413,7 +407,6 @@ export default function FluxoPage() {
           onStepsChange={setSteps}
           onNodeSelect={handleNodeSelect}
           selectedNodeId={selectedNodeId}
-          onNodeDelete={handleNodeDelete}
           onSave={() => saveMutation.mutate()}
           isSaving={saveMutation.isPending}
         />

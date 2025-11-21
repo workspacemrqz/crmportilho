@@ -30,7 +30,7 @@ import 'reactflow/dist/style.css';
 import { FlowStepNode as FlowStepNodeType, StepTransition } from '@shared/schema';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, AlertCircle, Star, X, Save, Loader2, Trash2, Copy, Files, Sparkles, MessageSquare } from 'lucide-react';
+import { Plus, AlertCircle, Star, X, Save, Loader2, Copy, Files, Sparkles, MessageSquare } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 
@@ -53,7 +53,6 @@ type FlowEditorProps = {
   onStepsChange: (steps: FlowStep[] | ((prev: FlowStep[]) => FlowStep[])) => void;
   onNodeSelect: (step: FlowStep | null) => void;
   selectedNodeId: string | null;
-  onNodeDelete?: (stepId: string) => void;
   onSave?: () => void;
   isSaving?: boolean;
 };
@@ -149,12 +148,6 @@ const FlowStepNode = memo(({ data, selected }: any) => {
     }
   };
 
-  const handleDelete = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (data.onDelete) {
-      data.onDelete(data.stepId);
-    }
-  };
 
   const handleDuplicate = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -198,18 +191,6 @@ const FlowStepNode = memo(({ data, selected }: any) => {
             data-testid={`button-duplicate-${data.stepId}`}
           >
             <Files className="h-3.5 w-3.5" />
-          </Button>
-        </div>
-        <div className="bg-background rounded-md p-1 shadow-lg border border-border">
-          <Button
-            size="icon"
-            variant="ghost"
-            className="h-7 w-7 text-destructive hover:text-destructive hover-elevate active-elevate-2"
-            onClick={handleDelete}
-            title="Deletar etapa"
-            data-testid={`button-delete-node-${data.stepId}`}
-          >
-            <Trash2 className="h-3.5 w-3.5" />
           </Button>
         </div>
       </div>
@@ -354,7 +335,7 @@ function getStructuralHash(steps: FlowStep[]): string {
 }
 
 function FlowEditorInnerComponent(
-  { steps, onStepsChange, onNodeSelect, selectedNodeId, onNodeDelete, onSave, isSaving }: FlowEditorProps,
+  { steps, onStepsChange, onNodeSelect, selectedNodeId, onSave, isSaving }: FlowEditorProps,
   ref: React.ForwardedRef<FlowEditorRef>
 ) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -562,7 +543,6 @@ function FlowEditorInnerComponent(
               stepType: step.stepType || 'ai',
               isStart: index === 0,
               transitionsCount: Array.isArray(step.transitions) ? step.transitions.length : 0,
-              onDelete: onNodeDelete,
               onDuplicate: handleDuplicateNode,
             },
           };
@@ -601,7 +581,6 @@ function FlowEditorInnerComponent(
               stepName: step.stepName,
               stepType: step.stepType || 'ai',
               isStart: index === 0,
-              onDelete: onNodeDelete,
               onDuplicate: handleDuplicateNode,
             }
           };
@@ -643,7 +622,6 @@ function FlowEditorInnerComponent(
               ...node.data,
               stepType: step.stepType || 'ai',
               transitionsCount: newTransitionsCount,
-              onDelete: onNodeDelete,
               onDuplicate: handleDuplicateNode,
             }
           };
@@ -651,7 +629,7 @@ function FlowEditorInnerComponent(
         return node;
       });
     });
-  }, [steps, setNodes, onNodeDelete]);
+  }, [steps, setNodes]);
 
   const handleNodesChange = useCallback((changes: NodeChange[]) => {
     onNodesChange(changes);
@@ -679,16 +657,11 @@ function FlowEditorInnerComponent(
         }
       }
       
-      // Handle node removal (when user presses Delete key)
+      // Ignore node removal to prevent accidental deletions
+      // Users must use the visual editor controls instead
       if (change.type === 'remove') {
-        // Remove from positionsRef and nodesMapRef
-        delete positionsRef.current[change.id];
-        nodesMapRef.current.delete(change.id);
-        
-        // Update parent steps state to remove the deleted step
-        onStepsChange((currentSteps: FlowStep[]) => {
-          return currentSteps.filter((step) => step.stepId !== change.id);
-        });
+        // Do nothing - node deletion is disabled
+        return;
       }
     });
   }, [onStepsChange, onNodesChange]);

@@ -4,6 +4,38 @@ This project is a CRM and chatbot system named "Seguro IA" (Insurance AI), desig
 
 # Recent Changes
 
+**November 21, 2025 - Implemented Two Types of Flow Nodes (COMPLETE)**
+- Implemented support for two distinct types of conversation nodes in the visual flow editor
+- **Feature**: Diferenciação entre nodes com IA e nodes com mensagem fixa
+- **Implementation Details**:
+  - **Database Schema**:
+    * Added `stepType` enum ('ai' | 'fixed') to flow_steps table
+    * Default value: 'ai' (maintains backward compatibility)
+  - **Frontend - Editor Interface**:
+    * Two creation buttons: "Mensagem com IA" (Sparkles icon) and "Mensagem fixa" (MessageSquare icon)
+    * Visual differentiation: AI nodes (blue background/border) vs Fixed nodes (green background/border)
+    * Badge indicators on nodes showing "IA" or "Fixa"
+  - **Frontend - Edit Panel**:
+    * Conditional field rendering based on stepType
+    * AI nodes: Show all fields (stepPrompt, routingInstructions, AI testing)
+    * Fixed nodes: Show simplified fields (stepName, objective, buffer, transitions)
+    * Fixed nodes use "Mensagem Fixa" textarea field instead of AI prompts
+  - **Backend Processing**:
+    * `processFlowStep()`: Routes to appropriate handler based on stepType
+    * `processFixedMessageStep()`: Sends fixed message directly, no AI call
+    * `processAIStep()`: Maintains existing AI-powered logic
+    * Intelligent transition handling for both types (auto-advance or wait for user response)
+  - **Seed Script**:
+    * Created `server/seed-templates.ts` to ensure MENSAGEM1/MENSAGEM2 templates exist
+    * Command: `npm run db:seed` to populate welcome message templates
+- **User Experience**: Create AI-powered or fixed message nodes, edit them with appropriate controls, and the backend processes each type correctly. Fixed message nodes send predefined text without AI costs.
+
+**November 21, 2025 - Configured Prevline Welcome Messages (COMPLETE)**
+- Created MENSAGEM1 (Prevline company introduction) and MENSAGEM2 (IAGO assistant greeting) templates
+- Templates stored in `workflow_templates` database table
+- ChatbotService automatically sends both messages sequentially when conversation starts
+- Buffer configured to 0 seconds for immediate delivery
+
 **November 21, 2025 - Implemented Automatic Step ID Generation System (COMPLETE)**
 - Implemented automatic generation of step IDs based on step titles in the visual flow editor
 - **Feature**: Step IDs are automatically generated from titles (e.g., "Identificação Inicial" → "identificacao_inicial")
