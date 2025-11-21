@@ -2,6 +2,14 @@
 
 This project is a CRM and chatbot system named "Seguro IA" (Insurance AI), designed to streamline customer interactions primarily through WhatsApp. Its core purpose is to manage leads, track conversations, facilitate document uploads, and provide automated, AI-driven chatbot responses for insurance-related inquiries. The system aims to enhance customer engagement and operational efficiency for insurance businesses. It's built as a full-stack TypeScript application with real-time capabilities.
 
+# Recent Changes
+
+**November 21, 2025 - Fixed Visual Flow Editor Bug**
+- Fixed a critical bug in the visual flow editor (`/fluxo`) where deleted nodes would reappear when clicking "Adicionar Etapa" (Add Step)
+- Root cause: The `handleAddNode` callback in `FlowEditor.tsx` was capturing a stale reference to the `steps` array due to JavaScript closure
+- Solution: Modified `onStepsChange` prop type to accept both array values and functional updaters: `(steps: FlowStep[] | ((prev: FlowStep[]) => FlowStep[]) => void`
+- Updated `handleAddNode` to use functional update pattern: `onStepsChange((currentSteps) => [...currentSteps, newStep])` ensuring it always works with the most current state
+
 # User Preferences
 
 Preferred communication style: Simple, everyday language.
