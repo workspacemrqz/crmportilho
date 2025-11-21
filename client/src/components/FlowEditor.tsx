@@ -29,6 +29,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { FlowStepNode as FlowStepNodeType, StepTransition } from '@shared/schema';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Plus, AlertCircle, Star, X, Save, Loader2, Trash2, Copy, Files, Sparkles, MessageSquare } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
@@ -94,9 +95,28 @@ export function generateStepId(stepName: string, existingIds: string[] = []): st
 const FlowStepNode = memo(({ data, selected }: any) => {
   const isStart = data.isStart;
   const transitionsCount = data.transitionsCount || 0;
+  const stepType = data.stepType || 'ai'; // Default to 'ai' if not specified
   const [isHovered, setIsHovered] = useState(false);
   const { toast } = useToast();
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Determine styles based on stepType
+  const isAI = stepType === 'ai';
+  const isFixed = stepType === 'fixed';
+  
+  const bgColorClass = isAI 
+    ? 'bg-blue-50 dark:bg-blue-950' 
+    : 'bg-green-50 dark:bg-green-950';
+  
+  const borderColorClass = isAI 
+    ? 'border-blue-400' 
+    : 'border-green-400';
+  
+  const IconComponent = isAI ? Sparkles : MessageSquare;
+  const badgeText = isAI ? 'IA' : 'Fixa';
+  const badgeColorClass = isAI 
+    ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' 
+    : 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300';
 
   const handleMouseEnter = () => {
     if (hoverTimeoutRef.current) {
@@ -195,18 +215,32 @@ const FlowStepNode = memo(({ data, selected }: any) => {
       </div>
       
       <div 
-        className={`px-4 py-3 rounded-md border-2 bg-card min-w-[200px] shadow-lg transition-all hover:shadow-xl relative ${
+        className={`px-4 py-3 rounded-md border-2 min-w-[200px] shadow-lg transition-all hover:shadow-xl relative ${bgColorClass} ${
           selected 
             ? 'border-primary ring-2 ring-primary/20' 
             : isStart 
             ? 'border-primary/60'
-            : 'border-border'
+            : borderColorClass
         }`}
         data-testid={`node-${data.stepId}`}
       >
+        {/* Type Badge - Top Right */}
+        <div className="absolute -top-2 -right-2">
+          <Badge 
+            variant="secondary" 
+            className={`text-[10px] px-1.5 py-0 h-5 font-semibold ${badgeColorClass}`}
+            data-testid={`badge-type-${data.stepId}`}
+          >
+            {badgeText}
+          </Badge>
+        </div>
+
         <div className="space-y-1">
           <div className="flex items-center justify-between gap-2">
-            <div className="font-semibold text-sm flex-1">{data.stepName}</div>
+            <div className="flex items-center gap-1.5 flex-1">
+              <IconComponent className={`w-4 h-4 flex-shrink-0 ${isAI ? 'text-blue-600 dark:text-blue-400' : 'text-green-600 dark:text-green-400'}`} />
+              <div className="font-semibold text-sm">{data.stepName}</div>
+            </div>
             {transitionsCount > 0 && (
               <div className="flex items-center gap-1 text-xs text-primary font-medium bg-primary/10 px-2 py-0.5 rounded-full">
                 <span>{transitionsCount}</span>
@@ -358,10 +392,15 @@ function FlowEditorInnerComponent(
       // Migrar nodesMapRef
       const oldNode = nodesMapRef.current.get(oldId);
       if (oldNode && !nodesMapRef.current.has(newId)) {
+        const updatedStep = updatedSteps.find(s => s.stepId === newId);
         nodesMapRef.current.set(newId, {
           ...oldNode,
           id: newId,
-          data: { ...oldNode.data, stepId: newId }
+          data: { 
+            ...oldNode.data, 
+            stepId: newId,
+            stepType: updatedStep?.stepType || oldNode.data.stepType || 'ai'
+          }
         });
       }
       nodesMapRef.current.delete(oldId);
@@ -372,10 +411,15 @@ function FlowEditorInnerComponent(
         prevNodes.map(node => {
           if (node.id === oldId) {
             const migratedNode = nodesMapRef.current.get(newId);
+            const updatedStep = updatedSteps.find(s => s.stepId === newId);
             return migratedNode || {
               ...node,
               id: newId,
-              data: { ...node.data, stepId: newId }
+              data: { 
+                ...node.data, 
+                stepId: newId,
+                stepType: updatedStep?.stepType || node.data.stepType || 'ai'
+              }
             };
           }
           return node;
@@ -515,6 +559,7 @@ function FlowEditorInnerComponent(
             data: {
               stepId: step.stepId,
               stepName: step.stepName,
+              stepType: step.stepType || 'ai',
               isStart: index === 0,
               transitionsCount: Array.isArray(step.transitions) ? step.transitions.length : 0,
               onDelete: onNodeDelete,
@@ -545,6 +590,7 @@ function FlowEditorInnerComponent(
         const index = currentSteps.indexOf(step);
         const needsUpdate = 
           node.data.stepName !== step.stepName ||
+          node.data.stepType !== (step.stepType || 'ai') ||
           node.data.isStart !== (index === 0);
         
         if (needsUpdate) {
@@ -553,6 +599,7 @@ function FlowEditorInnerComponent(
             data: {
               ...node.data,
               stepName: step.stepName,
+              stepType: step.stepType || 'ai',
               isStart: index === 0,
               onDelete: onNodeDelete,
               onDuplicate: handleDuplicateNode,
@@ -594,6 +641,7 @@ function FlowEditorInnerComponent(
             ...node,
             data: {
               ...node.data,
+              stepType: step.stepType || 'ai',
               transitionsCount: newTransitionsCount,
               onDelete: onNodeDelete,
               onDuplicate: handleDuplicateNode,
