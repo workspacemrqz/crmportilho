@@ -441,6 +441,7 @@ export default function FluxoPage() {
           onStepsChange={setSteps}
           onNodeSelect={handleNodeSelect}
           selectedNodeId={selectedNodeId}
+          onNodeDelete={handleNodeDelete}
           onSave={() => saveMutation.mutate()}
           isSaving={saveMutation.isPending}
         />

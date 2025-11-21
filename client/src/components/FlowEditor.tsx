@@ -29,8 +29,9 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { FlowStepNode as FlowStepNodeType, StepTransition } from '@shared/schema';
 import { Button } from '@/components/ui/button';
-import { Plus, AlertCircle, Star, X, GripVertical, Save, Loader2 } from 'lucide-react';
+import { Plus, AlertCircle, Star, X, GripVertical, Save, Loader2, Trash2, Copy } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useToast } from '@/hooks/use-toast';
 
 type FlowStep = {
   id?: string;
@@ -50,6 +51,7 @@ type FlowEditorProps = {
   onStepsChange: (steps: FlowStep[] | ((prev: FlowStep[]) => FlowStep[])) => void;
   onNodeSelect: (step: FlowStep | null) => void;
   selectedNodeId: string | null;
+  onNodeDelete?: (stepId: string) => void;
   onSave?: () => void;
   isSaving?: boolean;
 };
@@ -91,6 +93,32 @@ export function generateStepId(stepName: string, existingIds: string[] = []): st
 const FlowStepNode = memo(({ data, selected }: any) => {
   const isStart = data.isStart;
   const transitionsCount = data.transitionsCount || 0;
+  const [isHovered, setIsHovered] = useState(false);
+  const { toast } = useToast();
+
+  const handleCopyId = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(data.stepId);
+      toast({
+        title: "ID copiado",
+        description: `ID "${data.stepId}" copiado para a área de transferência.`,
+      });
+    } catch (err) {
+      toast({
+        title: "Erro ao copiar",
+        description: "Não foi possível copiar o ID para a área de transferência.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (data.onDelete) {
+      data.onDelete(data.stepId);
+    }
+  };
   
   return (
     <div 
@@ -102,6 +130,8 @@ const FlowStepNode = memo(({ data, selected }: any) => {
           : 'border-border'
       }`}
       data-testid={`node-${data.stepId}`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
       {/* Drag handle - visual indicator */}
       <div 
@@ -109,6 +139,33 @@ const FlowStepNode = memo(({ data, selected }: any) => {
         data-testid={`drag-handle-${data.stepId}`}
       >
         <GripVertical className="w-4 h-4 text-muted-foreground/40" />
+      </div>
+      
+      {/* Hover action buttons */}
+      <div 
+        className="absolute top-2 right-2 flex items-center gap-1"
+        style={{ visibility: isHovered ? 'visible' : 'hidden' }}
+      >
+        <Button
+          size="icon"
+          variant="ghost"
+          className="h-7 w-7 hover-elevate active-elevate-2"
+          onClick={handleCopyId}
+          title="Copiar ID"
+          data-testid={`button-copy-id-${data.stepId}`}
+        >
+          <Copy className="h-3.5 w-3.5" />
+        </Button>
+        <Button
+          size="icon"
+          variant="ghost"
+          className="h-7 w-7 text-destructive hover:text-destructive hover-elevate active-elevate-2"
+          onClick={handleDelete}
+          title="Deletar etapa"
+          data-testid={`button-delete-node-${data.stepId}`}
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
       </div>
       
       <div className="space-y-1">
@@ -226,7 +283,7 @@ function getStructuralHash(steps: FlowStep[]): string {
 }
 
 function FlowEditorInnerComponent(
-  { steps, onStepsChange, onNodeSelect, selectedNodeId, onSave, isSaving }: FlowEditorProps,
+  { steps, onStepsChange, onNodeSelect, selectedNodeId, onNodeDelete, onSave, isSaving }: FlowEditorProps,
   ref: React.ForwardedRef<FlowEditorRef>
 ) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -423,6 +480,7 @@ function FlowEditorInnerComponent(
               stepName: step.stepName,
               isStart: index === 0,
               transitionsCount: Array.isArray(step.transitions) ? step.transitions.length : 0,
+              onDelete: onNodeDelete,
             },
           };
           
@@ -458,6 +516,7 @@ function FlowEditorInnerComponent(
               ...node.data,
               stepName: step.stepName,
               isStart: index === 0,
+              onDelete: onNodeDelete,
             }
           };
           nodesMapRef.current.set(step.stepId, updatedNode);
@@ -496,14 +555,15 @@ function FlowEditorInnerComponent(
             ...node,
             data: {
               ...node.data,
-              transitionsCount: newTransitionsCount
+              transitionsCount: newTransitionsCount,
+              onDelete: onNodeDelete,
             }
           };
         }
         return node;
       });
     });
-  }, [steps, setNodes]);
+  }, [steps, setNodes, onNodeDelete]);
 
   const handleNodesChange = useCallback((changes: NodeChange[]) => {
     onNodesChange(changes);
