@@ -7,6 +7,8 @@ import {
   chatbotStates,
   vehicles,
   quotes,
+  flowConfigs,
+  flowSteps,
   type Lead,
   type Conversation,
   type ChatbotState,
@@ -14,7 +16,9 @@ import {
   type InsertConversation,
   type InsertChatbotState,
   type InsertVehicle,
-  type InsertQuote
+  type InsertQuote,
+  type FlowConfig,
+  type FlowStep
 } from '@shared/schema';
 import { WAHAService } from './waha.service';
 import { LocalStorageService } from './storage.service';
@@ -815,6 +819,317 @@ export class ChatbotService {
 
     console.log(`[ChatbotService] ✅ Novo estado criado com ID: ${newState.id}`);
     return newState;
+  }
+
+  // ============================================================================
+  // CONFIGURABLE FLOW PROCESSING METHODS
+  // ============================================================================
+  
+  /**
+   * Process incoming message using the configurable visual flow from /fluxo page
+   * This replaces the hardcoded state machine when a flow config is active
+   */
+  private async processWithConfigurableFlow(
+    lead: Lead,
+    conversation: Conversation,
+    chatbotState: ChatbotState,
+    messageContent: string
+  ): Promise<void> {
+    try {
+      console.log(`[ChatbotService] 🎯 Processing with configurable flow for lead ${lead.protocol}`);
+      
+      // Get active flow configuration
+      const flowConfig = await this.getActiveFlow();
+      if (!flowConfig) {
+        console.log(`[ChatbotService] ⚠️ No active flow found, falling back to state machine`);
+        return await this.processStateMachine(lead, conversation, chatbotState, messageContent);
+      }
+      
+      // Get all flow steps
+      const steps = await this.getFlowSteps(flowConfig.id);
+      if (!steps || steps.length === 0) {
+        console.log(`[ChatbotService] ⚠️ No steps found in flow, cannot process`);
+        return await this.processStateMachine(lead, conversation, chatbotState, messageContent);
+      }
+      
+      console.log(`[ChatbotService] 📋 Flow "${flowConfig.id}" loaded with ${steps.length} steps`);
+      
+      // Identify current step
+      const currentStep = await this.identifyCurrentStep(chatbotState, steps);
+      if (!currentStep) {
+        console.log(`[ChatbotService] ⚠️ Could not identify current step, starting from first step`);
+        // Start from first step
+        const firstStep = steps.find(s => s.order === 0) || steps[0];
+        await this.updateChatbotState(chatbotState.id, {
+          currentState: firstStep.stepId
+        });
+        await this.processFlowStep(lead, conversation, chatbotState, firstStep, steps, flowConfig, messageContent);
+        return;
+      }
+      
+      console.log(`[ChatbotService] 📍 Current step: ${currentStep.stepName} (${currentStep.stepId})`);
+      
+      // Process the current step
+      await this.processFlowStep(lead, conversation, chatbotState, currentStep, steps, flowConfig, messageContent);
+      
+    } catch (error) {
+      console.error('[ChatbotService] ❌ Error processing with configurable flow:', error);
+      console.log('[ChatbotService] Falling back to state machine');
+      return await this.processStateMachine(lead, conversation, chatbotState, messageContent);
+    }
+  }
+  
+  /**
+   * Get active flow configuration from database
+   */
+  private async getActiveFlow(): Promise<FlowConfig | null> {
+    try {
+      const [config] = await db.select()
+        .from(flowConfigs)
+        .where(eq(flowConfigs.isActive, true))
+        .orderBy(desc(flowConfigs.createdAt))
+        .limit(1);
+      return config || null;
+    } catch (error) {
+      console.error('[ChatbotService] Error fetching active flow:', error);
+      return null;
+    }
+  }
+  
+  /**
+   * Get all steps for a flow configuration
+   */
+  private async getFlowSteps(flowConfigId: string): Promise<FlowStep[]> {
+    try {
+      const steps = await db.select()
+        .from(flowSteps)
+        .where(eq(flowSteps.flowConfigId, flowConfigId))
+        .orderBy(desc(flowSteps.order));
+      return steps;
+    } catch (error) {
+      console.error('[ChatbotService] Error fetching flow steps:', error);
+      return [];
+    }
+  }
+  
+  /**
+   * Identify which step the lead is currently in
+   */
+  private async identifyCurrentStep(
+    chatbotState: ChatbotState,
+    steps: FlowStep[]
+  ): Promise<FlowStep | null> {
+    // Check if currentState matches a stepId
+    const currentStepId = chatbotState.currentState;
+    if (currentStepId) {
+      const step = steps.find(s => s.stepId === currentStepId);
+      if (step) {
+        return step;
+      }
+    }
+    
+    // If no match, start from first step
+    return steps.find(s => s.order === 0) || steps[0] || null;
+  }
+  
+  /**
+   * Process a specific flow step
+   */
+  private async processFlowStep(
+    lead: Lead,
+    conversation: Conversation,
+    chatbotState: ChatbotState,
+    currentStep: FlowStep,
+    allSteps: FlowStep[],
+    flowConfig: FlowConfig,
+    messageContent: string
+  ): Promise<void> {
+    try {
+      console.log(`[ChatbotService] 🔄 Processing step: ${currentStep.stepName}`);
+      
+      // Get conversation history
+      const conversationHistory = await this.getConversationHistory(conversation.id, 10);
+      
+      // Generate AI response based on current step
+      const aiResponse = await this.generateFlowResponse(
+        flowConfig,
+        currentStep,
+        allSteps,
+        messageContent,
+        conversationHistory
+      );
+      
+      if (!aiResponse) {
+        console.error('[ChatbotService] ❌ Failed to generate AI response');
+        return;
+      }
+      
+      console.log(`[ChatbotService] 🤖 AI Response: ${aiResponse.mensagemAgente.substring(0, 100)}...`);
+      console.log(`[ChatbotService] ➡️ Next step suggested: ${aiResponse.proximaEtapaId || 'none'}`);
+      
+      // Send response to user
+      await this.sendMessageWithRetry(
+        lead.whatsappPhone,
+        aiResponse.mensagemAgente,
+        conversation.id
+      );
+      
+      // Update chatbot state with next step if determined
+      if (aiResponse.proximaEtapaId) {
+        const nextStep = allSteps.find(s => s.stepId === aiResponse.proximaEtapaId);
+        if (nextStep) {
+          console.log(`[ChatbotService] ✅ Transitioning to next step: ${nextStep.stepName}`);
+          await this.updateChatbotState(chatbotState.id, {
+            currentState: nextStep.stepId
+          });
+        } else {
+          console.log(`[ChatbotService] ⚠️ Next step ID not found: ${aiResponse.proximaEtapaId}`);
+        }
+      } else {
+        console.log(`[ChatbotService] ℹ️ Staying on current step: ${currentStep.stepName}`);
+      }
+      
+    } catch (error) {
+      console.error('[ChatbotService] Error processing flow step:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Generate AI response based on current flow step
+   */
+  private async generateFlowResponse(
+    flowConfig: FlowConfig,
+    currentStep: FlowStep,
+    allSteps: FlowStep[],
+    messageContent: string,
+    conversationHistory: Array<{ role: string; content: string }>
+  ): Promise<{ mensagemAgente: string; proximaEtapaId: string | null } | null> {
+    try {
+      console.log('[ChatbotService] 🤖 Generating AI response using flow configuration...');
+      
+      // Build context for the AI
+      const systemPrompt = `${flowConfig.globalPrompt}
+
+ETAPA ATUAL: ${currentStep.stepName}
+OBJETIVO DA ETAPA: ${currentStep.objective}
+INSTRUÇÕES PARA ESTA ETAPA: ${currentStep.stepPrompt}
+
+INSTRUÇÕES DE ROTEAMENTO: ${currentStep.routingInstructions}
+
+ETAPAS DISPONÍVEIS NO FLUXO:
+${allSteps.map(s => `- ${s.stepId}: ${s.stepName}`).join('\n')}
+
+IMPORTANTE: 
+- Responda APENAS ao contexto desta etapa (${currentStep.stepName})
+- NÃO aborde outros assuntos fora do escopo desta etapa
+- Use as instruções de roteamento para decidir se deve avançar para outra etapa
+- Sua resposta deve ser natural, cordial e profissional`;
+
+      const messages: any[] = [
+        { role: 'system', content: systemPrompt }
+      ];
+      
+      // Add conversation history
+      conversationHistory.forEach(msg => {
+        messages.push({
+          role: msg.role === 'user' ? 'user' : 'assistant',
+          content: msg.content
+        });
+      });
+      
+      // Add current message
+      messages.push({
+        role: 'user',
+        content: messageContent
+      });
+      
+      // Add instruction for structured response
+      messages.push({
+        role: 'system',
+        content: `Baseado na mensagem do cliente e nas instruções de roteamento, responda em formato JSON com:
+{
+  "mensagemAgente": "sua resposta ao cliente aqui",
+  "proximaEtapaId": "id da próxima etapa (se aplicável) ou null para manter na etapa atual"
+}
+
+Lembre-se: Use EXATAMENTE os stepIds disponíveis listados acima. Se não for necessário mudar de etapa, use null.`
+      });
+      
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages,
+        temperature: 0.7,
+        max_tokens: 500
+      });
+      
+      const responseText = completion.choices[0]?.message?.content;
+      if (!responseText) {
+        console.error('[ChatbotService] No response from OpenAI');
+        return null;
+      }
+      
+      // Try to parse JSON response
+      try {
+        // Extract JSON from markdown code blocks if present
+        let jsonText = responseText.trim();
+        if (jsonText.includes('```json')) {
+          jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        } else if (jsonText.includes('```')) {
+          jsonText = jsonText.replace(/```\n?/g, '').trim();
+        }
+        
+        const parsed = JSON.parse(jsonText);
+        
+        // Validate response structure
+        if (!parsed.mensagemAgente) {
+          throw new Error('Missing mensagemAgente in response');
+        }
+        
+        return {
+          mensagemAgente: parsed.mensagemAgente,
+          proximaEtapaId: parsed.proximaEtapaId || null
+        };
+      } catch (parseError) {
+        console.error('[ChatbotService] Failed to parse AI response as JSON:', parseError);
+        console.log('[ChatbotService] Raw response:', responseText);
+        
+        // Fallback: use the text as message and stay on current step
+        return {
+          mensagemAgente: responseText,
+          proximaEtapaId: null
+        };
+      }
+      
+    } catch (error) {
+      console.error('[ChatbotService] Error generating flow response:', error);
+      return null;
+    }
+  }
+  
+  /**
+   * Get conversation history for context
+   */
+  private async getConversationHistory(
+    conversationId: string,
+    limit: number = 10
+  ): Promise<Array<{ role: string; content: string }>> {
+    try {
+      const recentMessages = await db.select()
+        .from(messages)
+        .where(eq(messages.conversationId, conversationId))
+        .orderBy(desc(messages.createdAt))
+        .limit(limit);
+      
+      // Reverse to get chronological order
+      return recentMessages.reverse().map(msg => ({
+        role: msg.isBot ? 'assistant' : 'user',
+        content: msg.content
+      }));
+    } catch (error) {
+      console.error('[ChatbotService] Error fetching conversation history:', error);
+      return [];
+    }
   }
 
   private async processStateMachine(
