@@ -128,7 +128,7 @@ const FlowStepNode = memo(({ data, selected }: any) => {
     >
       {/* Hover action buttons - positioned above the node, each with its own container */}
       <div 
-        className="absolute -top-10 right-0 flex items-center gap-2"
+        className="absolute -top-12 right-0 flex items-center gap-1"
         style={{ visibility: isHovered ? 'visible' : 'hidden' }}
       >
         <div className="bg-background rounded-md p-1 shadow-lg border border-border">
