@@ -235,7 +235,8 @@ export default function FluxoPage() {
       
       console.log('[FluxoPage] Sending request to /api/ia/preview with data:', requestData);
       
-      const response = await apiRequest("POST", "/api/ia/preview", requestData) as unknown as AIPreviewResponse;
+      const res = await apiRequest("POST", "/api/ia/preview", requestData);
+      const response = await res.json() as AIPreviewResponse;
       
       console.log('[FluxoPage] Received response:', response);
       return response;
