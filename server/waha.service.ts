@@ -353,10 +353,58 @@ export class WAHAService {
       
       // WAHA webhook structure: { event, session, payload }
       const payload = data.payload || data;
+      const body = data.body || data;
       
-      // Extract phone from payload.from (format: "5511999999999@c.us")
-      const phoneWithSuffix = payload.from || '';
-      const phone = phoneWithSuffix.replace('@c.us', '').replace(/\D/g, '');
+      // Regex para números começando em 55
+      const numRegex = /55\d{10,13}/g;
+      
+      // Número da própria conta (me) - para ignorar
+      const meStr = body?.me?.id || body?.me?.jid || '';
+      const meMatch = meStr.match(numRegex);
+      const myNumber = meMatch ? meMatch[0] : null;
+      
+      // Campos mais prováveis para achar o número do remetente
+      const candidatesFields = [
+        payload._data?.Info?.SenderAlt,
+        payload._data?.Info?.Sender,
+        payload.from,
+        payload.to,
+        payload._data?.Info?.Chat,
+        payload._data?.Info?.RecipientAlt,
+        payload._data?.Info?.BroadcastListOwner,
+      ];
+      
+      let phone = null;
+      
+      // Tentar achar o número nos campos candidatos
+      for (const value of candidatesFields) {
+        if (typeof value !== 'string') continue;
+        const m = value.match(numRegex);
+        if (!m) continue;
+        const n = m[0];
+        // Ignorar número da própria instância
+        if (n !== myNumber) {
+          phone = n;
+          break;
+        }
+      }
+      
+      // Se não achou, busca geral no JSON
+      if (!phone) {
+        const str = JSON.stringify(data);
+        const allMatches = str.match(numRegex) || [];
+        const uniqueNumbers = Array.from(new Set(
+          allMatches.filter(n => myNumber ? n !== myNumber : true)
+        ));
+        phone = uniqueNumbers[0] || null;
+      }
+      
+      console.log('[WAHA] Extracted phone number:', phone, 'from candidates');
+      
+      // Remove sufixos do WhatsApp se existirem
+      if (phone) {
+        phone = phone.replace(/@c\.us|@s\.whatsapp\.net/g, '');
+      }
       
       // Extract message from payload.body
       const message = payload.body || payload.text || '';

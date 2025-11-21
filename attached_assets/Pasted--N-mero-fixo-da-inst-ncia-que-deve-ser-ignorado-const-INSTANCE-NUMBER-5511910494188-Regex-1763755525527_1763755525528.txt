@@ -1,0 +1,94 @@
+// Número fixo da instância que deve ser ignorado
+const INSTANCE_NUMBER = '5511910494188';
+
+// Regex para números começando em 55
+const numRegex = /55\d{10,13}/g;
+
+const results = [];
+
+for (const item of items) {
+  const json = item.json;
+  const body = json.body;
+  const payload = body?.payload;
+
+  // ====== FILTRO: NÃO GERAR OUTPUT PARA MENSAGENS "AUTOMÁTICAS" ======
+  // Ajuste as condições conforme precisar:
+  const isAuto =
+    !payload ||                            // não tem payload
+    payload.fromMe === true ||             // mensagem enviada pela própria instância
+    payload._data?.Info?.IsFromMe === true ||
+    typeof payload.body !== 'string' ||    // sem texto
+    payload.body.trim() === '';
+
+  if (isAuto) {
+    // NÃO adiciona nada no results -> esse item some do fluxo
+    continue;
+  }
+  // ===================================================================
+
+  // Número da própria conta (me)
+  const meStr = body?.me?.id || body?.me?.jid || '';
+  const meMatch = meStr.match(numRegex);
+  const myNumber = meMatch ? meMatch[0] : INSTANCE_NUMBER;
+
+  let phone = null;
+
+  // Campos mais prováveis pra achar o número do remetente
+  const candidatesFields = [
+    payload._data?.Info?.SenderAlt,
+    payload._data?.Info?.Sender,
+    payload.from,
+    payload.to,
+    payload._data?.Info?.Chat,
+    payload._data?.Info?.RecipientAlt,
+    payload._data?.Info?.BroadcastListOwner,
+  ];
+
+  for (const value of candidatesFields) {
+    if (typeof value !== 'string') continue;
+    const m = value.match(numRegex);
+    if (!m) continue;
+    const n = m[0];
+    if (n !== INSTANCE_NUMBER && n !== myNumber) {
+      phone = n;
+      break;
+    }
+  }
+
+  // Se não achou, busca geral no JSON
+  if (!phone) {
+    const str = JSON.stringify(json);
+    const allMatches = str.match(numRegex) || [];
+    const filtered = [...new Set(
+      allMatches.filter(n => n !== INSTANCE_NUMBER && n !== myNumber)
+    )];
+    phone = filtered[0] || null;
+  }
+
+  // Captura da mensagem recebida
+  let message = '';
+
+  const messageCandidates = [
+    payload.body,
+    payload._data?.Message?.conversation,
+    payload._data?.RawMessage?.conversation,
+  ];
+
+  for (const v of messageCandidates) {
+    if (typeof v === 'string' && v.trim() !== '') {
+      message = v;
+      break;
+    }
+  }
+
+  // Adiciona item de saída
+  results.push({
+    json: {
+      whatsappNumber: phone ? String(phone) : '',
+      message: message,
+    },
+  });
+}
+
+// Se todos os items forem "automáticos", results ficará [] e o OUTPUT do node será vazio
+return results;
