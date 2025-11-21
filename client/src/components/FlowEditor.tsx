@@ -67,12 +67,12 @@ const FlowStepNode = memo(({ data, selected }: any) => {
       }`}
       data-testid={`node-${data.stepId}`}
     >
-      {/* Drag handle - only this area allows moving the node */}
+      {/* Drag handle - visual indicator */}
       <div 
-        className="drag-handle absolute top-0 left-0 h-full w-8 flex items-center justify-center cursor-move opacity-0 hover:opacity-100 transition-opacity"
+        className="absolute top-0 left-0 h-full w-8 flex items-center justify-center cursor-move"
         data-testid={`drag-handle-${data.stepId}`}
       >
-        <GripVertical className="w-4 h-4 text-muted-foreground" />
+        <GripVertical className="w-4 h-4 text-muted-foreground/40" />
       </div>
       
       <div className="space-y-1">
@@ -313,7 +313,6 @@ function FlowEditorInner({ steps, onStepsChange, onNodeSelect, selectedNodeId }:
             id: step.stepId,
             type: 'flowStep',
             position,
-            dragHandle: '.drag-handle',
             data: {
               stepId: step.stepId,
               stepName: step.stepName,
