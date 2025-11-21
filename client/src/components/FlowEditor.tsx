@@ -112,45 +112,6 @@ const FlowStepNode = memo(({ data, selected }: any) => {
         title="Arrastar para conectar a outra etapa"
         data-testid={`handle-source-right-${data.stepId}`}
       />
-      
-      {/* Invisible full-body handles for Easy Connect - click anywhere to connect */}
-      <Handle
-        type="source"
-        position={Position.Top}
-        className="!opacity-0 !w-full !h-full !inset-0 !rounded-md !border-0"
-        style={{ 
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          background: 'transparent',
-          border: 'none',
-          cursor: 'crosshair',
-          transform: 'none',
-        }}
-        title="Clique para conectar a outra etapa"
-        data-testid={`handle-source-body-${data.stepId}`}
-      />
-      
-      <Handle
-        type="target"
-        position={Position.Bottom}
-        className="!opacity-0 !w-full !h-full !inset-0 !rounded-md !border-0"
-        style={{ 
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          background: 'transparent',
-          border: 'none',
-          cursor: 'crosshair',
-          transform: 'none',
-        }}
-        title="Conectar de outra etapa para esta"
-        data-testid={`handle-target-body-${data.stepId}`}
-      />
     </div>
   );
 });
