@@ -8,7 +8,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Loader2, Save, RotateCcw, ChevronDown } from "lucide-react";
+import { Loader2, Save, RotateCcw, ChevronDown, TestTube } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useState, useEffect } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -32,6 +32,9 @@ type Settings = {
 export default function SettingsPage() {
   const { toast } = useToast();
   const [isBufferSectionOpen, setIsBufferSectionOpen] = useState(false);
+  const [isTestSectionOpen, setIsTestSectionOpen] = useState(false);
+  const [testPhone, setTestPhone] = useState("+5511999999999");
+  const [testResult, setTestResult] = useState<any>(null);
 
   const { data: settings, isLoading } = useQuery<Settings>({
     queryKey: ["/api/settings"],
@@ -71,8 +74,42 @@ export default function SettingsPage() {
 
   // Mutations da conexão WhatsApp removidas
 
+  const testBufferMutation = useMutation({
+    mutationFn: async (phone: string) => {
+      const response = await apiRequest("POST", "/api/test/buffer-flow", { phone });
+      return response as any; // API returns buffer debug info
+    },
+    onSuccess: (data: any) => {
+      setTestResult(data);
+      toast({
+        title: "Teste executado!",
+        description: `Buffer encontrado: ${data.bufferSeconds}s (fonte: ${data.bufferSource})`,
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Erro no teste",
+        description: "Não foi possível executar o teste do buffer.",
+        variant: "destructive"
+      });
+    }
+  });
+
   const onSubmit = (data: SettingsForm) => {
     updateMutation.mutate(data);
+  };
+
+  const runBufferTest = () => {
+    if (!testPhone || testPhone.trim() === '') {
+      toast({
+        title: "Telefone inválido",
+        description: "Por favor, insira um número de telefone válido.",
+        variant: "destructive"
+      });
+      return;
+    }
+    setTestResult(null);
+    testBufferMutation.mutate(testPhone);
   };
 
   const resetToDefault = () => {
@@ -164,6 +201,112 @@ export default function SettingsPage() {
                     </div>
                   </form>
                 </Form>
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+
+        {/* Test Buffer Section */}
+        <Collapsible open={isTestSectionOpen} onOpenChange={setIsTestSectionOpen} className="mt-4">
+          <Card>
+            <CollapsibleTrigger asChild>
+              <CardHeader className={`cursor-pointer hover-elevate active-elevate-2 rounded-t-xl ${!isTestSectionOpen ? 'rounded-b-xl' : ''}`}>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex-1">
+                    <CardTitle className="text-lg text-primary">Teste de Buffer por Node</CardTitle>
+                    <CardDescription className="text-xs">
+                      Valide o buffer configurável por step do fluxo
+                    </CardDescription>
+                  </div>
+                  <ChevronDown 
+                    className={`h-5 w-5 transition-transform duration-200 ${isTestSectionOpen ? 'rotate-180' : ''}`}
+                    data-testid="icon-chevron-test"
+                  />
+                </div>
+              </CardHeader>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent className="space-y-4">
+                <Alert>
+                  <TestTube className="h-4 w-4" />
+                  <AlertDescription>
+                    Este endpoint simula o fluxo de mensagem e retorna informações sobre o buffer configurado para o telefone testado.
+                  </AlertDescription>
+                </Alert>
+
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label htmlFor="test-phone" className="text-sm font-medium">
+                      Número de Telefone
+                    </label>
+                    <Input
+                      id="test-phone"
+                      type="text"
+                      value={testPhone}
+                      onChange={(e) => setTestPhone(e.target.value)}
+                      placeholder="+5511999999999"
+                      data-testid="input-test-phone"
+                      className="max-w-md"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Digite um número de telefone para testar o buffer (com código do país)
+                    </p>
+                  </div>
+
+                  <Button
+                    onClick={runBufferTest}
+                    disabled={testBufferMutation.isPending}
+                    data-testid="button-test-buffer"
+                  >
+                    {testBufferMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Testando...
+                      </>
+                    ) : (
+                      <>
+                        <TestTube className="mr-2 h-4 w-4" />
+                        Executar Teste
+                      </>
+                    )}
+                  </Button>
+
+                  {testResult && (
+                    <div className="mt-4 p-4 bg-muted rounded-md space-y-2" data-testid="test-result">
+                      <h4 className="font-semibold text-sm">Resultado do Teste:</h4>
+                      <div className="text-xs space-y-1 font-mono">
+                        <p><strong>Telefone:</strong> {testResult.phone}</p>
+                        <p><strong>Step Atual:</strong> {testResult.currentStepName || testResult.currentStepId || 'N/A'}</p>
+                        <p><strong>Buffer (segundos):</strong> <span className="text-primary font-bold">{testResult.bufferSeconds}s</span></p>
+                        <p><strong>Buffer (ms):</strong> {testResult.bufferMs}ms</p>
+                        <p><strong>Fonte do Buffer:</strong> 
+                          <span className={`ml-2 font-bold ${
+                            testResult.bufferSource === 'step' ? 'text-green-600 dark:text-green-400' :
+                            testResult.bufferSource === 'global' ? 'text-yellow-600 dark:text-yellow-400' :
+                            'text-blue-600 dark:text-blue-400'
+                          }`}>
+                            {testResult.bufferSource}
+                          </span>
+                        </p>
+                        {testResult.leadId && <p><strong>Lead ID:</strong> {testResult.leadId}</p>}
+                        {testResult.conversationId && <p><strong>Conversation ID:</strong> {testResult.conversationId}</p>}
+                        {testResult.allSteps && testResult.allSteps.length > 0 && (
+                          <div className="mt-2">
+                            <p className="font-semibold mb-1">Steps do Fluxo Ativo:</p>
+                            <ul className="ml-4 space-y-1">
+                              {testResult.allSteps.map((step: any) => (
+                                <li key={step.stepId} className={step.stepId === testResult.currentStepId ? 'text-primary font-bold' : ''}>
+                                  {step.order}. {step.stepName} - Buffer: {step.buffer}s
+                                  {step.stepId === testResult.currentStepId && ' ← ATUAL'}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </CollapsibleContent>
           </Card>

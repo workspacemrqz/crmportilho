@@ -730,6 +730,17 @@ export class PgStorage implements IStorage {
       .from(flowSteps)
       .where(eq(flowSteps.flowConfigId, flowConfigId))
       .orderBy(asc(flowSteps.order), asc(flowSteps.createdAt));
+    
+    // Debug: verificar se buffer está presente (linha adicionada para diagnóstico)
+    if (steps.length > 0) {
+      console.log('[PgStorage] getFlowSteps returned:', steps.map(s => ({
+        stepId: s.stepId,
+        stepName: s.stepName,
+        buffer: (s as any).buffer,
+        hasBuffer: 'buffer' in s
+      })));
+    }
+    
     return steps;
   }
 

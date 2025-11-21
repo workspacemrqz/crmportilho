@@ -336,6 +336,145 @@ export class ChatbotService {
     return await this.getBufferTimeout();
   }
 
+  /**
+   * Public method to get buffer debug information for testing
+   * Returns detailed information about buffer configuration for a phone number
+   */
+  public async getBufferDebugInfo(phone: string): Promise<{
+    phone: string;
+    currentStepId: string | null;
+    currentStepName: string | null;
+    bufferSeconds: number;
+    bufferMs: number;
+    bufferSource: 'step' | 'global' | 'custom';
+    allSteps: Array<{
+      stepId: string;
+      stepName: string;
+      order: number;
+      buffer: number;
+    }>;
+    leadId: string | null;
+    conversationId: string | null;
+    chatbotStateId: string | null;
+  }> {
+    try {
+      const { storage } = await import('./storage');
+      
+      // Clean phone number
+      const cleanPhone = phone.replace(/\D/g, '');
+      
+      // Check for custom timeout first
+      const customTimeout = this.customBufferTimeouts.get(cleanPhone);
+      if (customTimeout !== undefined) {
+        return {
+          phone: cleanPhone,
+          currentStepId: null,
+          currentStepName: null,
+          bufferSeconds: customTimeout / 1000,
+          bufferMs: customTimeout,
+          bufferSource: 'custom',
+          allSteps: [],
+          leadId: null,
+          conversationId: null,
+          chatbotStateId: null
+        };
+      }
+      
+      // Find or create lead
+      let lead = await storage.getLeadByPhone(cleanPhone);
+      if (!lead) {
+        // Create a temporary lead for testing
+        lead = await storage.createLead({
+          whatsappPhone: cleanPhone,
+          phone: cleanPhone,
+          protocol: `TEST-${Date.now()}`
+        });
+      }
+      
+      // Find or create conversation
+      let conversation = await storage.getActiveConversation(lead.id);
+      if (!conversation) {
+        conversation = await storage.createConversation({
+          leadId: lead.id,
+          protocol: lead.protocol,
+          status: 'active',
+          currentMenu: 'initial',
+          currentStep: 'welcome'
+        });
+      }
+      
+      // Get or create chatbot state
+      let chatbotState = await storage.getChatbotState(conversation.id);
+      if (!chatbotState) {
+        chatbotState = await storage.createChatbotState({
+          conversationId: conversation.id,
+          currentState: 'welcome',
+          context: {},
+          collectedData: {},
+          menuSelections: {}
+        });
+      }
+      
+      // Try to get active flow and current step
+      const flowConfig = await this.getActiveFlow();
+      if (flowConfig) {
+        const steps = await this.getFlowSteps(flowConfig.id);
+        if (steps.length > 0) {
+          const currentStep = await this.identifyCurrentStep(chatbotState, steps);
+          
+          if (currentStep) {
+            const buffer = (currentStep as any).buffer;
+            let bufferSeconds = Number(buffer);
+            
+            // Validate and clamp buffer value
+            if (!isFinite(bufferSeconds) || bufferSeconds < 1) {
+              bufferSeconds = 1;
+            } else if (bufferSeconds > 300) {
+              bufferSeconds = 300;
+            }
+            
+            return {
+              phone: cleanPhone,
+              currentStepId: currentStep.stepId,
+              currentStepName: currentStep.stepName,
+              bufferSeconds,
+              bufferMs: bufferSeconds * 1000,
+              bufferSource: 'step',
+              allSteps: steps.map(s => ({
+                stepId: s.stepId,
+                stepName: s.stepName,
+                order: s.order,
+                buffer: Number((s as any).buffer) || 30
+              })),
+              leadId: lead.id,
+              conversationId: conversation.id,
+              chatbotStateId: chatbotState.id
+            };
+          }
+        }
+      }
+      
+      // Fallback to global buffer
+      const globalBufferMs = await this.getBufferTimeout();
+      return {
+        phone: cleanPhone,
+        currentStepId: chatbotState.currentState,
+        currentStepName: null,
+        bufferSeconds: globalBufferMs / 1000,
+        bufferMs: globalBufferMs,
+        bufferSource: 'global',
+        allSteps: [],
+        leadId: lead.id,
+        conversationId: conversation.id,
+        chatbotStateId: chatbotState.id
+      };
+      
+    } catch (error) {
+      console.error('[ChatbotService] Error getting buffer debug info:', error);
+      throw error;
+    }
+  }
+
   async processIncomingMessage(phone: string, messageContent: string, messageData: any) {
     try {
       console.log(`[ChatbotService] processIncomingMessage called with phone: ${phone}`);

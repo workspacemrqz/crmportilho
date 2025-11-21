@@ -610,6 +610,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   );
 
+  // Test endpoint for buffer validation (no auth required for testing)
+  app.post('/api/test/buffer-flow', async (req: Request, res: Response) => {
+    try {
+      const { phone, message } = req.body;
+      
+      // Validate input
+      if (!phone) {
+        return res.status(400).json({
+          error: 'Missing phone',
+          message: 'Phone number is required'
+        });
+      }
+      
+      console.log('[TEST-BUFFER] 🧪 Testing buffer flow for phone:', phone);
+      console.log('[TEST-BUFFER] Message:', message || '(no message)');
+      
+      // Get buffer debug info from chatbot service
+      const debugInfo = await chatbotService.getBufferDebugInfo(phone);
+      
+      console.log('[TEST-BUFFER] ✅ Buffer info retrieved:', {
+        currentStep: debugInfo.currentStepName,
+        bufferSeconds: debugInfo.bufferSeconds,
+        source: debugInfo.bufferSource
+      });
+      
+      // Return comprehensive debug information
+      return res.json({
+        success: true,
+        phone: debugInfo.phone,
+        currentStepId: debugInfo.currentStepId,
+        currentStepName: debugInfo.currentStepName,
+        bufferSeconds: debugInfo.bufferSeconds,
+        bufferMs: debugInfo.bufferMs,
+        bufferSource: debugInfo.bufferSource,
+        allSteps: debugInfo.allSteps,
+        leadId: debugInfo.leadId,
+        conversationId: debugInfo.conversationId,
+        chatbotStateId: debugInfo.chatbotStateId,
+        message: message || null
+      });
+      
+    } catch (error) {
+      console.error('[TEST-BUFFER] ❌ Error:', error);
+      return res.status(500).json({
+        error: 'Server error',
+        message: error instanceof Error ? error.message : 'Unknown error occurred'
+      });
+    }
+  });
+
   // Apply authentication middleware to all protected API routes
   app.use('/api/leads', requireAuth);
   app.use('/api/conversations', requireAuth);
