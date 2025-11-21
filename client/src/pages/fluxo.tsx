@@ -322,19 +322,15 @@ export default function FluxoPage() {
   }
 
   return (
-    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 max-w-7xl mx-auto">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="flex flex-col h-screen w-full">
+      <div className="flex items-center justify-between p-4 border-b">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold" data-testid="text-page-title">Fluxo de Atendimento</h1>
-          <p className="text-muted-foreground mt-1 text-sm sm:text-base">
-            Configure mensagens, regras e fluxo inteligente com IA para atendimento via WhatsApp
-          </p>
+          <h1 className="text-2xl font-bold" data-testid="text-page-title">Editor Visual de Fluxo</h1>
         </div>
         <Button
           onClick={() => saveMutation.mutate()}
           disabled={saveMutation.isPending}
           size="lg"
-          className="w-full sm:w-auto"
           data-testid="button-save-flow"
         >
           {saveMutation.isPending ? (
@@ -351,184 +347,42 @@ export default function FluxoPage() {
         </Button>
       </div>
 
-      <Alert>
-        <AlertDescription>
-          O fluxo entre as etapas é decidido pela IA com base nas instruções em linguagem natural que você escrever. 
-          A IA analisa o contexto da conversa e escolhe automaticamente a próxima etapa sem necessidade de programação.
-        </AlertDescription>
-      </Alert>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>1. Mensagens Padrão</CardTitle>
-          <CardDescription>
-            Configure as mensagens padrão que serão enviadas automaticamente no início do atendimento
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="welcome-message">Mensagem de Boas-vindas</Label>
-            <Textarea
-              id="welcome-message"
-              value={config.welcomeMessage}
-              onChange={(e) => setConfig({ ...config, welcomeMessage: e.target.value })}
-              rows={6}
-              placeholder="Mensagem de boas-vindas..."
-              data-testid="textarea-welcome-message"
+      <div className="flex-1 overflow-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-full p-4">
+          <div className="lg:col-span-2 h-full">
+            <FlowEditor
+              steps={steps}
+              onStepsChange={setSteps}
+              onNodeSelect={handleNodeSelect}
+              selectedNodeId={selectedNodeId}
             />
           </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="institutional-message">Mensagem Institucional</Label>
-            <Textarea
-              id="institutional-message"
-              value={config.institutionalMessage}
-              onChange={(e) => setConfig({ ...config, institutionalMessage: e.target.value })}
-              rows={4}
-              placeholder="Informações sobre a empresa..."
-              data-testid="textarea-institutional-message"
+          
+          <div className="lg:col-span-1 h-full border rounded-md bg-card overflow-hidden">
+            <NodeEditPanel
+              selectedNode={selectedNode}
+              allSteps={steps}
+              onNodeUpdate={handleNodeUpdate}
+              onNodeDelete={handleNodeDelete}
+              onTestWithAI={(step) => {
+                if (!step.exampleMessage || step.exampleMessage.trim() === "") {
+                  toast({
+                    title: "Mensagem necessária",
+                    description: "Digite uma mensagem de exemplo do cliente para testar.",
+                    variant: "destructive"
+                  });
+                  return;
+                }
+                previewMutation.mutate({ step, message: step.exampleMessage });
+              }}
+              isTestingAI={previewMutation.isPending}
+              aiPreviewResult={selectedNode && previewResults.has(selectedNode.stepId) 
+                ? previewResults.get(selectedNode.stepId) 
+                : null}
             />
           </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="important-instructions">Instruções Importantes</Label>
-            <Textarea
-              id="important-instructions"
-              value={config.importantInstructions}
-              onChange={(e) => setConfig({ ...config, importantInstructions: e.target.value })}
-              rows={4}
-              placeholder="Instruções importantes para o atendimento..."
-              data-testid="textarea-important-instructions"
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 space-y-0">
-          <div>
-            <CardTitle>2. Regras de Resposta por Palavra-chave</CardTitle>
-            <CardDescription>
-              Respostas automáticas simples quando o lead mencionar palavras ou frases específicas
-            </CardDescription>
-          </div>
-          <Button onClick={addKeyword} variant="outline" size="sm" className="w-full sm:w-auto" data-testid="button-add-keyword">
-            <Plus className="w-4 h-4 mr-1" />
-            Adicionar Regra
-          </Button>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {keywords.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">
-              Nenhuma regra configurada. Clique em "Adicionar Regra" para começar.
-            </p>
-          ) : (
-            keywords.map((keyword, index) => (
-              <div key={index} className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-start p-3 sm:p-4 border rounded-md">
-                <div className="flex-1 w-full space-y-3">
-                  <div className="space-y-2">
-                    <Label>Palavra-chave do lead</Label>
-                    <Input
-                      value={keyword.keyword}
-                      onChange={(e) => updateKeyword(index, 'keyword', e.target.value)}
-                      placeholder='Ex: "oi", "bom dia", "link"'
-                      data-testid={`input-keyword-${index}`}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Resposta automática</Label>
-                    <Textarea
-                      value={keyword.response}
-                      onChange={(e) => updateKeyword(index, 'response', e.target.value)}
-                      rows={2}
-                      placeholder="Mensagem que será enviada quando o lead usar esta palavra-chave"
-                      data-testid={`textarea-keyword-response-${index}`}
-                    />
-                  </div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => removeKeyword(index)}
-                  className="self-end sm:self-start"
-                  data-testid={`button-remove-keyword-${index}`}
-                >
-                  <Trash2 className="w-4 h-4 text-destructive" />
-                </Button>
-              </div>
-            ))
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>3. Fluxo com IA</CardTitle>
-          <CardDescription>
-            Configure o comportamento global do agente e as etapas do fluxo de atendimento
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="global-prompt">Prompt Global do Agente / Fluxo</Label>
-            <Textarea
-              id="global-prompt"
-              value={config.globalPrompt}
-              onChange={(e) => setConfig({ ...config, globalPrompt: e.target.value })}
-              rows={8}
-              placeholder="Defina o papel, tom de voz e objetivo geral do agente de IA..."
-              data-testid="textarea-global-prompt"
-            />
-            <p className="text-sm text-muted-foreground">
-              Este prompt será usado em todas as interações da IA como contexto global
-            </p>
-          </div>
-
-          <div className="border-t pt-6">
-            <h3 className="text-lg font-semibold mb-4">Editor Visual de Fluxo</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Arraste os nodes para organizar, conecte-os criando transições, e clique para editar os detalhes no painel lateral.
-            </p>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              <div className="lg:col-span-2">
-                <FlowEditor
-                  steps={steps}
-                  onStepsChange={setSteps}
-                  onNodeSelect={handleNodeSelect}
-                  selectedNodeId={selectedNodeId}
-                />
-              </div>
-              
-              <div className="lg:col-span-1">
-                <div className="border rounded-md h-[600px] bg-card">
-                  <NodeEditPanel
-                    selectedNode={selectedNode}
-                    allSteps={steps}
-                    onNodeUpdate={handleNodeUpdate}
-                    onNodeDelete={handleNodeDelete}
-                    onTestWithAI={(step) => {
-                      if (!step.exampleMessage || step.exampleMessage.trim() === "") {
-                        toast({
-                          title: "Mensagem necessária",
-                          description: "Digite uma mensagem de exemplo do cliente para testar.",
-                          variant: "destructive"
-                        });
-                        return;
-                      }
-                      previewMutation.mutate({ step, message: step.exampleMessage });
-                    }}
-                    isTestingAI={previewMutation.isPending}
-                    aiPreviewResult={selectedNode && previewResults.has(selectedNode.stepId) 
-                      ? previewResults.get(selectedNode.stepId) 
-                      : null}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }
