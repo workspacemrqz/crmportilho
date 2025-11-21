@@ -230,7 +230,7 @@ function FlowEditorInner({ steps, onStepsChange, onNodeSelect, selectedNodeId }:
   }, [steps, onStepsChange, onNodeSelect]);
 
   return (
-    <div className="w-full h-[600px] border rounded-md bg-background relative">
+    <div className="w-full h-full border rounded-md bg-background relative">
       {invalidTransitions.length > 0 && (
         <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 max-w-md">
           <Alert variant="destructive">

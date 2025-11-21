@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Plus, Sparkles, Loader2 } from 'lucide-react';
+import { Trash2, Plus, Sparkles, Loader2, X } from 'lucide-react';
 import { StepTransition } from '@shared/schema';
 import {
   Select,
@@ -14,6 +14,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 type FlowStep = {
   id?: string;
@@ -39,6 +46,7 @@ type NodeEditPanelProps = {
     mensagemAgente: string;
     proximaEtapaId: string | null;
   } | null;
+  onClose?: () => void;
 };
 
 export default function NodeEditPanel({
@@ -49,6 +57,7 @@ export default function NodeEditPanel({
   onTestWithAI,
   isTestingAI,
   aiPreviewResult,
+  onClose,
 }: NodeEditPanelProps) {
   const [editedNode, setEditedNode] = useState<FlowStep | null>(null);
 
@@ -60,19 +69,13 @@ export default function NodeEditPanel({
     }
   }, [selectedNode]);
 
+  const handleClose = () => {
+    setEditedNode(null);
+    onClose?.();
+  };
+
   if (!editedNode || !selectedNode) {
-    return (
-      <div className="h-full flex items-center justify-center p-6 text-center">
-        <div className="space-y-2">
-          <p className="text-sm text-muted-foreground">
-            Selecione uma etapa no canvas para editar
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Ou clique em "Adicionar Etapa" para criar uma nova
-          </p>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   const updateField = (field: keyof FlowStep, value: any) => {
@@ -123,29 +126,27 @@ export default function NodeEditPanel({
   const availableTargets = allSteps.filter(s => s.stepId !== editedNode.stepId);
 
   return (
-    <div className="h-full overflow-y-auto">
-      <Card className="border-0 shadow-none">
-        <CardHeader className="sticky top-0 bg-card z-10 border-b pb-4">
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex-1 min-w-0">
-              <CardTitle className="text-lg truncate">Editar Etapa</CardTitle>
-              <CardDescription className="text-xs mt-1">
-                Configure os detalhes desta etapa
-              </CardDescription>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleDelete}
-              className="flex-shrink-0"
-              data-testid="button-delete-node"
-            >
-              <Trash2 className="w-4 h-4 text-destructive" />
-            </Button>
+    <Dialog open={!!selectedNode} onOpenChange={handleClose}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="flex items-start justify-between">
+          <div>
+            <DialogTitle>Editar Etapa: {editedNode.stepName}</DialogTitle>
+            <DialogDescription className="text-xs mt-1">
+              Configure os detalhes desta etapa
+            </DialogDescription>
           </div>
-        </CardHeader>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleDelete}
+            className="flex-shrink-0"
+            data-testid="button-delete-node"
+          >
+            <Trash2 className="w-4 h-4 text-destructive" />
+          </Button>
+        </DialogHeader>
 
-        <CardContent className="space-y-6 pt-6">
+        <div className="space-y-6">
           <div className="grid grid-cols-1 gap-4">
             <div className="space-y-2">
               <Label htmlFor="step-id">ID da Etapa</Label>
@@ -336,8 +337,8 @@ export default function NodeEditPanel({
               )}
             </div>
           </div>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

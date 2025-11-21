@@ -347,41 +347,36 @@ export default function FluxoPage() {
         </Button>
       </div>
 
-      <div className="flex-1 overflow-hidden">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-full p-4">
-          <div className="lg:col-span-2 h-full">
-            <FlowEditor
-              steps={steps}
-              onStepsChange={setSteps}
-              onNodeSelect={handleNodeSelect}
-              selectedNodeId={selectedNodeId}
-            />
-          </div>
-          
-          <div className="lg:col-span-1 h-full border rounded-md bg-card overflow-hidden">
-            <NodeEditPanel
-              selectedNode={selectedNode}
-              allSteps={steps}
-              onNodeUpdate={handleNodeUpdate}
-              onNodeDelete={handleNodeDelete}
-              onTestWithAI={(step) => {
-                if (!step.exampleMessage || step.exampleMessage.trim() === "") {
-                  toast({
-                    title: "Mensagem necessária",
-                    description: "Digite uma mensagem de exemplo do cliente para testar.",
-                    variant: "destructive"
-                  });
-                  return;
-                }
-                previewMutation.mutate({ step, message: step.exampleMessage });
-              }}
-              isTestingAI={previewMutation.isPending}
-              aiPreviewResult={selectedNode && previewResults.has(selectedNode.stepId) 
-                ? previewResults.get(selectedNode.stepId) 
-                : null}
-            />
-          </div>
-        </div>
+      <div className="flex-1 overflow-hidden p-4">
+        <FlowEditor
+          steps={steps}
+          onStepsChange={setSteps}
+          onNodeSelect={handleNodeSelect}
+          selectedNodeId={selectedNodeId}
+        />
+        
+        <NodeEditPanel
+          selectedNode={selectedNode}
+          allSteps={steps}
+          onNodeUpdate={handleNodeUpdate}
+          onNodeDelete={handleNodeDelete}
+          onTestWithAI={(step) => {
+            if (!step.exampleMessage || step.exampleMessage.trim() === "") {
+              toast({
+                title: "Mensagem necessária",
+                description: "Digite uma mensagem de exemplo do cliente para testar.",
+                variant: "destructive"
+              });
+              return;
+            }
+            previewMutation.mutate({ step, message: step.exampleMessage });
+          }}
+          isTestingAI={previewMutation.isPending}
+          aiPreviewResult={selectedNode && previewResults.has(selectedNode.stepId) 
+            ? previewResults.get(selectedNode.stepId) 
+            : null}
+          onClose={() => setSelectedNodeId(null)}
+        />
       </div>
     </div>
   );
