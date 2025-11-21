@@ -450,7 +450,6 @@ export default function FluxoPage() {
           selectedNode={selectedNode}
           allSteps={steps}
           onNodeUpdate={handleNodeUpdate}
-          onNodeDelete={handleNodeDelete}
           onRegenerateStepId={handleRegenerateStepId}
           onTestWithAI={(step) => {
             if (!step.exampleMessage || step.exampleMessage.trim() === "") {

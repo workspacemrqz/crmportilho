@@ -40,7 +40,6 @@ type NodeEditPanelProps = {
   selectedNode: FlowStep | null;
   allSteps: FlowStep[];
   onNodeUpdate: (updatedNode: FlowStep) => void;
-  onNodeDelete: (stepId: string) => void;
   onRegenerateStepId: (oldStepId: string, newTitle: string) => void;
   onTestWithAI: (step: FlowStep) => void;
   isTestingAI: boolean;
@@ -55,7 +54,6 @@ export default function NodeEditPanel({
   selectedNode,
   allSteps,
   onNodeUpdate,
-  onNodeDelete,
   onRegenerateStepId,
   onTestWithAI,
   isTestingAI,
@@ -112,12 +110,6 @@ export default function NodeEditPanel({
     updateField('transitions', updatedTransitions);
   };
 
-  const handleDelete = () => {
-    if (window.confirm(`Tem certeza que deseja excluir a etapa "${editedNode.stepName}"?`)) {
-      onNodeDelete(editedNode.stepId);
-    }
-  };
-
   const handleTestAI = () => {
     console.log('[NodeEditPanel] handleTestAI called');
     console.log('[NodeEditPanel] editedNode:', editedNode);
@@ -136,65 +128,50 @@ export default function NodeEditPanel({
   return (
     <Dialog open={!!selectedNode} onOpenChange={handleClose}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader className="flex items-start justify-between">
-          <div>
-            <DialogTitle>Editar Etapa: {editedNode.stepName}</DialogTitle>
-            <DialogDescription className="text-xs mt-1">
-              Configure os detalhes desta etapa
-            </DialogDescription>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleDelete}
-            className="flex-shrink-0"
-            data-testid="button-delete-node"
-          >
-            <Trash2 className="w-4 h-4 text-destructive" />
-          </Button>
+        <DialogHeader>
+          <DialogTitle>Editar Etapa: {editedNode.stepName}</DialogTitle>
+          <DialogDescription>
+            Configure os detalhes desta etapa
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="step-name">Nome da Etapa</Label>
             <Input
               id="step-name"
               value={editedNode.stepName}
               onChange={(e) => updateField('stepName', e.target.value)}
-              placeholder="Identificação Inicial"
+              placeholder="Ex: Identificação Inicial"
               data-testid="input-edit-step-name"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="step-id">
-              ID da Etapa
-              <span className="text-xs text-muted-foreground ml-2">
-                (clique no botão para gerar a partir do título)
-              </span>
-            </Label>
-            <div className="flex gap-2">
-              <Input
-                id="step-id"
-                value={editedNode.stepId}
-                disabled
-                className="flex-1 bg-muted"
-                data-testid="input-edit-step-id"
-              />
+            <Label htmlFor="step-id" className="flex items-center justify-between">
+              <span>ID da Etapa</span>
               <Button
-                variant="outline"
-                size="icon"
+                variant="ghost"
+                size="sm"
                 onClick={() => onRegenerateStepId(editedNode.stepId, editedNode.stepName)}
-                title="Gerar ID a partir do título"
+                className="h-6 text-xs"
                 data-testid="button-regenerate-step-id"
               >
-                <RefreshCw className="w-4 h-4" />
+                <RefreshCw className="w-3 h-3 mr-1" />
+                Gerar novo ID
               </Button>
-            </div>
+            </Label>
+            <Input
+              id="step-id"
+              value={editedNode.stepId}
+              disabled
+              className="bg-muted"
+              data-testid="input-edit-step-id"
+            />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="objective">Objetivo da Etapa</Label>
+            <Label htmlFor="objective">Objetivo</Label>
             <Textarea
               id="objective"
               value={editedNode.objective}
@@ -206,7 +183,7 @@ export default function NodeEditPanel({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="step-prompt">Prompt da Etapa</Label>
+            <Label htmlFor="step-prompt">Prompt</Label>
             <Textarea
               id="step-prompt"
               value={editedNode.stepPrompt}
@@ -224,12 +201,9 @@ export default function NodeEditPanel({
               value={editedNode.routingInstructions}
               onChange={(e) => updateField('routingInstructions', e.target.value)}
               rows={3}
-              placeholder="Instruções em linguagem natural para a IA decidir o próximo passo"
+              placeholder="Como a IA deve decidir o próximo passo"
               data-testid="textarea-edit-routing"
             />
-            <p className="text-xs text-muted-foreground">
-              A IA usará estas instruções para decidir qual etapa seguir
-            </p>
           </div>
 
           <div className="space-y-2">
@@ -245,7 +219,7 @@ export default function NodeEditPanel({
               data-testid="input-buffer"
             />
             <p className="text-xs text-muted-foreground">
-              Tempo em segundos para coletar múltiplas mensagens do usuário antes de gerar uma resposta
+              Tempo para coletar mensagens antes de responder
             </p>
           </div>
 
