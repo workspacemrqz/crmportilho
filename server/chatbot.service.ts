@@ -1195,10 +1195,41 @@ export class ChatbotService {
         return;
       }
       
-      // Send the fixed message
-      const fixedMessage = currentStep.stepPrompt;
-      console.log(`[ChatbotService] 📤 Sending fixed message: "${fixedMessage.substring(0, 100)}..."`);
-      await this.sendMessageWithRetry(lead.whatsappPhone, fixedMessage, conversation.id);
+      // Parse stepPrompt to check if it contains multiple messages (JSON array)
+      let messages: string[] = [];
+      try {
+        const parsed = JSON.parse(currentStep.stepPrompt);
+        if (Array.isArray(parsed)) {
+          messages = parsed;
+          console.log(`[ChatbotService] 📨 Detected ${messages.length} messages in stepPrompt array`);
+        } else {
+          // Not an array, treat as single message
+          messages = [currentStep.stepPrompt];
+          console.log(`[ChatbotService] 📤 stepPrompt is JSON but not an array, treating as single message`);
+        }
+      } catch {
+        // Not valid JSON, treat as single message (backward compatibility)
+        messages = [currentStep.stepPrompt];
+        console.log(`[ChatbotService] 📤 stepPrompt is plain text, treating as single message`);
+      }
+      
+      // Send messages sequentially with random delay between them
+      for (let i = 0; i < messages.length; i++) {
+        const message = messages[i];
+        console.log(`[ChatbotService] 📤 Sending message ${i + 1}/${messages.length}: "${message.substring(0, 100)}..."`);
+        await this.sendMessageWithRetry(lead.whatsappPhone, message, conversation.id);
+        console.log(`[ChatbotService] ✅ Message ${i + 1}/${messages.length} sent successfully`);
+        
+        // Add random delay between messages (except after the last one)
+        if (i < messages.length - 1) {
+          // Random delay between 2000ms (2s) and 4000ms (4s)
+          const randomDelay = Math.floor(Math.random() * 2000) + 2000;
+          console.log(`[ChatbotService] ⏱️ Waiting ${randomDelay}ms before sending next message...`);
+          await new Promise(resolve => setTimeout(resolve, randomDelay));
+        }
+      }
+      
+      console.log(`[ChatbotService] ✅ All ${messages.length} message(s) sent successfully`);
       
       // Determine next step based on number of transitions
       if (transitions.length === 0) {
