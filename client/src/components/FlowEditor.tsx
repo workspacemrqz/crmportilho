@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import ReactFlow, {
   Node,
   Edge,
@@ -16,12 +16,36 @@ import ReactFlow, {
   Panel,
   Handle,
   Position,
+  applyNodeChanges,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { FlowStepNode as FlowStepNodeType, StepTransition } from '@shared/schema';
 import { Button } from '@/components/ui/button';
 import { Plus, AlertCircle, Star } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+
+// Deep equality check for steps to avoid unnecessary rebuilds
+function areStepsEqual(steps1: FlowStep[], steps2: FlowStep[]): boolean {
+  if (steps1.length !== steps2.length) return false;
+  
+  return steps1.every((step1, index) => {
+    const step2 = steps2[index];
+    if (!step2) return false;
+    
+    // Compare essential properties (excluding position which is handled separately)
+    const isSame = 
+      step1.stepId === step2.stepId &&
+      step1.stepName === step2.stepName &&
+      step1.objective === step2.objective &&
+      step1.stepPrompt === step2.stepPrompt &&
+      step1.routingInstructions === step2.routingInstructions &&
+      step1.order === step2.order &&
+      step1.exampleMessage === step2.exampleMessage &&
+      JSON.stringify(step1.transitions) === JSON.stringify(step2.transitions);
+    
+    return isSame;
+  });
+}
 
 type FlowStep = {
   id?: string;
@@ -43,81 +67,83 @@ type FlowEditorProps = {
   selectedNodeId: string | null;
 };
 
-const FlowStepNode = ({ data }: any) => {
-    const isSelected = data.isSelected;
-    const isStart = data.isStart;
-    const transitionsCount = data.transitionsCount || 0;
-    
-    return (
-      <div 
-        className={`px-4 py-3 rounded-md border-2 bg-card min-w-[200px] shadow-lg transition-all hover:shadow-xl ${
-          isSelected 
-            ? 'border-primary ring-2 ring-primary/20' 
-            : isStart 
-            ? 'border-primary/60'
-            : 'border-border'
-        }`}
-        data-testid={`node-${data.stepId}`}
-      >
-        {/* Handle de entrada (topo) - mais visível */}
-        <Handle
-          type="target"
-          position={Position.Top}
-          className="!w-3 !h-3 !bg-primary !border-2 !border-background hover:!w-4 hover:!h-4 transition-all"
-          style={{ top: -6 }}
-          title="Conectar de outra etapa para esta"
-          data-testid={`handle-target-top-${data.stepId}`}
-        />
-        
-        <div className="space-y-1">
-          <div className="flex items-center justify-between gap-2">
-            <div className="font-semibold text-sm flex-1">{data.stepName}</div>
-            {transitionsCount > 0 && (
-              <div className="flex items-center gap-1 text-xs text-primary font-medium bg-primary/10 px-2 py-0.5 rounded-full">
-                <span>{transitionsCount}</span>
-                <span>→</span>
-              </div>
-            )}
-          </div>
-          <div className="text-xs text-muted-foreground truncate">ID: {data.stepId}</div>
-          {isStart && (
-            <div className="text-xs text-primary font-medium flex items-center gap-1">
-              <Star className="w-3 h-3 fill-primary" />
-              <span>Início do Fluxo</span>
+const FlowStepNode = ({ data, selected }: any) => {
+  const isStart = data.isStart;
+  const transitionsCount = data.transitionsCount || 0;
+  
+  return (
+    <div 
+      className={`px-4 py-3 rounded-md border-2 bg-card min-w-[200px] shadow-lg transition-all hover:shadow-xl ${
+        selected 
+          ? 'border-primary ring-2 ring-primary/20' 
+          : isStart 
+          ? 'border-primary/60'
+          : 'border-border'
+      }`}
+      data-testid={`node-${data.stepId}`}
+    >
+      {/* Handle de entrada (topo) - mais visível */}
+      <Handle
+        type="target"
+        position={Position.Top}
+        className="!w-3 !h-3 !bg-primary !border-2 !border-background hover:!w-4 hover:!h-4 transition-all"
+        style={{ top: -6 }}
+        title="Conectar de outra etapa para esta"
+        data-testid={`handle-target-top-${data.stepId}`}
+      />
+      
+      <div className="space-y-1">
+        <div className="flex items-center justify-between gap-2">
+          <div className="font-semibold text-sm flex-1">{data.stepName}</div>
+          {transitionsCount > 0 && (
+            <div className="flex items-center gap-1 text-xs text-primary font-medium bg-primary/10 px-2 py-0.5 rounded-full">
+              <span>{transitionsCount}</span>
+              <span>→</span>
             </div>
           )}
         </div>
-        
-        {/* Handle de saída (baixo) - principal */}
-        <Handle
-          type="source"
-          position={Position.Bottom}
-          className="!w-3 !h-3 !bg-primary !border-2 !border-background hover:!w-4 hover:!h-4 transition-all"
-          style={{ bottom: -6 }}
-          title="Arrastar para conectar a outra etapa"
-          data-testid={`handle-source-bottom-${data.stepId}`}
-        />
-        
-        {/* Handles laterais para mais opções de conexão */}
-        <Handle
-          type="source"
-          position={Position.Right}
-          className="!w-2.5 !h-2.5 !bg-primary/60 !border-2 !border-background hover:!w-3.5 hover:!h-3.5 transition-all"
-          style={{ right: -5 }}
-          title="Arrastar para conectar a outra etapa"
-          data-testid={`handle-source-right-${data.stepId}`}
-        />
-        <Handle
-          type="target"
-          position={Position.Left}
-          className="!w-2.5 !h-2.5 !bg-primary/60 !border-2 !border-background hover:!w-3.5 hover:!h-3.5 transition-all"
-          style={{ left: -5 }}
-          title="Conectar de outra etapa para esta"
-          data-testid={`handle-target-left-${data.stepId}`}
-        />
+        <div className="text-xs text-muted-foreground truncate">ID: {data.stepId}</div>
+        {isStart && (
+          <div className="text-xs text-primary font-medium flex items-center gap-1">
+            <Star className="w-3 h-3 fill-primary" />
+            <span>Início do Fluxo</span>
+          </div>
+        )}
       </div>
-    );
-  },
+      
+      {/* Handle de saída (baixo) - principal */}
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        className="!w-3 !h-3 !bg-primary !border-2 !border-background hover:!w-4 hover:!h-4 transition-all"
+        style={{ bottom: -6 }}
+        title="Arrastar para conectar a outra etapa"
+        data-testid={`handle-source-bottom-${data.stepId}`}
+      />
+      
+      {/* Handles laterais para mais opções de conexão */}
+      <Handle
+        type="source"
+        position={Position.Right}
+        className="!w-2.5 !h-2.5 !bg-primary/60 !border-2 !border-background hover:!w-3.5 hover:!h-3.5 transition-all"
+        style={{ right: -5 }}
+        title="Arrastar para conectar a outra etapa"
+        data-testid={`handle-source-right-${data.stepId}`}
+      />
+      <Handle
+        type="target"
+        position={Position.Left}
+        className="!w-2.5 !h-2.5 !bg-primary/60 !border-2 !border-background hover:!w-3.5 hover:!h-3.5 transition-all"
+        style={{ left: -5 }}
+        title="Conectar de outra etapa para esta"
+        data-testid={`handle-target-left-${data.stepId}`}
+      />
+    </div>
+  );
+};
+
+const nodeTypes = {
+  flowStep: FlowStepNode,
 };
 
 function FlowEditorInner({ steps, onStepsChange, onNodeSelect, selectedNodeId }: FlowEditorProps) {
@@ -125,7 +151,12 @@ function FlowEditorInner({ steps, onStepsChange, onNodeSelect, selectedNodeId }:
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [invalidTransitions, setInvalidTransitions] = useState<string[]>([]);
 
-  const convertStepsToNodes = useCallback((flowSteps: FlowStep[]): Node[] => {
+  // Track previous steps and initialization state for delta reconciliation
+  const prevStepsRef = useRef<FlowStep[]>([]);
+  const isInitializedRef = useRef(false);
+  const lastFullRebuildSelectedIdRef = useRef<string | null>(null);
+
+  const convertStepsToNodes = useCallback((flowSteps: FlowStep[], selectedId: string | null = null): Node[] => {
     return flowSteps.map((step, index) => {
       const position = step.position && typeof step.position === 'object' && step.position.x !== undefined
         ? step.position
@@ -137,16 +168,16 @@ function FlowEditorInner({ steps, onStepsChange, onNodeSelect, selectedNodeId }:
         id: step.stepId,
         type: 'flowStep',
         position,
+        selected: step.stepId === selectedId,
         data: {
           stepId: step.stepId,
           stepName: step.stepName,
-          isSelected: step.stepId === selectedNodeId,
           isStart: index === 0,
           transitionsCount: transitions.length,
         },
       };
     });
-  }, [selectedNodeId]);
+  }, []);
 
   const convertTransitionsToEdges = useCallback((flowSteps: FlowStep[]): Edge[] => {
     const allEdges: Edge[] = [];
@@ -205,19 +236,67 @@ function FlowEditorInner({ steps, onStepsChange, onNodeSelect, selectedNodeId }:
     return allEdges;
   }, []);
 
+  // Main effect: Initialize or rebuild nodes/edges when steps structurally change
   useEffect(() => {
-    const newNodes = convertStepsToNodes(steps);
-    const newEdges = convertTransitionsToEdges(steps);
-    setNodes(newNodes);
-    setEdges(newEdges);
-  }, [steps, convertStepsToNodes, convertTransitionsToEdges, setNodes, setEdges]);
+    const stepsChanged = !areStepsEqual(prevStepsRef.current, steps);
+    
+    if (!isInitializedRef.current || stepsChanged) {
+      // Full rebuild needed - steps structure changed
+      const newNodes = convertStepsToNodes(steps, selectedNodeId);
+      const newEdges = convertTransitionsToEdges(steps);
+      
+      setNodes(newNodes);
+      setEdges(newEdges);
+      
+      prevStepsRef.current = steps;
+      isInitializedRef.current = true;
+      lastFullRebuildSelectedIdRef.current = selectedNodeId;
+    } else {
+      // Only update positions if they changed (delta update)
+      const positionChanges: NodeChange[] = [];
+      
+      steps.forEach((step) => {
+        if (step.position && typeof step.position === 'object' && step.position.x !== undefined) {
+          const prevStep = prevStepsRef.current.find(s => s.stepId === step.stepId);
+          if (prevStep?.position && 
+              (prevStep.position.x !== step.position.x || prevStep.position.y !== step.position.y)) {
+            positionChanges.push({
+              id: step.stepId,
+              type: 'position',
+              position: step.position,
+            });
+          }
+        }
+      });
+      
+      if (positionChanges.length > 0) {
+        setNodes((nds) => applyNodeChanges(positionChanges, nds));
+        prevStepsRef.current = steps;
+      }
+    }
+  }, [steps, selectedNodeId, convertStepsToNodes, convertTransitionsToEdges, setNodes, setEdges]);
+
+  // Selection effect: Update selection using delta changes when selectedNodeId changes
+  useEffect(() => {
+    if (lastFullRebuildSelectedIdRef.current !== selectedNodeId) {
+      const selectionChanges: NodeChange[] = steps.map((step) => ({
+        id: step.stepId,
+        type: 'select',
+        selected: step.stepId === selectedNodeId,
+      }));
+      
+      if (selectionChanges.length > 0) {
+        setNodes((nds) => applyNodeChanges(selectionChanges, nds));
+      }
+    }
+  }, [selectedNodeId, steps, setNodes]);
 
   const handleNodesChange = useCallback((changes: NodeChange[]) => {
     onNodesChange(changes);
     
-    // Atualiza as posições dos steps em tempo real durante o movimento
+    // Apenas atualiza as posições dos steps quando terminar de arrastar
     changes.forEach((change) => {
-      if (change.type === 'position' && change.position) {
+      if (change.type === 'position' && change.position && !change.dragging) {
         const updatedSteps = steps.map((step) =>
           step.stepId === change.id
             ? { ...step, position: change.position }
