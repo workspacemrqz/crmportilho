@@ -17,11 +17,15 @@ import ReactFlow, {
   Handle,
   Position,
   applyNodeChanges,
+  EdgeLabelRenderer,
+  BaseEdge,
+  EdgeProps,
+  getBezierPath,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { FlowStepNode as FlowStepNodeType, StepTransition } from '@shared/schema';
 import { Button } from '@/components/ui/button';
-import { Plus, AlertCircle, Star } from 'lucide-react';
+import { Plus, AlertCircle, Star, X } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 type FlowStep = {
@@ -105,6 +109,66 @@ const nodeTypes = {
   flowStep: FlowStepNode,
 };
 
+// Custom Edge component with delete button
+function CustomEdge({
+  id,
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  sourcePosition,
+  targetPosition,
+  markerEnd,
+  style,
+  data,
+}: EdgeProps) {
+  const [edgePath, labelX, labelY] = getBezierPath({
+    sourceX,
+    sourceY,
+    sourcePosition,
+    targetX,
+    targetY,
+    targetPosition,
+  });
+
+  const onEdgeClick = (evt: React.MouseEvent) => {
+    evt.stopPropagation();
+    if (data?.onDelete) {
+      data.onDelete(id);
+    }
+  };
+
+  return (
+    <>
+      <BaseEdge id={id} path={edgePath} markerEnd={markerEnd} style={style} />
+      <EdgeLabelRenderer>
+        <div
+          style={{
+            position: 'absolute',
+            transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
+            pointerEvents: 'all',
+          }}
+          className="nodrag nopan"
+        >
+          <Button
+            variant="destructive"
+            size="icon"
+            className="h-6 w-6 rounded-full shadow-lg hover:scale-110 transition-transform"
+            onClick={onEdgeClick}
+            data-testid={`button-delete-edge-${id}`}
+          >
+            <X className="h-3 w-3" />
+          </Button>
+        </div>
+      </EdgeLabelRenderer>
+    </>
+  );
+}
+
+const edgeTypes = {
+  custom: CustomEdge,
+};
+
 // Função para calcular hash estrutural (ignora transitions e positions)
 function getStructuralHash(steps: FlowStep[]): string {
   return steps
@@ -134,6 +198,20 @@ function FlowEditorInner({ steps, onStepsChange, onNodeSelect, selectedNodeId }:
     stepsRef.current = steps;
   }, [steps]);
 
+  const handleDeleteEdge = useCallback((edgeId: string) => {
+    const updatedSteps = steps.map(step => {
+      const transitions = Array.isArray(step.transitions) ? step.transitions : [];
+      const filteredTransitions = transitions.filter((t: StepTransition) => t.id !== edgeId);
+      
+      if (filteredTransitions.length !== transitions.length) {
+        return { ...step, transitions: filteredTransitions };
+      }
+      return step;
+    });
+    
+    onStepsChange(updatedSteps);
+  }, [steps, onStepsChange]);
+
   const convertTransitionsToEdges = useCallback((flowSteps: FlowStep[]): Edge[] => {
     const allEdges: Edge[] = [];
     const validStepIds = new Set(flowSteps.map(s => s.stepId));
@@ -150,15 +228,16 @@ function FlowEditorInner({ steps, onStepsChange, onNodeSelect, selectedNodeId }:
         }
 
         const targetStep = flowSteps.find(s => s.stepId === transition.targetStepId);
-        const label = transition.label || `Condição ${index + 1}`;
 
         allEdges.push({
           id: transition.id,
           source: step.stepId,
           target: transition.targetStepId,
-          label,
-          type: 'smoothstep',
+          type: 'custom',
           animated: true,
+          data: {
+            onDelete: handleDeleteEdge,
+          },
           markerEnd: {
             type: MarkerType.ArrowClosed,
             width: 20,
@@ -169,27 +248,13 @@ function FlowEditorInner({ steps, onStepsChange, onNodeSelect, selectedNodeId }:
             strokeWidth: 2.5,
             stroke: isValid ? 'hsl(var(--primary))' : 'hsl(var(--destructive))',
           },
-          labelStyle: {
-            fontSize: 12,
-            fontWeight: 500,
-            fill: 'hsl(var(--foreground))',
-            backgroundColor: 'hsl(var(--background))',
-            padding: '4px 8px',
-            borderRadius: '4px',
-          },
-          labelBgStyle: {
-            fill: 'hsl(var(--card))',
-            fillOpacity: 0.95,
-          },
-          labelBgPadding: [8, 4] as [number, number],
-          labelBgBorderRadius: 4,
         });
       });
     });
 
     setInvalidTransitions(invalidTargets);
     return allEdges;
-  }, []);
+  }, [handleDeleteEdge]);
 
   // Main reconciliation effect - usa structuralHash ao invés de steps!
   // Roda APENAS quando estrutura muda (add/remove steps, change names/prompts)
@@ -447,11 +512,12 @@ function FlowEditorInner({ steps, onStepsChange, onNodeSelect, selectedNodeId }:
         onNodeDoubleClick={handleNodeDoubleClick}
         onPaneClick={handlePaneClick}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         fitView={fitViewOnInitRef.current}
         minZoom={0.2}
         maxZoom={2}
         defaultEdgeOptions={{
-          type: 'smoothstep',
+          type: 'custom',
           animated: false,
         }}
       >
