@@ -47,7 +47,7 @@ type FlowStep = {
 
 type FlowEditorProps = {
   steps: FlowStep[];
-  onStepsChange: (steps: FlowStep[]) => void;
+  onStepsChange: (steps: FlowStep[] | ((prev: FlowStep[]) => FlowStep[])) => void;
   onNodeSelect: (step: FlowStep | null) => void;
   selectedNodeId: string | null;
 };
@@ -501,24 +501,26 @@ function FlowEditorInner({ steps, onStepsChange, onNodeSelect, selectedNodeId }:
 
   const handleAddNode = useCallback(() => {
     const newStepId = `etapa_${Date.now()}`;
-    const newStep: FlowStep = {
-      stepId: newStepId,
-      stepName: 'Nova Etapa',
-      objective: '',
-      stepPrompt: '',
-      routingInstructions: '',
-      order: steps.length,
-      position: { 
-        x: 100 + (steps.length % 3) * 300, 
-        y: 100 + Math.floor(steps.length / 3) * 200 
-      },
-      transitions: [],
-      exampleMessage: '',
-    };
+    
+    onStepsChange((currentSteps: FlowStep[]) => {
+      const newStep: FlowStep = {
+        stepId: newStepId,
+        stepName: 'Nova Etapa',
+        objective: '',
+        stepPrompt: '',
+        routingInstructions: '',
+        order: currentSteps.length,
+        position: { 
+          x: 100 + (currentSteps.length % 3) * 300, 
+          y: 100 + Math.floor(currentSteps.length / 3) * 200 
+        },
+        transitions: [],
+        exampleMessage: '',
+      };
 
-    const updatedSteps = [...steps, newStep];
-    onStepsChange(updatedSteps);
-  }, [steps, onStepsChange]);
+      return [...currentSteps, newStep];
+    });
+  }, [onStepsChange]);
 
   return (
     <div className="w-full h-full border rounded-md bg-background relative">
