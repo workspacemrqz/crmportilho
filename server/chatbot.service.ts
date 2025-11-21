@@ -500,7 +500,8 @@ export class ChatbotService {
       console.log(`[ChatbotService] 🔄 Processando mensagens com estado: ${chatbotState.currentState}`);
       console.log(`[ChatbotService] 📊 Dados coletados antes do processamento:`, JSON.stringify(chatbotState.collectedData));
       
-      await this.processStateMachine(lead, conversation, chatbotState, allMessages);
+      // Try to use configurable flow first, fallback to state machine if no active flow
+      await this.processWithConfigurableFlow(lead, conversation, chatbotState, allMessages);
       
       console.log(`[ChatbotService] ========== FIM DO PROCESSAMENTO DE BUFFER ==========`);
       
