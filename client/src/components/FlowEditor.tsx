@@ -734,6 +734,7 @@ function FlowEditorInnerComponent(
         nodeTypes={memoizedNodeTypes}
         edgeTypes={memoizedEdgeTypes}
         fitView={fitViewOnInitRef.current}
+        preventScrolling={true}
         minZoom={0.2}
         maxZoom={2}
         defaultEdgeOptions={{
