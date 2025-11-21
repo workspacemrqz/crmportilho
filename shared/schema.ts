@@ -500,6 +500,8 @@ export const flowSteps = pgTable("flow_steps", {
   stepPrompt: text("step_prompt").notNull(),
   routingInstructions: text("routing_instructions").notNull(),
   order: integer("order").notNull().default(0),
+  position: jsonb("position").default(sql`'{"x": 0, "y": 0}'`),
+  transitions: jsonb("transitions").default(sql`'[]'`),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
 }, (table) => ({
