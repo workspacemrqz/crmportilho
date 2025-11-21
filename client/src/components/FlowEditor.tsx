@@ -95,6 +95,21 @@ const FlowStepNode = memo(({ data, selected }: any) => {
   const transitionsCount = data.transitionsCount || 0;
   const [isHovered, setIsHovered] = useState(false);
   const { toast } = useToast();
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleMouseEnter = () => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+    setIsHovered(true);
+  };
+
+  const handleMouseLeave = () => {
+    hoverTimeoutRef.current = setTimeout(() => {
+      setIsHovered(false);
+    }, 150);
+  };
 
   const handleCopyId = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -123,15 +138,15 @@ const FlowStepNode = memo(({ data, selected }: any) => {
   return (
     <div 
       className="relative"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       {/* Hover action buttons - positioned above the node, each with its own container */}
       <div 
         className="absolute -top-12 right-0 flex items-center gap-1"
         style={{ visibility: isHovered ? 'visible' : 'hidden' }}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
       >
         <div className="bg-background rounded-md p-1 shadow-lg border border-border">
           <Button
