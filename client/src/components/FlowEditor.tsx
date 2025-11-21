@@ -181,9 +181,6 @@ const edgeTypes = {
   custom: CustomEdge,
 };
 
-const MIN_DISTANCE = 150; // Distância mínima para Proximity Connect
-const TEMP_PROXIMITY_EDGE = 'TEMP_PROXIMITY_EDGE'; // Fixed ID for temporary proximity edge
-
 // Função para calcular hash estrutural (ignora transitions e positions)
 function getStructuralHash(steps: FlowStep[]): string {
   return steps
@@ -201,9 +198,6 @@ function FlowEditorInner({ steps, onStepsChange, onNodeSelect, selectedNodeId }:
   // Memoize nodeTypes and edgeTypes to prevent React Flow warnings
   const memoizedNodeTypes = useMemo(() => nodeTypes, []);
   const memoizedEdgeTypes = useMemo(() => edgeTypes, []);
-
-  // Proximity Connect - Store API
-  const store = useStoreApi();
 
   // PRIMARY state refs - source of truth
   const positionsRef = useRef<Record<string, {x: number, y: number}>>({});
@@ -526,139 +520,6 @@ function FlowEditorInner({ steps, onStepsChange, onNodeSelect, selectedNodeId }:
     onStepsChange(updatedSteps);
   }, [steps, onStepsChange]);
 
-  // Proximity Connect - encontra o node mais próximo
-  const getClosestEdge = useCallback((node: Node) => {
-    const { nodeInternals } = store.getState();
-    const currentNode = nodeInternals.get(node.id);
-
-    if (!currentNode || !currentNode.positionAbsolute) return null;
-
-    const closestNode = Array.from(nodeInternals.values()).reduce(
-      (res: any, n: any) => {
-        if (n.id !== currentNode.id && n.positionAbsolute && currentNode.positionAbsolute) {
-          const dx =
-            n.positionAbsolute.x -
-            currentNode.positionAbsolute.x;
-          const dy =
-            n.positionAbsolute.y -
-            currentNode.positionAbsolute.y;
-          const d = Math.sqrt(dx * dx + dy * dy);
-
-          if (d < res.distance && d < MIN_DISTANCE) {
-            res.distance = d;
-            res.node = n;
-          }
-        }
-
-        return res;
-      },
-      {
-        distance: Number.MAX_VALUE,
-        node: null,
-      },
-    );
-
-    if (!closestNode.node || !closestNode.node.positionAbsolute || !currentNode.positionAbsolute) {
-      return null;
-    }
-
-    const closeNodeIsSource =
-      closestNode.node.positionAbsolute.x <
-      currentNode.positionAbsolute.x;
-
-    return {
-      id: closeNodeIsSource
-        ? `${closestNode.node.id}-${node.id}`
-        : `${node.id}-${closestNode.node.id}`,
-      source: closeNodeIsSource ? closestNode.node.id : node.id,
-      target: closeNodeIsSource ? node.id : closestNode.node.id,
-      type: 'custom' as const,
-      animated: true,
-    };
-  }, [store]);
-
-  // Proximity Connect - enquanto arrasta, mostra conexão temporária
-  const onNodeDrag = useCallback(
-    (_: any, node: Node) => {
-      const closeEdge = getClosestEdge(node);
-
-      setEdges((es) => {
-        // Remove temp edge by fixed ID
-        const nextEdges = es.filter((e) => e.id !== TEMP_PROXIMITY_EDGE);
-
-        if (closeEdge) {
-          // Guard: Prevent self-connections
-          if (closeEdge.source === closeEdge.target) {
-            return nextEdges;
-          }
-
-          // Guard: Prevent duplicate connections
-          const alreadyExists = nextEdges.find(
-            (ne) => ne.source === closeEdge.source && ne.target === closeEdge.target,
-          );
-
-          if (!alreadyExists) {
-            // Create temp edge with fixed ID
-            const tempEdge: Edge = {
-              id: TEMP_PROXIMITY_EDGE,
-              source: closeEdge.source,
-              target: closeEdge.target,
-              type: 'custom',
-              animated: true,
-              style: { strokeDasharray: '5', opacity: 0.5, stroke: 'hsl(var(--primary))' },
-              markerEnd: {
-                type: MarkerType.ArrowClosed,
-                width: 20,
-                height: 20,
-                color: 'hsl(var(--primary))',
-              },
-            };
-            nextEdges.push(tempEdge);
-          }
-        }
-
-        return nextEdges;
-      });
-    },
-    [getClosestEdge, setEdges],
-  );
-
-  // Proximity Connect - ao soltar, cria a conexão real
-  const onNodeDragStop = useCallback(
-    (_: any, node: Node) => {
-      const closeEdge = getClosestEdge(node);
-
-      // Remove temp edge by ID
-      setEdges((es) => es.filter((e) => e.id !== TEMP_PROXIMITY_EDGE));
-
-      // Create real connection if valid
-      if (closeEdge) {
-        // Guard: Prevent self-connections
-        if (closeEdge.source === closeEdge.target) {
-          return;
-        }
-
-        const sourceStep = steps.find(s => s.stepId === closeEdge.source);
-        const targetStep = steps.find(s => s.stepId === closeEdge.target);
-        
-        if (sourceStep && targetStep) {
-          // Guard: Prevent duplicate connections
-          const existingTransitions = Array.isArray(sourceStep.transitions) ? sourceStep.transitions : [];
-          const alreadyConnected = existingTransitions.some(t => t.targetStepId === closeEdge.target);
-          
-          if (!alreadyConnected) {
-            // Create real connection via onConnect
-            onConnect({
-              source: closeEdge.source,
-              target: closeEdge.target,
-            } as Connection);
-          }
-        }
-      }
-    },
-    [getClosestEdge, steps, onConnect, setEdges],
-  );
-
   return (
     <div className="w-full h-full border rounded-md bg-background relative">
       {invalidTransitions.length > 0 && (
@@ -682,8 +543,6 @@ function FlowEditorInner({ steps, onStepsChange, onNodeSelect, selectedNodeId }:
         onConnectEnd={onConnectEnd}
         onNodeDoubleClick={handleNodeDoubleClick}
         onPaneClick={handlePaneClick}
-        onNodeDrag={onNodeDrag}
-        onNodeDragStop={onNodeDragStop}
         nodeTypes={memoizedNodeTypes}
         edgeTypes={memoizedEdgeTypes}
         fitView={fitViewOnInitRef.current}
