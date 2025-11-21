@@ -43,7 +43,7 @@ type AIPreviewResponse = {
   proximaEtapaId: string | null;
 };
 
-const DEFAULT_WELCOME_MESSAGE = `A Prevline Seguros, agradece o contato.
+const DEFAULT_WELCOME_MESSAGE = `A Seguro IA agradece o contato.
 
 ✅Trabalhamos com 15 Melhores Seguradoras.Ex: Porto Seguro, Azul, Allianz, HDI,Bradesco, etc.
 
@@ -62,9 +62,9 @@ const DEFAULT_IMPORTANT_INSTRUCTIONS = `Instruções importantes:
 - Sempre responda de forma cordial e profissional
 - Não ofereça preços sem análise completa
 - Solicite todos os dados necessários antes de enviar o formulário
-- Use o formulário online: https://prevlineseguros.aggilizador.com.br`;
+- Encaminhe para formulário de cotação online da empresa`;
 
-const DEFAULT_GLOBAL_PROMPT = `Você é o IAGO, assistente digital da Prevline Seguros, uma corretora de seguros com mais de 15 anos de experiência.
+const DEFAULT_GLOBAL_PROMPT = `Você é um assistente digital da Seguro IA, uma plataforma de seguros com experiência no mercado.
 
 Tom de voz: cordial, profissional e objetivo.
 
@@ -74,7 +74,7 @@ Regras gerais:
 - Sempre seja educado e paciente
 - Colete informações de forma progressiva, sem pressionar
 - Não ofereça preços sem análise completa do perfil de risco
-- Explique que trabalhamos com as 15 melhores seguradoras do mercado
+- Explique que trabalhamos com as melhores seguradoras do mercado
 - Sempre siga as etapas definidas no fluxo
 - Use as instruções de roteamento em linguagem natural para decidir a próxima etapa`;
 
@@ -83,7 +83,7 @@ const DEFAULT_STEPS: FlowStep[] = [
     stepId: "identificacao_inicial",
     stepName: "Identificação Inicial",
     objective: "Identificar se o lead já é cliente ou se é uma nova cotação",
-    stepPrompt: "Cumprimente o lead de forma cordial. Pergunte se já é cliente da Prevline ou se deseja fazer uma nova cotação.",
+    stepPrompt: "Cumprimente o lead de forma cordial. Pergunte se já é cliente da Seguro IA ou se deseja fazer uma nova cotação.",
     routingInstructions: "Se o lead disser que já é cliente, siga para a etapa 'atendimento_cliente'. Se disser que quer fazer uma nova cotação, siga para a etapa 'tipo_seguro'.",
     order: 0,
     exampleMessage: "Oi, boa tarde"
@@ -110,7 +110,7 @@ const DEFAULT_STEPS: FlowStep[] = [
     stepId: "envio_formulario",
     stepName: "Envio do Formulário",
     objective: "Enviar o link do formulário de cotação para o lead preencher",
-    stepPrompt: "Explique que para fazer uma cotação precisa, precisamos que ele preencha um formulário online rápido. Envie o link: https://prevlineseguros.aggilizador.com.br",
+    stepPrompt: "Explique que para fazer uma cotação precisa, precisamos que ele preencha um formulário online rápido. Envie o link do formulário de cotação.",
     routingInstructions: "Após enviar o formulário, siga para a etapa 'aguardando_preenchimento'. Se o lead recusar, siga para 'tratamento_objecao'.",
     order: 3,
     exampleMessage: "Sim, pode enviar"
@@ -120,7 +120,7 @@ const DEFAULT_STEPS: FlowStep[] = [
     stepName: "Aguardando Preenchimento",
     objective: "Confirmar que o lead recebeu o formulário e orientar sobre o preenchimento",
     stepPrompt: "Confirme que o lead recebeu o link e peça para avisar quando preencher. Ofereça ajuda caso o link não esteja abrindo.",
-    routingInstructions: "Se o lead disser que preencheu, siga para 'confirmacao_dados'. Se disser que o link não abre, envie o link específico para auto: https://prevlineseguros.aggilizador.com.br/auto. Se não responder ou demorar, mantenha na mesma etapa.",
+    routingInstructions: "Se o lead disser que preencheu, siga para 'confirmacao_dados'. Se disser que o link não abre, tente novamente enviando o link do formulário. Se não responder ou demorar, mantenha na mesma etapa.",
     order: 4,
     exampleMessage: "O link não está abrindo"
   }
@@ -138,8 +138,8 @@ export default function FluxoPage() {
 
   const [keywords, setKeywords] = useState<KeywordRule[]>([
     { keyword: "oi", response: "Olá! Como posso ajudá-lo hoje?" },
-    { keyword: "bom dia", response: "Bom dia! Seja bem-vindo à Prevline Seguros." },
-    { keyword: "link", response: "Aqui está o link do formulário: https://prevlineseguros.aggilizador.com.br" }
+    { keyword: "bom dia", response: "Bom dia! Seja bem-vindo à Seguro IA." },
+    { keyword: "link", response: "Aqui está o link do formulário de cotação." }
   ]);
 
   const [steps, setSteps] = useState<FlowStep[]>(DEFAULT_STEPS);
@@ -303,7 +303,7 @@ export default function FluxoPage() {
     <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 max-w-7xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold" data-testid="text-page-title">Fluxo de Atendimento – Prevline Seguros</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold" data-testid="text-page-title">Fluxo de Atendimento – Seguro IA</h1>
           <p className="text-muted-foreground mt-1 text-sm sm:text-base">
             Configure mensagens, regras e fluxo inteligente com IA para atendimento via WhatsApp
           </p>

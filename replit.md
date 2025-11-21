@@ -15,7 +15,7 @@ This is a CRM and chatbot system for "Seguro IA" (Insurance AI), designed to man
     - Standard Messages (welcome, institutional, important instructions)
     - Keyword-based Rules (automatic responses for specific keywords)
     - AI-powered Flow (multi-step intelligent conversations with OpenAI)
-  - Pre-populated with Prevline Seguros context (insurance-specific flow templates)
+  - Pre-populated with Seguro IA context (insurance-specific flow templates)
   - Added navigation route `/fluxo` and sidebar menu item
   - All elements include proper `data-testid` attributes for testing
   - **Mobile Responsive Design**: Fully responsive layout with Tailwind breakpoints
