@@ -22,7 +22,7 @@ import {
 } from '@shared/schema';
 import { WAHAService } from './waha.service';
 import { LocalStorageService } from './storage.service';
-import { eq, and, desc, ne } from 'drizzle-orm';
+import { eq, and, desc, asc, ne } from 'drizzle-orm';
 import OpenAI from 'openai';
 import { promises as fs } from 'fs';
 import path from 'path';
@@ -905,7 +905,7 @@ export class ChatbotService {
       const steps = await db.select()
         .from(flowSteps)
         .where(eq(flowSteps.flowConfigId, flowConfigId))
-        .orderBy(desc(flowSteps.order));
+        .orderBy(asc(flowSteps.order));
       return steps;
     } catch (error) {
       console.error('[ChatbotService] Error fetching flow steps:', error);
