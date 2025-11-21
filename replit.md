@@ -4,7 +4,26 @@ This is a CRM and chatbot system for "Seguro IA" (Insurance AI), designed to man
 
 # Recent Changes
 
-**November 20, 2025 (Latest):**
+**November 21, 2025 (Latest):**
+- **Visual Flow Editor**: Transformed `/fluxo` page into interactive node-based flow editor (similar to n8n)
+  - Installed React Flow library (`@xyflow/react`) for visual node editing
+  - Extended database schema with `position` (x,y coordinates) and `transitions` (node connections) fields on `flow_steps` table
+  - Created new shared types: `FlowStepNode`, `NodePosition`, `StepTransition` for type-safe visual editing
+  - Built `FlowEditor.tsx` component:
+    - Visual canvas with draggable nodes representing conversation flow steps
+    - Connection system for defining step transitions (edges between nodes)
+    - Automatic layout algorithm for initial node positioning
+    - Node selection and deletion capabilities
+    - Preserves "Mensagens Padrão" and "Palavras-chave" sections
+  - Built `NodeEditPanel.tsx` component:
+    - Side panel for editing selected node properties
+    - AI preview testing within the panel
+    - Real-time updates to flow configuration
+  - Updated backend routes (`PUT /api/flows/:id`) to properly save/load position and transitions data
+  - All visual editor elements include `data-testid` attributes for testing
+  - Architecture reviewed and approved: Code follows guidelines, data persistence works end-to-end
+
+**November 20, 2025:**
 - **Fluxo de Atendimento (Flow) Feature**: Implemented complete intelligent WhatsApp conversation flow system
   - Created database schema with 3 new tables: `flow_configs`, `keyword_rules`, and `flow_steps`
   - Built FlowAI service (`server/flow-ai.service.ts`) integrating OpenAI for intelligent response generation
