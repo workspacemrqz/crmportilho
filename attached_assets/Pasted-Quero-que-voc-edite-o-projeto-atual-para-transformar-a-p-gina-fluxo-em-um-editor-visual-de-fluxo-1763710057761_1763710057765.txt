@@ -1,0 +1,167 @@
+Quero que você edite o projeto atual para transformar a página `/fluxo` em um editor visual de fluxo similar ao n8n, mantendo o máximo possível da estrutura existente. Seguem as instruções detalhadas:
+
+Contexto geral:
+
+* O projeto está rodando em React (frontend) e Node/TypeScript (backend, com Drizzle e PostgreSQL).
+* A página `/fluxo` hoje é um formulário grande com 3 blocos principais: `Mensagens Padrão`, `Palavras-chave` e `Fluxo com IA` (etapas do fluxo).
+* Já existe integração com IA via API da OpenAI para pré-visualizar respostas, e os dados do fluxo são salvos no banco.
+
+Objetivo da alteração:
+
+* Transformar apenas a parte de `Fluxo com IA` (etapas do fluxo) em um editor visual com **nodes em um canvas**, permitindo:
+
+  * Visualizar as etapas como nós conectados (grafo).
+  * Clicar em um node para editar seus campos em um painel lateral.
+  * Criar, mover e conectar nodes de forma intuitiva, semelhante à UX do n8n.
+* Manter as seções de `Mensagens Padrão` e `Palavras-chave` como estão (ou com ajustes mínimos, se necessário).
+
+1. Adicionar uma biblioteca de editor de nodes (React Flow)
+
+* Instale e configure a biblioteca [React Flow](https://reactflow.dev/) no frontend.
+* Crie um componente específico para o editor de fluxo, algo como: `client/src/components/FlowEditor.tsx`.
+* Esse componente deve usar o `ReactFlow` para renderizar os nodes e edges.
+
+2. Ajustar o modelo de dados no frontend
+   Atualmente o tipo de etapa (simplificado) é algo como:
+
+```ts
+type FlowStep = {
+  id?: string;
+  stepId: string;
+  stepName: string;
+  objective: string;
+  stepPrompt: string;
+  routingInstructions: string;
+  order: number;
+  exampleMessage?: string;
+};
+```
+
+Quero que você adapte para um modelo que suporte nodes e conexões explícitas:
+
+```ts
+type StepTransition = {
+  id: string;           // id único da transição
+  label: string;        // ex.: "já é cliente", "nova cotação"
+  targetStepId: string; // stepId de destino
+};
+
+type FlowStepNode = FlowStep & {
+  position: { x: number; y: number }; // posição do node no canvas
+  transitions: StepTransition[];      // saídas desse node
+};
+```
+
+* Se for mais simples, você pode manter o tipo `FlowStep` original e criar um novo tipo apenas no frontend para o React Flow, mas o importante é termos `position` e `transitions`.
+* A propriedade `routingInstructions` deve continuar existindo para a IA, mas o roteamento visual deve ser baseado em `transitions` (edges).
+
+3. Montar o canvas de nodes na página `/fluxo`
+
+* Na página `/fluxo`, substitua a listagem/formulário linear de etapas por um layout com:
+
+  * Uma área central com o **canvas React Flow**.
+  * Um painel lateral à direita para edição da etapa selecionada.
+
+Comportamento esperado:
+
+* Cada `FlowStep` vira um node no React Flow:
+
+  * O `label` do node deve mostrar `stepName` em destaque e, menor, o `stepId`.
+* As `transitions` viram os `edges` do React Flow (de `stepId` origem para `targetStepId` destino), exibindo o `label` da transição próximo à seta.
+* Deve existir um node inicial destacado (por exemplo o primeiro da lista/order, ou um campo `isStart` se já existir). Diferencie visualmente esse node (ex.: borda ou ícone).
+* Ao clicar em um node:
+
+  * O node fica selecionado.
+  * Abre (ou atualiza) um painel lateral à direita com o formulário de edição daquele step.
+
+4. Painel lateral de edição do node
+   No painel lateral, mostre um formulário com os campos já existentes da etapa:
+
+* `stepName` (input)
+* `stepId` (input, readonly se já estiver em uso para evitar problemas de referência)
+* `objective` (textarea)
+* `stepPrompt` (textarea grande)
+* `routingInstructions` (textarea, usado para IA)
+* `exampleMessage` (textarea)
+
+E, adicionalmente, uma seção para **Transições** deste node:
+
+* Lista editável de `StepTransition`:
+
+  * Campo `label` (texto curto – ex.: "já é cliente").
+  * Campo `targetStepId` (select ou autocomplete com a lista de `stepId` existentes).
+* Botão para adicionar nova transição.
+* Botão para remover transições.
+
+5. Interações básicas no canvas
+   Implemente as seguintes interações padrão do React Flow:
+
+* Arrastar nodes para mudar a posição (`position` deve ser salva no estado).
+* Zoom e pan no canvas.
+* Criar conexões arrastando da saída de um node até a entrada de outro:
+
+  * Quando o usuário soltar a conexão em outro node, crie uma nova `StepTransition` com:
+
+    * `id` gerado (por exemplo com `crypto.randomUUID()` ou similar).
+    * `label` inicial vazio ou com valor padrão (ex.: "condição"), e abra um pequeno popup ou foque no campo de label no painel lateral para o usuário editar.
+    * `targetStepId` igual ao `stepId` do node de destino.
+
+6. Carregar e salvar dados (integração com backend)
+
+* O backend já fornece os dados do fluxo (FlowConfig, steps, etc). Use a mesma requisição que a página atual `/fluxo` já usa.
+* Ao carregar a página:
+
+  * Converta a lista de etapas retornada pelo backend para nodes + edges:
+
+    * Se ainda não houver `position` e `transitions` salvos, inicialize:
+
+      * `position` distribuindo os nodes em um layout simples (por exemplo em colunas, baseado no `order`).
+      * `transitions` como lista vazia.
+* Ao salvar o fluxo (botão "Salvar Fluxo"):
+
+  * Converta de volta o estado de nodes/edges para o formato que o backend espera.
+  * Garanta que:
+
+    * Os campos existentes usados atualmente pela IA e pelo fluxo (como `stepId`, `stepName`, `objective`, `stepPrompt`, `routingInstructions`, `exampleMessage`, `order`) continuem sendo enviados.
+    * As novas propriedades (`position`, `transitions`) também sejam enviadas e persistidas, ajustando o schema do banco se necessário.
+
+7. Integração com o preview de IA
+
+* A funcionalidade atual de "Testar Resposta" (preview com IA) deve continuar existindo, mas agora ligada ao node selecionado.
+* Ao clicar em "Testar" dentro do painel lateral:
+
+  * Use o mesmo endpoint atual de preview.
+  * Envie o contexto necessário (mensagens padrão, fluxo, etc.) como já é feito hoje.
+  * Exiba a resposta da IA em uma área de preview no painel lateral.
+  * Se a resposta da IA incluir alguma indicação de próxima etapa (por exemplo `proximaEtapaId` ou similar, caso o backend já retorne isso), destaque visualmente o node de destino no canvas (por exemplo, alterando a cor da borda por alguns segundos).
+
+8. UX e detalhes importantes
+
+* Mantenha o estilo visual atual (dark mode, tipografia e componentes shadcn/ui) para que o editor pareça nativo da aplicação.
+* Adicione um botão visível: "Adicionar Etapa" acima ou abaixo do canvas:
+
+  * Cria um novo node com `stepId` único, `stepName` padrão (ex.: "Nova Etapa"), `objective` vazio etc.
+  * Posiciona o node próximo ao node selecionado ou em posição padrão.
+  * Abre automaticamente o painel de edição desse novo node.
+* Ao excluir um node:
+
+  * Remova também todas as `transitions` que apontam para ele ou partem dele.
+  * Exiba uma confirmação antes.
+* Se houver qualquer `transition.targetStepId` que não corresponda a um `stepId` existente, mostre visualmente um erro (por exemplo edge em vermelho) e um aviso na parte superior da seção de fluxo.
+
+9. Manter o restante da página `/fluxo`
+
+* A seção "Mensagens Padrão" (boas-vindas, institucional, instruções importantes) deve continuar funcionando como está.
+* A seção de "Palavras-chave" (regras de keyword → resposta) também deve continuar igual.
+* Apenas a sub-seção de "Fluxo com IA" (etapas) deve ser convertida para o editor visual em nodes, usando o canvas com painel lateral.
+
+Resumo:
+
+* Transformar a edição linear de etapas do fluxo em um editor visual de nodes (React Flow), com:
+
+  * Nodes representando cada etapa (`FlowStep`).
+  * Edges representando transições (`StepTransition`).
+  * Painel lateral para editar os dados da etapa clicada.
+  * Manutenção da lógica de salvar e pré-visualizar com IA que já existe hoje.
+
+Implemente todas essas alterações diretamente no código do projeto atual, ajustando os arquivos necessários na pasta `client` (frontend) e, se preciso, atualizando os tipos/entidades e migrations no backend (`server` / `shared`).
