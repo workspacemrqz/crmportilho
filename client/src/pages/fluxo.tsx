@@ -303,7 +303,7 @@ export default function FluxoPage() {
     <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 max-w-7xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold" data-testid="text-page-title">Fluxo de Atendimento – Seguro IA</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold" data-testid="text-page-title">Fluxo de Atendimento</h1>
           <p className="text-muted-foreground mt-1 text-sm sm:text-base">
             Configure mensagens, regras e fluxo inteligente com IA para atendimento via WhatsApp
           </p>
