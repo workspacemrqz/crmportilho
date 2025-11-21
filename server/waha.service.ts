@@ -379,12 +379,20 @@ export class WAHAService {
       // Tentar achar o número nos campos candidatos
       for (const value of candidatesFields) {
         if (typeof value !== 'string') continue;
-        const m = value.match(numRegex);
+        
+        // Limpar o formato: "5512974041539:51@s.whatsapp.net" -> "5512974041539"
+        // Remove sufixos e IDs extras
+        let cleanValue = value
+          .split(':')[0]  // Remove ":51" e tudo depois
+          .replace(/@c\.us|@s\.whatsapp\.net/g, '');  // Remove sufixos do WhatsApp
+        
+        const m = cleanValue.match(numRegex);
         if (!m) continue;
         const n = m[0];
         // Ignorar número da própria instância
         if (n !== myNumber) {
           phone = n;
+          console.log(`[WAHA] ✓ Phone found in field: ${n} from value: ${value}`);
           break;
         }
       }
