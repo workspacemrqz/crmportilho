@@ -14,11 +14,13 @@ import ReactFlow, {
   MarkerType,
   ReactFlowProvider,
   Panel,
+  Handle,
+  Position,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { FlowStepNode as FlowStepNodeType, StepTransition } from '@shared/schema';
 import { Button } from '@/components/ui/button';
-import { Plus, AlertCircle } from 'lucide-react';
+import { Plus, AlertCircle, Star } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 type FlowStep = {
@@ -45,10 +47,11 @@ const nodeTypes = {
   flowStep: ({ data }: any) => {
     const isSelected = data.isSelected;
     const isStart = data.isStart;
+    const transitionsCount = data.transitionsCount || 0;
     
     return (
       <div 
-        className={`px-4 py-3 rounded-md border-2 bg-card min-w-[180px] shadow-md transition-all ${
+        className={`px-4 py-3 rounded-md border-2 bg-card min-w-[200px] shadow-lg transition-all hover:shadow-xl ${
           isSelected 
             ? 'border-primary ring-2 ring-primary/20' 
             : isStart 
@@ -57,11 +60,62 @@ const nodeTypes = {
         }`}
         data-testid={`node-${data.stepId}`}
       >
-        <div className="font-semibold text-sm mb-1">{data.stepName}</div>
-        <div className="text-xs text-muted-foreground">ID: {data.stepId}</div>
-        {isStart && (
-          <div className="mt-1 text-xs text-primary font-medium">Início</div>
-        )}
+        {/* Handle de entrada (topo) - mais visível */}
+        <Handle
+          type="target"
+          position={Position.Top}
+          className="!w-3 !h-3 !bg-primary !border-2 !border-background hover:!w-4 hover:!h-4 transition-all"
+          style={{ top: -6 }}
+          title="Conectar de outra etapa para esta"
+          data-testid={`handle-target-top-${data.stepId}`}
+        />
+        
+        <div className="space-y-1">
+          <div className="flex items-center justify-between gap-2">
+            <div className="font-semibold text-sm flex-1">{data.stepName}</div>
+            {transitionsCount > 0 && (
+              <div className="flex items-center gap-1 text-xs text-primary font-medium bg-primary/10 px-2 py-0.5 rounded-full">
+                <span>{transitionsCount}</span>
+                <span>→</span>
+              </div>
+            )}
+          </div>
+          <div className="text-xs text-muted-foreground truncate">ID: {data.stepId}</div>
+          {isStart && (
+            <div className="text-xs text-primary font-medium flex items-center gap-1">
+              <Star className="w-3 h-3 fill-primary" />
+              <span>Início do Fluxo</span>
+            </div>
+          )}
+        </div>
+        
+        {/* Handle de saída (baixo) - principal */}
+        <Handle
+          type="source"
+          position={Position.Bottom}
+          className="!w-3 !h-3 !bg-primary !border-2 !border-background hover:!w-4 hover:!h-4 transition-all"
+          style={{ bottom: -6 }}
+          title="Arrastar para conectar a outra etapa"
+          data-testid={`handle-source-bottom-${data.stepId}`}
+        />
+        
+        {/* Handles laterais para mais opções de conexão */}
+        <Handle
+          type="source"
+          position={Position.Right}
+          className="!w-2.5 !h-2.5 !bg-primary/60 !border-2 !border-background hover:!w-3.5 hover:!h-3.5 transition-all"
+          style={{ right: -5 }}
+          title="Arrastar para conectar a outra etapa"
+          data-testid={`handle-source-right-${data.stepId}`}
+        />
+        <Handle
+          type="target"
+          position={Position.Left}
+          className="!w-2.5 !h-2.5 !bg-primary/60 !border-2 !border-background hover:!w-3.5 hover:!h-3.5 transition-all"
+          style={{ left: -5 }}
+          title="Conectar de outra etapa para esta"
+          data-testid={`handle-target-left-${data.stepId}`}
+        />
       </div>
     );
   },
@@ -78,6 +132,8 @@ function FlowEditorInner({ steps, onStepsChange, onNodeSelect, selectedNodeId }:
         ? step.position
         : { x: 100 + (index % 3) * 300, y: 100 + Math.floor(index / 3) * 200 };
 
+      const transitions = Array.isArray(step.transitions) ? step.transitions : [];
+
       return {
         id: step.stepId,
         type: 'flowStep',
@@ -87,6 +143,7 @@ function FlowEditorInner({ steps, onStepsChange, onNodeSelect, selectedNodeId }:
           stepName: step.stepName,
           isSelected: step.stepId === selectedNodeId,
           isStart: index === 0,
+          transitionsCount: transitions.length,
         },
       };
     });
@@ -100,33 +157,47 @@ function FlowEditorInner({ steps, onStepsChange, onNodeSelect, selectedNodeId }:
     flowSteps.forEach((step) => {
       const transitions = Array.isArray(step.transitions) ? step.transitions : [];
       
-      transitions.forEach((transition: StepTransition) => {
+      transitions.forEach((transition: StepTransition, index: number) => {
         const isValid = validStepIds.has(transition.targetStepId);
         
         if (!isValid) {
           invalidTargets.push(`${step.stepId} → ${transition.targetStepId}`);
         }
 
+        const targetStep = flowSteps.find(s => s.stepId === transition.targetStepId);
+        const label = transition.label || `Condição ${index + 1}`;
+
         allEdges.push({
           id: transition.id,
           source: step.stepId,
           target: transition.targetStepId,
-          label: transition.label || 'condição',
+          label,
           type: 'smoothstep',
-          animated: false,
+          animated: true,
           markerEnd: {
             type: MarkerType.ArrowClosed,
             width: 20,
             height: 20,
+            color: isValid ? 'hsl(var(--primary))' : 'hsl(var(--destructive))',
           },
           style: {
-            strokeWidth: 2,
-            stroke: isValid ? 'hsl(var(--foreground))' : 'hsl(var(--destructive))',
+            strokeWidth: 2.5,
+            stroke: isValid ? 'hsl(var(--primary))' : 'hsl(var(--destructive))',
           },
           labelStyle: {
-            fontSize: 11,
+            fontSize: 12,
+            fontWeight: 500,
             fill: 'hsl(var(--foreground))',
+            backgroundColor: 'hsl(var(--background))',
+            padding: '4px 8px',
+            borderRadius: '4px',
           },
+          labelBgStyle: {
+            fill: 'hsl(var(--card))',
+            fillOpacity: 0.95,
+          },
+          labelBgPadding: [8, 4] as [number, number],
+          labelBgBorderRadius: 4,
         });
       });
     });
@@ -177,9 +248,26 @@ function FlowEditorInner({ steps, onStepsChange, onNodeSelect, selectedNodeId }:
   const onConnect = useCallback((connection: Connection) => {
     if (!connection.source || !connection.target) return;
 
+    // Encontra as etapas de origem e destino
+    const sourceStep = steps.find(s => s.stepId === connection.source);
+    const targetStep = steps.find(s => s.stepId === connection.target);
+    
+    if (!sourceStep || !targetStep) return;
+
+    // Verifica se já existe uma transição para este destino
+    const existingTransitions = Array.isArray(sourceStep.transitions) ? sourceStep.transitions : [];
+    const alreadyConnected = existingTransitions.some(t => t.targetStepId === connection.target);
+    
+    if (alreadyConnected) {
+      // Já existe conexão, apenas seleciona o node de origem para editar
+      onNodeSelect(sourceStep);
+      return;
+    }
+
+    // Cria nova transição
     const newTransition: StepTransition = {
       id: `transition-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      label: '',
+      label: `→ ${targetStep.stepName}`,
       targetStepId: connection.target,
     };
 
@@ -195,7 +283,11 @@ function FlowEditorInner({ steps, onStepsChange, onNodeSelect, selectedNodeId }:
     });
 
     onStepsChange(updatedSteps);
-    onNodeSelect(updatedSteps.find(s => s.stepId === connection.source) || null);
+    
+    // Seleciona o node de origem para que o usuário possa editar a transição no modal
+    setTimeout(() => {
+      onNodeSelect(updatedSteps.find(s => s.stepId === connection.source) || null);
+    }, 100);
   }, [steps, onStepsChange, onNodeSelect]);
 
   const handleNodeClick = useCallback((_event: any, node: Node) => {
