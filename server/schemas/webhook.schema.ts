@@ -130,54 +130,60 @@ export function validateWebhookPayload(payload: unknown) {
 
 // Extract phone number from various possible locations
 export function extractPhoneNumber(data: any): string | null {
-  console.log('[extractPhoneNumber] Received data:', JSON.stringify(data, null, 2));
+  console.log('[WAHA] 📞 Extracting phone number from webhook data');
   
-  // WAHA format paths (priority)
+  // WAHA format paths (PRIORITY ORDER - most specific first)
   const wahaPaths = [
-    data?.payload?.from,  // WAHA: payload.from = "5511999999999@c.us"
+    { field: 'SenderAlt', value: data?.payload?._data?.Info?.SenderAlt },
+    { field: 'Sender', value: data?.payload?._data?.Info?.Sender },
+    { field: 'from', value: data?.payload?.from },
+    { field: 'Chat', value: data?.payload?._data?.Info?.Chat },
+    { field: 'to', value: data?.payload?.to },
+    { field: 'RecipientAlt', value: data?.payload?._data?.Info?.RecipientAlt },
+    { field: 'BroadcastListOwner', value: data?.payload?._data?.Info?.BroadcastListOwner }
   ];
   
   // Evolution format paths (backward compatibility)
   const evolutionPaths = [
-    data?.data?.key?.remoteJid,
-    data?.data?.remoteJid,
-    data?.remoteJid,
-    data?.from,
-    data?.data?.from
+    { field: 'remoteJid', value: data?.data?.key?.remoteJid },
+    { field: 'data.remoteJid', value: data?.data?.remoteJid },
+    { field: 'remoteJid', value: data?.remoteJid },
+    { field: 'from', value: data?.from },
+    { field: 'data.from', value: data?.data?.from }
   ];
 
   const allPaths = [...wahaPaths, ...evolutionPaths];
 
-  console.log('[extractPhoneNumber] Checking paths:', {
-    'data.payload.from (WAHA)': data?.payload?.from,
-    'data.data.key.remoteJid': data?.data?.key?.remoteJid,
-    'data.data.remoteJid': data?.data?.remoteJid,
-    'data.remoteJid': data?.remoteJid,
-    'data.from': data?.from,
-    'data.data.from': data?.data?.from
-  });
+  console.log('[WAHA] 🔍 Searching in priority order:', allPaths.map(p => `${p.field}: ${p.value}`).join(', '));
 
   for (let i = 0; i < allPaths.length; i++) {
-    const path = allPaths[i];
-    console.log(`[extractPhoneNumber] Path ${i}: ${path} (type: ${typeof path})`);
+    const { field, value } = allPaths[i];
     
-    if (path && typeof path === 'string') {
-      // Handle both @c.us (WAHA) and @s.whatsapp.net (Evolution) formats
-      const phone = path
+    if (value && typeof value === 'string') {
+      console.log(`[WAHA] 📋 Checking field "${field}": "${value}"`);
+      
+      // Split by ':' first to remove ID suffix like "5512974041539:51@s.whatsapp.net"
+      const beforeColon = value.split(':')[0];
+      
+      // Clean the phone number - remove @c.us, @s.whatsapp.net and non-digits
+      const phone = beforeColon
         .replace('@c.us', '')
         .replace('@s.whatsapp.net', '')
         .replace(/\D/g, '');
       
-      console.log(`[extractPhoneNumber] Extracted phone from path ${i}: ${phone} (length: ${phone.length})`);
+      console.log(`[WAHA] 🧹 Cleaned "${value}" → "${phone}" (length: ${phone.length})`);
       
-      if (phone.length >= 10) {
-        console.log(`[extractPhoneNumber] ✓ Success! Returning phone: ${phone}`);
+      if (phone.length >= 10 && phone.length <= 15) {
+        console.log(`[WAHA] ✅ Found valid phone in field "${field}": ${phone}`);
         return phone;
+      } else {
+        console.log(`[WAHA] ⚠️ Invalid phone length in "${field}": ${phone.length} digits`);
       }
     }
   }
 
-  console.error('[extractPhoneNumber] ✗ Failed to extract phone number from any path');
+  console.error('[WAHA] ❌ Failed to extract phone number from any field');
+  console.error('[WAHA] 📄 Full data dump:', JSON.stringify(data, null, 2));
   return null;
 }
 
