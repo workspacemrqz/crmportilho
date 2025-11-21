@@ -11,17 +11,33 @@ This is a CRM and chatbot system for "Seguro IA" (Insurance AI), designed to man
   - Created new shared types: `FlowStepNode`, `NodePosition`, `StepTransition` for type-safe visual editing
   - Built `FlowEditor.tsx` component:
     - Visual canvas with draggable nodes representing conversation flow steps
-    - Connection system for defining step transitions (edges between nodes)
+    - **Intuitive Visual Handles**: Visible connection points on all four sides of nodes (top, bottom, left, right)
+      - Main handles (top/bottom) are larger and more prominent for primary connections
+      - Side handles (left/right) provide additional connection flexibility
+      - Hover effects make handles more discoverable
+      - All handles include descriptive data-testid attributes for testing
+    - **Enhanced Connection Visualization**:
+      - Smooth animated edges with primary color styling
+      - Arrow markers showing direction of flow
+      - Auto-generated labels based on target step name (e.g., "→ Cotação")
+      - Labels display with background for better readability
+    - **Automatic Transition Creation**: Drag from one node to another to instantly:
+      - Create transition in source step's configuration
+      - Generate intelligent default label
+      - Open edit modal immediately for customization
+      - Prevent duplicate connections to same target
+    - **Visual Feedback**: Transition counter badges showing number of outgoing connections
+    - Start node indicator using Star icon from lucide-react (no emojis)
     - Automatic layout algorithm for initial node positioning
     - Node selection and deletion capabilities
-    - Preserves "Mensagens Padrão" and "Palavras-chave" sections
   - Built `NodeEditPanel.tsx` component:
-    - Side panel for editing selected node properties
+    - Modal popup (not side panel) for editing selected node properties
     - AI preview testing within the panel
     - Real-time updates to flow configuration
+  - Simplified `/fluxo` page to contain only visual editor (removed separate sections)
   - Updated backend routes (`PUT /api/flows/:id`) to properly save/load position and transitions data
   - All visual editor elements include `data-testid` attributes for testing
-  - Architecture reviewed and approved: Code follows guidelines, data persistence works end-to-end
+  - Architecture reviewed and approved: Code follows guidelines, data persistence works end-to-end, no emojis used
 
 **November 20, 2025:**
 - **Fluxo de Atendimento (Flow) Feature**: Implemented complete intelligent WhatsApp conversation flow system
