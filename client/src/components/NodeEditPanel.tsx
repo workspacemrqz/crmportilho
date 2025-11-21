@@ -33,6 +33,7 @@ type FlowStep = {
   exampleMessage?: string;
   position?: { x: number; y: number } | any;
   transitions?: StepTransition[] | any;
+  buffer?: number;
 };
 
 type NodeEditPanelProps = {
@@ -199,6 +200,23 @@ export default function NodeEditPanel({
             />
             <p className="text-xs text-muted-foreground">
               A IA usará estas instruções para decidir qual etapa seguir
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="buffer">Buffer (segundos)</Label>
+            <Input
+              id="buffer"
+              type="number"
+              value={editedNode.buffer ?? 30}
+              onChange={(e) => updateField('buffer', Number(e.target.value))}
+              placeholder="30"
+              min="1"
+              max="300"
+              data-testid="input-buffer"
+            />
+            <p className="text-xs text-muted-foreground">
+              Tempo em segundos para coletar múltiplas mensagens do usuário antes de gerar uma resposta
             </p>
           </div>
 

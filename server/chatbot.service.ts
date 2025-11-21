@@ -276,7 +276,7 @@ export class ChatbotService {
     console.log(`[ChatbotService] 🕐 Buffer customizado definido para ${phone}: ${timeoutMs/1000}s`);
   }
 
-  // Get buffer timeout for a specific phone (checks custom first, then default)
+  // Get buffer timeout for a specific phone (checks custom first, then step-specific, then default)
   private async getBufferTimeoutForPhone(phone: string): Promise<number> {
     // Check if there's a custom timeout for this phone
     const customTimeout = this.customBufferTimeouts.get(phone);
@@ -285,6 +285,51 @@ export class ChatbotService {
       // Remove custom timeout after retrieving (one-time use)
       this.customBufferTimeouts.delete(phone);
       return customTimeout;
+    }
+    
+    // Try to get buffer from current flow step
+    try {
+      const { storage } = await import('./storage');
+      const lead = await storage.getLeadByPhone(phone);
+      
+      if (lead) {
+        const conversation = await storage.getActiveConversation(lead.id);
+        
+        if (conversation) {
+          const chatbotState = await storage.getChatbotState(conversation.id);
+          
+          if (chatbotState) {
+            // Try to get active flow and identify current step
+            const flowConfig = await this.getActiveFlow();
+            if (flowConfig) {
+              const steps = await this.getFlowSteps(flowConfig.id);
+              if (steps.length > 0) {
+                const currentStep = await this.identifyCurrentStep(chatbotState, steps);
+                if (currentStep) {
+                  // Type assertion to access buffer field (Drizzle infers all fields)
+                  const buffer = (currentStep as any).buffer;
+                  
+                  // Validate buffer value using isFinite (clamp between 1 and 300 seconds)
+                  let bufferSeconds = Number(buffer);
+                  
+                  if (!isFinite(bufferSeconds) || bufferSeconds < 1) {
+                    console.warn(`[ChatbotService] ⚠️ Buffer inválido no step "${currentStep.stepName}" (${buffer}), usando mínimo de 1s`);
+                    bufferSeconds = 1;
+                  } else if (bufferSeconds > 300) {
+                    console.warn(`[ChatbotService] ⚠️ Buffer muito alto no step "${currentStep.stepName}" (${bufferSeconds}s), limitando a 300s`);
+                    bufferSeconds = 300;
+                  }
+                  
+                  console.log(`[ChatbotService] 🕐 Usando buffer do step "${currentStep.stepName}": ${bufferSeconds}s (valor original: ${buffer})`);
+                  return bufferSeconds * 1000;
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.log(`[ChatbotService] Não foi possível determinar buffer do step, usando padrão:`, error);
     }
     
     // Otherwise use default configured timeout
@@ -906,6 +951,14 @@ export class ChatbotService {
         .from(flowSteps)
         .where(eq(flowSteps.flowConfigId, flowConfigId))
         .orderBy(asc(flowSteps.order));
+      
+      // Debug: log buffer values to verify they're being loaded
+      if (steps.length > 0) {
+        console.log(`[ChatbotService] Loaded ${steps.length} steps with buffers:`, 
+          steps.map(s => ({ stepId: s.stepId, stepName: s.stepName, buffer: s.buffer }))
+        );
+      }
+      
       return steps;
     } catch (error) {
       console.error('[ChatbotService] Error fetching flow steps:', error);
