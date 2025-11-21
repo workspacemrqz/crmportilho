@@ -126,31 +126,35 @@ const FlowStepNode = memo(({ data, selected }: any) => {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Hover action buttons - positioned above the node */}
+      {/* Hover action buttons - positioned above the node, each with its own container */}
       <div 
-        className="absolute -top-10 right-0 flex items-center gap-1 bg-background rounded-md p-1 shadow-lg border border-border"
+        className="absolute -top-10 right-0 flex items-center gap-2"
         style={{ visibility: isHovered ? 'visible' : 'hidden' }}
       >
-        <Button
-          size="icon"
-          variant="ghost"
-          className="h-7 w-7 hover-elevate active-elevate-2"
-          onClick={handleCopyId}
-          title="Copiar ID"
-          data-testid={`button-copy-id-${data.stepId}`}
-        >
-          <Copy className="h-3.5 w-3.5" />
-        </Button>
-        <Button
-          size="icon"
-          variant="ghost"
-          className="h-7 w-7 text-destructive hover:text-destructive hover-elevate active-elevate-2"
-          onClick={handleDelete}
-          title="Deletar etapa"
-          data-testid={`button-delete-node-${data.stepId}`}
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </Button>
+        <div className="bg-background rounded-md p-1 shadow-lg border border-border">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-7 w-7 hover-elevate active-elevate-2"
+            onClick={handleCopyId}
+            title="Copiar ID"
+            data-testid={`button-copy-id-${data.stepId}`}
+          >
+            <Copy className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+        <div className="bg-background rounded-md p-1 shadow-lg border border-border">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-7 w-7 text-destructive hover:text-destructive hover-elevate active-elevate-2"
+            onClick={handleDelete}
+            title="Deletar etapa"
+            data-testid={`button-delete-node-${data.stepId}`}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
       </div>
       
       <div 
