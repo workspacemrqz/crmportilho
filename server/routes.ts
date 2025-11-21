@@ -2137,8 +2137,48 @@ Retorne APENAS o JSON array, sem texto adicional.`;
         return res.status(404).json({ error: 'Flow configuration not found' });
       }
       
-      const updatedKeywords = await storage.getKeywordRules(id);
-      const updatedSteps = await storage.getFlowSteps(id);
+      let updatedKeywords = await storage.getKeywordRules(id);
+      let updatedSteps = await storage.getFlowSteps(id);
+      
+      // Update keywords if provided
+      if (keywords && Array.isArray(keywords)) {
+        // Delete existing keywords
+        const existingKeywords = await storage.getKeywordRules(id);
+        for (const keyword of existingKeywords) {
+          await storage.deleteKeywordRule(keyword.id);
+        }
+        
+        // Create new keywords
+        updatedKeywords = [];
+        for (const keyword of keywords) {
+          const validatedKeyword = insertKeywordRuleSchema.parse({
+            ...keyword,
+            flowConfigId: id
+          });
+          const created = await storage.createKeywordRule(validatedKeyword);
+          updatedKeywords.push(created);
+        }
+      }
+      
+      // Update steps if provided
+      if (steps && Array.isArray(steps)) {
+        // Delete existing steps
+        const existingSteps = await storage.getFlowSteps(id);
+        for (const step of existingSteps) {
+          await storage.deleteFlowStep(step.id);
+        }
+        
+        // Create new steps with position and transitions
+        updatedSteps = [];
+        for (const step of steps) {
+          const validatedStep = insertFlowStepSchema.parse({
+            ...step,
+            flowConfigId: id
+          });
+          const created = await storage.createFlowStep(validatedStep);
+          updatedSteps.push(created);
+        }
+      }
       
       res.json({
         ...config,

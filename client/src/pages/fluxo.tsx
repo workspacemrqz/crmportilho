@@ -10,6 +10,8 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Loader2, Plus, Trash2, Save, Sparkles } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import FlowEditor from "@/components/FlowEditor";
+import NodeEditPanel from "@/components/NodeEditPanel";
 
 type FlowConfig = {
   id?: string;
@@ -144,6 +146,7 @@ export default function FluxoPage() {
 
   const [steps, setSteps] = useState<FlowStep[]>(DEFAULT_STEPS);
   const [previewResults, setPreviewResults] = useState<Map<string, AIPreviewResponse>>(new Map());
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
   const { data: activeFlow, isLoading: loadingActive } = useQuery<any>({
     queryKey: ['/api/flows/active'],
@@ -290,6 +293,25 @@ export default function FluxoPage() {
     }
     previewMutation.mutate({ step, message: step.exampleMessage });
   };
+
+  const handleNodeUpdate = (updatedNode: FlowStep) => {
+    const updatedSteps = steps.map((step) =>
+      step.stepId === updatedNode.stepId ? updatedNode : step
+    );
+    setSteps(updatedSteps);
+  };
+
+  const handleNodeDelete = (stepId: string) => {
+    const updatedSteps = steps.filter((step) => step.stepId !== stepId);
+    setSteps(updatedSteps);
+    setSelectedNodeId(null);
+  };
+
+  const handleNodeSelect = (step: FlowStep | null) => {
+    setSelectedNodeId(step?.stepId || null);
+  };
+
+  const selectedNode = selectedNodeId ? steps.find((s) => s.stepId === selectedNodeId) || null : null;
 
   if (loadingActive) {
     return (
@@ -463,188 +485,46 @@ export default function FluxoPage() {
           </div>
 
           <div className="border-t pt-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-              <h3 className="text-lg font-semibold">Etapas do Fluxo</h3>
-              <Button onClick={addStep} variant="outline" size="sm" className="w-full sm:w-auto" data-testid="button-add-step">
-                <Plus className="w-4 h-4 mr-1" />
-                Adicionar Etapa
-              </Button>
-            </div>
-
-            {steps.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                Nenhuma etapa configurada. Clique em "Adicionar Etapa" para começar.
-              </p>
-            ) : (
-              <div className="space-y-6">
-                {steps.map((step, index) => (
-                  <Card key={index} className="border-2">
-                    <CardHeader className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 space-y-0 pb-4">
-                      <div className="flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Badge variant="outline">Etapa {index + 1}</Badge>
-                          <CardTitle className="text-base">{step.stepName}</CardTitle>
-                        </div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeStep(index)}
-                        className="self-end sm:self-start"
-                        data-testid={`button-remove-step-${index}`}
-                      >
-                        <Trash2 className="w-4 h-4 text-destructive" />
-                      </Button>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label>ID da Etapa</Label>
-                          <Input
-                            value={step.stepId}
-                            onChange={(e) => updateStep(index, 'stepId', e.target.value)}
-                            placeholder="exemplo_01"
-                            data-testid={`input-step-id-${index}`}
-                          />
-                          <p className="text-xs text-muted-foreground">
-                            Identificador único (sem espaços)
-                          </p>
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Nome da Etapa</Label>
-                          <Input
-                            value={step.stepName}
-                            onChange={(e) => updateStep(index, 'stepName', e.target.value)}
-                            placeholder="Nome amigável"
-                            data-testid={`input-step-name-${index}`}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Objetivo da Etapa</Label>
-                        <Textarea
-                          value={step.objective}
-                          onChange={(e) => updateStep(index, 'objective', e.target.value)}
-                          rows={2}
-                          placeholder="O que essa etapa deve alcançar?"
-                          data-testid={`textarea-step-objective-${index}`}
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Prompt da Etapa</Label>
-                        <Textarea
-                          value={step.stepPrompt}
-                          onChange={(e) => updateStep(index, 'stepPrompt', e.target.value)}
-                          rows={3}
-                          placeholder="Como o agente deve se comportar nesta etapa? Que perguntas fazer?"
-                          data-testid={`textarea-step-prompt-${index}`}
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Instruções de Roteamento (Linguagem Natural)</Label>
-                        <Textarea
-                          value={step.routingInstructions}
-                          onChange={(e) => updateStep(index, 'routingInstructions', e.target.value)}
-                          rows={3}
-                          placeholder='Ex: "Siga para a etapa identificacao_inicial se o cliente demonstrar interesse. Siga para encerramento se recusar."'
-                          data-testid={`textarea-step-routing-${index}`}
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          A IA usará estas instruções para decidir qual etapa seguir
-                        </p>
-                      </div>
-
-                      <div className="border-t pt-4 space-y-3">
-                        <Label>Testar com IA</Label>
-                        <div className="flex flex-col sm:flex-row gap-2">
-                          <Input
-                            value={step.exampleMessage || ""}
-                            onChange={(e) => updateStep(index, 'exampleMessage', e.target.value)}
-                            placeholder="Digite uma mensagem de exemplo do cliente..."
-                            className="flex-1"
-                            data-testid={`input-step-example-${index}`}
-                          />
-                          <Button
-                            onClick={() => generatePreview(step)}
-                            disabled={previewMutation.isPending}
-                            variant="secondary"
-                            className="w-full sm:w-auto"
-                            data-testid={`button-generate-preview-${index}`}
-                          >
-                            {previewMutation.isPending ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <Sparkles className="w-4 h-4" />
-                            )}
-                          </Button>
-                        </div>
-
-                        {previewResults.has(step.stepId) && (
-                          <div className="bg-muted/50 p-3 sm:p-4 rounded-md space-y-2">
-                            <p className="text-sm font-semibold">Resposta de exemplo da IA:</p>
-                            <p className="text-sm break-words">{previewResults.get(step.stepId)?.mensagemAgente}</p>
-                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-3">
-                              <p className="text-sm font-semibold">Próxima etapa sugerida:</p>
-                              <Badge>
-                                {previewResults.get(step.stepId)?.proximaEtapaId || "Encerrar fluxo"}
-                              </Badge>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Resumo do Fluxo</CardTitle>
-          <CardDescription>
-            Visualização compacta da configuração atual
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <h4 className="font-semibold mb-2">Prompt Global</h4>
-            <p className="text-sm text-muted-foreground whitespace-pre-wrap bg-muted/30 p-3 rounded-md">
-              {config.globalPrompt.substring(0, 200)}
-              {config.globalPrompt.length > 200 ? '...' : ''}
+            <h3 className="text-lg font-semibold mb-4">Editor Visual de Fluxo</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Arraste os nodes para organizar, conecte-os criando transições, e clique para editar os detalhes no painel lateral.
             </p>
-          </div>
-
-          <div>
-            <h4 className="font-semibold mb-2">Etapas Configuradas ({steps.length})</h4>
-            <div className="space-y-2">
-              {steps.map((step, index) => (
-                <div key={index} className="text-sm p-3 bg-muted/30 rounded-md">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Badge variant="outline" className="text-xs">
-                      {step.stepId}
-                    </Badge>
-                    <span className="font-medium">{step.stepName}</span>
-                  </div>
-                  <p className="text-muted-foreground text-xs">{step.objective}</p>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <div className="lg:col-span-2">
+                <FlowEditor
+                  steps={steps}
+                  onStepsChange={setSteps}
+                  onNodeSelect={handleNodeSelect}
+                  selectedNodeId={selectedNodeId}
+                />
+              </div>
+              
+              <div className="lg:col-span-1">
+                <div className="border rounded-md h-[600px] bg-card">
+                  <NodeEditPanel
+                    selectedNode={selectedNode}
+                    allSteps={steps}
+                    onNodeUpdate={handleNodeUpdate}
+                    onNodeDelete={handleNodeDelete}
+                    onTestWithAI={(step) => {
+                      if (!step.exampleMessage || step.exampleMessage.trim() === "") {
+                        toast({
+                          title: "Mensagem necessária",
+                          description: "Digite uma mensagem de exemplo do cliente para testar.",
+                          variant: "destructive"
+                        });
+                        return;
+                      }
+                      previewMutation.mutate({ step, message: step.exampleMessage });
+                    }}
+                    isTestingAI={previewMutation.isPending}
+                    aiPreviewResult={selectedNode && previewResults.has(selectedNode.stepId) 
+                      ? previewResults.get(selectedNode.stepId) 
+                      : null}
+                  />
                 </div>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <h4 className="font-semibold mb-2">Regras de Palavra-chave ({keywords.length})</h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {keywords.map((keyword, index) => (
-                <div key={index} className="text-sm p-2 bg-muted/30 rounded-md break-words">
-                  <span className="font-medium">{keyword.keyword}</span> → {keyword.response.substring(0, 30)}...
-                </div>
-              ))}
+              </div>
             </div>
           </div>
         </CardContent>
