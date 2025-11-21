@@ -5,17 +5,25 @@ This is a CRM and chatbot system for "Seguro IA" (Insurance AI), designed to man
 # Recent Changes
 
 **November 21, 2025 (Latest):**
+- **Visual Flow Editor Performance Optimizations**: Fixed critical bugs in node positioning and connection handling
+  - **Node Position Stability**: Implemented comprehensive solution to prevent nodes from moving when connections are created
+    - Created `positionsRef` to store positions independently of steps state
+    - Implemented structural hash comparison to detect only real structural changes
+    - Used delta reconciliation instead of full rebuilds when only transitions change
+    - Separate effect for updating transition counts without rebuilding entire node tree
+    - Positions are now 100% preserved when connecting, editing, or rearranging nodes
+  - **Horizontal Connection Flow**: Changed connection handles from vertical (top/bottom) to horizontal (left/right)
+    - Input handle on left side (Position.Left)
+    - Output handle on right side (Position.Right)
+    - Removed top and bottom handles for cleaner horizontal flow visualization
+    - Larger, more prominent handle indicators for easier connection
+
 - **Visual Flow Editor**: Transformed `/fluxo` page into interactive node-based flow editor (similar to n8n)
   - Installed React Flow library (`@xyflow/react`) for visual node editing
   - Extended database schema with `position` (x,y coordinates) and `transitions` (node connections) fields on `flow_steps` table
   - Created new shared types: `FlowStepNode`, `NodePosition`, `StepTransition` for type-safe visual editing
   - Built `FlowEditor.tsx` component:
     - Visual canvas with draggable nodes representing conversation flow steps
-    - **Intuitive Visual Handles**: Visible connection points on all four sides of nodes (top, bottom, left, right)
-      - Main handles (top/bottom) are larger and more prominent for primary connections
-      - Side handles (left/right) provide additional connection flexibility
-      - Hover effects make handles more discoverable
-      - All handles include descriptive data-testid attributes for testing
     - **Enhanced Connection Visualization**:
       - Smooth animated edges with primary color styling
       - Arrow markers showing direction of flow

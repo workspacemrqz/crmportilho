@@ -59,16 +59,6 @@ const FlowStepNode = memo(({ data, selected }: any) => {
       }`}
       data-testid={`node-${data.stepId}`}
     >
-      {/* Handle de entrada (topo) - mais visível */}
-      <Handle
-        type="target"
-        position={Position.Top}
-        className="!w-3 !h-3 !bg-primary !border-2 !border-background hover:!w-4 hover:!h-4 transition-all"
-        style={{ top: -6 }}
-        title="Conectar de outra etapa para esta"
-        data-testid={`handle-target-top-${data.stepId}`}
-      />
-      
       <div className="space-y-1">
         <div className="flex items-center justify-between gap-2">
           <div className="font-semibold text-sm flex-1">{data.stepName}</div>
@@ -88,32 +78,24 @@ const FlowStepNode = memo(({ data, selected }: any) => {
         )}
       </div>
       
-      {/* Handle de saída (baixo) - principal */}
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        className="!w-3 !h-3 !bg-primary !border-2 !border-background hover:!w-4 hover:!h-4 transition-all"
-        style={{ bottom: -6 }}
-        title="Arrastar para conectar a outra etapa"
-        data-testid={`handle-source-bottom-${data.stepId}`}
-      />
-      
-      {/* Handles laterais para mais opções de conexão */}
-      <Handle
-        type="source"
-        position={Position.Right}
-        className="!w-2.5 !h-2.5 !bg-primary/60 !border-2 !border-background hover:!w-3.5 hover:!h-3.5 transition-all"
-        style={{ right: -5 }}
-        title="Arrastar para conectar a outra etapa"
-        data-testid={`handle-source-right-${data.stepId}`}
-      />
+      {/* Handle de entrada (esquerda) - principal */}
       <Handle
         type="target"
         position={Position.Left}
-        className="!w-2.5 !h-2.5 !bg-primary/60 !border-2 !border-background hover:!w-3.5 hover:!h-3.5 transition-all"
-        style={{ left: -5 }}
+        className="!w-3 !h-3 !bg-primary !border-2 !border-background hover:!w-4 hover:!h-4 transition-all"
+        style={{ left: -6 }}
         title="Conectar de outra etapa para esta"
         data-testid={`handle-target-left-${data.stepId}`}
+      />
+      
+      {/* Handle de saída (direita) - principal */}
+      <Handle
+        type="source"
+        position={Position.Right}
+        className="!w-3 !h-3 !bg-primary !border-2 !border-background hover:!w-4 hover:!h-4 transition-all"
+        style={{ right: -6 }}
+        title="Arrastar para conectar a outra etapa"
+        data-testid={`handle-source-right-${data.stepId}`}
       />
     </div>
   );
