@@ -130,6 +130,8 @@ const FlowStepNode = memo(({ data, selected }: any) => {
       <div 
         className="absolute -top-12 right-0 flex items-center gap-1"
         style={{ visibility: isHovered ? 'visible' : 'hidden' }}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
       >
         <div className="bg-background rounded-md p-1 shadow-lg border border-border">
           <Button
