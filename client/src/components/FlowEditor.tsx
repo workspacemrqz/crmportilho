@@ -236,6 +236,10 @@ function FlowEditorInner({ steps, onStepsChange, onNodeSelect, selectedNodeId }:
   const [invalidTransitions, setInvalidTransitions] = useState<string[]>([]);
   const [isConnecting, setIsConnecting] = useState(false);
 
+  // Memoize nodeTypes and edgeTypes to prevent React Flow warnings
+  const memoizedNodeTypes = useMemo(() => nodeTypes, []);
+  const memoizedEdgeTypes = useMemo(() => edgeTypes, []);
+
   // Proximity Connect - Store API
   const store = useStoreApi();
 
@@ -719,8 +723,8 @@ function FlowEditorInner({ steps, onStepsChange, onNodeSelect, selectedNodeId }:
         onPaneClick={handlePaneClick}
         onNodeDrag={onNodeDrag}
         onNodeDragStop={onNodeDragStop}
-        nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
+        nodeTypes={memoizedNodeTypes}
+        edgeTypes={memoizedEdgeTypes}
         fitView={fitViewOnInitRef.current}
         minZoom={0.2}
         maxZoom={2}
