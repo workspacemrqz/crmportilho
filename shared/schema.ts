@@ -535,3 +535,20 @@ export type KeywordRule = typeof keywordRules.$inferSelect;
 export type InsertKeywordRule = z.infer<typeof insertKeywordRuleSchema>;
 export type FlowStep = typeof flowSteps.$inferSelect;
 export type InsertFlowStep = z.infer<typeof insertFlowStepSchema>;
+
+// Visual Flow Editor Types
+export type NodePosition = {
+  x: number;
+  y: number;
+};
+
+export type StepTransition = {
+  id: string;
+  label: string;
+  targetStepId: string;
+};
+
+export type FlowStepNode = FlowStep & {
+  position: NodePosition;
+  transitions: StepTransition[];
+};
