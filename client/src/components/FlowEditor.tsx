@@ -43,8 +43,7 @@ type FlowEditorProps = {
   selectedNodeId: string | null;
 };
 
-const nodeTypes = {
-  flowStep: ({ data }: any) => {
+const FlowStepNode = ({ data }: any) => {
     const isSelected = data.isSelected;
     const isStart = data.isStart;
     const transitionsCount = data.transitionsCount || 0;
@@ -209,18 +208,9 @@ function FlowEditorInner({ steps, onStepsChange, onNodeSelect, selectedNodeId }:
   useEffect(() => {
     const newNodes = convertStepsToNodes(steps);
     const newEdges = convertTransitionsToEdges(steps);
-    
-    // Preserva as posições atuais dos nodes durante atualização
-    setNodes((currentNodes) => {
-      const nodeMap = new Map(currentNodes.map(n => [n.id, n.position]));
-      return newNodes.map(node => ({
-        ...node,
-        position: nodeMap.get(node.id) || node.position
-      }));
-    });
-    
+    setNodes(newNodes);
     setEdges(newEdges);
-  }, [steps, convertStepsToNodes, convertTransitionsToEdges, setEdges]);
+  }, [steps, convertStepsToNodes, convertTransitionsToEdges, setNodes, setEdges]);
 
   const handleNodesChange = useCallback((changes: NodeChange[]) => {
     onNodesChange(changes);
