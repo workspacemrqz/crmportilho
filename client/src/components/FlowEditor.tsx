@@ -29,7 +29,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { FlowStepNode as FlowStepNodeType, StepTransition } from '@shared/schema';
 import { Button } from '@/components/ui/button';
-import { Plus, AlertCircle, Star, X, GripVertical, Save, Loader2, Trash2, Copy } from 'lucide-react';
+import { Plus, AlertCircle, Star, X, Save, Loader2, Trash2, Copy } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 
@@ -133,14 +133,6 @@ const FlowStepNode = memo(({ data, selected }: any) => {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Drag handle - visual indicator */}
-      <div 
-        className="absolute top-0 left-0 h-full w-8 flex items-center justify-center cursor-move"
-        data-testid={`drag-handle-${data.stepId}`}
-      >
-        <GripVertical className="w-4 h-4 text-muted-foreground/40" />
-      </div>
-      
       {/* Hover action buttons */}
       <div 
         className="absolute top-2 right-2 flex items-center gap-1"
