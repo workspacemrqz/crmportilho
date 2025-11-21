@@ -5,6 +5,22 @@ This is a CRM and chatbot system for "Seguro IA" (Insurance AI), designed to man
 # Recent Changes
 
 **November 21, 2025 (Latest):**
+- **WhatsApp Chatbot Integration with Configurable Flow**: Successfully integrated visual flow system with WhatsApp message processing
+  - Created `processWithConfigurableFlow` method in ChatbotService to replace hardcoded state machine
+  - Implemented intelligent step identification using `chatbotState.currentState` to track lead's position in flow
+  - Built AI-powered response generation that combines:
+    - Flow's `globalPrompt` for overall context and personality
+    - Step's `stepPrompt` for specific instructions at current stage
+    - Step's `objective` to guide response generation
+    - Step's `routingInstructions` for determining next step transitions
+  - Added conversation history context (last 10 messages) for more coherent responses
+  - Implemented automatic next-step determination using OpenAI with structured JSON output
+  - System validates next step IDs against available steps to prevent invalid transitions
+  - Graceful fallback to legacy state machine if no active flow is configured
+  - Updated `flushBuffer` method to use configurable flow as primary processing method
+  - Comprehensive error handling with detailed logging for debugging
+  - Architecture reviewed and approved: proper flow loading, step identification, AI response generation, and state updates
+
 - **Visual Flow Editor Performance Optimizations**: Fixed critical bugs in node positioning and connection handling
   - **Node Position Stability**: Implemented comprehensive solution to prevent nodes from moving when connections are created
     - Created `positionsRef` to store positions independently of steps state
