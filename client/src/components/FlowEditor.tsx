@@ -209,15 +209,25 @@ function FlowEditorInner({ steps, onStepsChange, onNodeSelect, selectedNodeId }:
   useEffect(() => {
     const newNodes = convertStepsToNodes(steps);
     const newEdges = convertTransitionsToEdges(steps);
-    setNodes(newNodes);
+    
+    // Preserva as posições atuais dos nodes durante atualização
+    setNodes((currentNodes) => {
+      const nodeMap = new Map(currentNodes.map(n => [n.id, n.position]));
+      return newNodes.map(node => ({
+        ...node,
+        position: nodeMap.get(node.id) || node.position
+      }));
+    });
+    
     setEdges(newEdges);
-  }, [steps, convertStepsToNodes, convertTransitionsToEdges, setNodes, setEdges]);
+  }, [steps, convertStepsToNodes, convertTransitionsToEdges, setEdges]);
 
   const handleNodesChange = useCallback((changes: NodeChange[]) => {
     onNodesChange(changes);
     
+    // Atualiza as posições dos steps em tempo real durante o movimento
     changes.forEach((change) => {
-      if (change.type === 'position' && change.position && !change.dragging) {
+      if (change.type === 'position' && change.position) {
         const updatedSteps = steps.map((step) =>
           step.stepId === change.id
             ? { ...step, position: change.position }
