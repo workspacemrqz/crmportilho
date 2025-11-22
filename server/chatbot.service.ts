@@ -1316,8 +1316,30 @@ export class ChatbotService {
     try {
       console.log(`[ChatbotService] 🔄 Processing step: ${currentStep.stepName} (type: ${currentStep.stepType})`);
       
+      // Check if this step has already been executed for this conversation
+      const context = chatbotState.context as any || {};
+      const executedSteps = new Set<string>(context.executedSteps || []);
+      
+      if (executedSteps.has(currentStep.stepId)) {
+        console.log(`[ChatbotService] ⏭️ Step "${currentStep.stepName}" already executed - skipping`);
+        // Step already executed - don't process again, just wait for user input
+        return false;
+      }
+      
+      console.log(`[ChatbotService] ✨ First execution of step "${currentStep.stepName}"`);
+      
       // Update lead status/priority if configured in this node
       await this.updateLeadStatusAndPriority(lead, currentStep);
+      
+      // Mark this step as executed BEFORE processing
+      executedSteps.add(currentStep.stepId);
+      await this.updateChatbotState(chatbotState.id, {
+        context: {
+          ...context,
+          executedSteps: Array.from(executedSteps)
+        }
+      });
+      console.log(`[ChatbotService] 📝 Marked step "${currentStep.stepId}" as executed`);
       
       // Check if this is a FIXED message node or AI node
       if (currentStep.stepType === 'fixed') {
