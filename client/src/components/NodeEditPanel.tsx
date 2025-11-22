@@ -35,6 +35,8 @@ type FlowStep = {
   transitions?: StepTransition[] | any;
   buffer?: number;
   stepType?: 'ai' | 'fixed';
+  changeStatusTo?: string | null;
+  changePriorityTo?: string | null;
 };
 
 type NodeEditPanelProps = {
@@ -383,6 +385,56 @@ export default function NodeEditPanel({
             <p className="text-xs text-muted-foreground">
               Tempo para coletar mensagens antes de responder
             </p>
+          </div>
+
+          <div className="border-t pt-4 space-y-4">
+            <Label className="text-sm font-semibold">Mudança Automática de Tags</Label>
+            <p className="text-xs text-muted-foreground">
+              Configure se o lead deve ter seu status ou prioridade alterados ao chegar nesta etapa
+            </p>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="change-status">Mudar Status Para</Label>
+                <Select
+                  value={(editedNode as any).changeStatusTo || 'sem_mudanca'}
+                  onValueChange={(value) => updateField('changeStatusTo', value === 'sem_mudanca' ? null : value)}
+                >
+                  <SelectTrigger id="change-status" data-testid="select-change-status">
+                    <SelectValue placeholder="Manter atual" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sem_mudanca">Não alterar</SelectItem>
+                    <SelectItem value="novo">Novo</SelectItem>
+                    <SelectItem value="em_atendimento">Em Atendimento</SelectItem>
+                    <SelectItem value="aguardando_documentos">Aguardando Documentos</SelectItem>
+                    <SelectItem value="encaminhado">Encaminhado</SelectItem>
+                    <SelectItem value="transferido_humano">Transferido para Humano</SelectItem>
+                    <SelectItem value="concluido">Concluído</SelectItem>
+                    <SelectItem value="cancelado">Cancelado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="change-priority">Mudar Prioridade Para</Label>
+                <Select
+                  value={(editedNode as any).changePriorityTo || 'sem_mudanca'}
+                  onValueChange={(value) => updateField('changePriorityTo', value === 'sem_mudanca' ? null : value)}
+                >
+                  <SelectTrigger id="change-priority" data-testid="select-change-priority">
+                    <SelectValue placeholder="Manter atual" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sem_mudanca">Não alterar</SelectItem>
+                    <SelectItem value="baixa">Baixa</SelectItem>
+                    <SelectItem value="normal">Normal</SelectItem>
+                    <SelectItem value="alta">Alta</SelectItem>
+                    <SelectItem value="urgente">Urgente</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
 
           <div className="border-t pt-6">
