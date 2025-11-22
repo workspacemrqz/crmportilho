@@ -61,6 +61,15 @@ const followupMessageSchema = z.object({
 
 type FollowupMessageForm = z.infer<typeof followupMessageSchema>;
 
+// Opções predefinidas de tempo
+const TIME_PRESETS = [
+  { label: "4 horas", minutes: 240, description: "Ideal para resposta rápida" },
+  { label: "8 horas", minutes: 480, description: "Padrão comercial" },
+  { label: "12 horas", minutes: 720, description: "Meio dia útil" },
+  { label: "24 horas", minutes: 1440, description: "Um dia completo" },
+  { label: "48 horas", minutes: 2880, description: "Dois dias" },
+];
+
 export default function FollowupPage() {
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -210,6 +219,9 @@ export default function FollowupPage() {
     return `${hours}h ${remainingMinutes}min`;
   };
 
+  // Watch the current delay value to show preview
+  const currentDelay = form.watch("delayMinutes");
+
   return (
     <div className="flex-1 p-4 sm:p-6 lg:p-8">
       <div className="max-w-6xl mx-auto space-y-6">
@@ -230,92 +242,131 @@ export default function FollowupPage() {
           <DialogContent className="sm:max-w-[600px]">
             <DialogHeader>
               <DialogTitle>
-                {editingMessage ? "Editar Mensagem de Follow-up" : "Nova Mensagem de Follow-up"}
+                {editingMessage ? "Editar Follow-up" : "Novo Follow-up Automático"}
               </DialogTitle>
               <DialogDescription>
                 {editingMessage 
-                  ? "Edite a mensagem de follow-up automático"
-                  : "Crie uma mensagem que será enviada automaticamente após um período sem resposta do lead."
+                  ? "Ajuste a mensagem que será enviada automaticamente"
+                  : "Configure uma mensagem para reengajar leads que pararam de responder"
                 }
               </DialogDescription>
             </DialogHeader>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+                {/* Nome da mensagem */}
                 <FormField
                   control={form.control}
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Nome da Mensagem</FormLabel>
+                      <FormLabel>Nome de identificação</FormLabel>
                       <FormControl>
                         <Input
-                          placeholder="Ex: Follow-up 8 horas"
+                          placeholder="Ex: Lembrete após 8 horas"
                           data-testid="input-followup-name"
                           {...field}
                         />
                       </FormControl>
                       <FormDescription>
-                        Um nome para identificar esta mensagem
+                        Um nome para você identificar esta mensagem no sistema
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
+                {/* Tempo de espera com botões predefinidos */}
                 <FormField
                   control={form.control}
                   name="delayMinutes"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Tempo de Espera (minutos)</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          min="1"
-                          placeholder="480"
-                          data-testid="input-followup-delay"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Tempo em minutos sem resposta antes de enviar (480 min = 8 horas)
-                      </FormDescription>
+                      <FormLabel>Quando enviar a mensagem?</FormLabel>
+                      
+                      {/* Botões de seleção rápida */}
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
+                        {TIME_PRESETS.map((preset) => (
+                          <Button
+                            key={preset.minutes}
+                            type="button"
+                            variant={field.value === preset.minutes ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => field.onChange(preset.minutes)}
+                            className="h-auto py-2 px-3 flex flex-col items-start gap-0.5"
+                            data-testid={`button-preset-${preset.minutes}`}
+                          >
+                            <span className="font-semibold text-sm">{preset.label}</span>
+                            <span className="text-xs opacity-80">{preset.description}</span>
+                          </Button>
+                        ))}
+                      </div>
+
+                      {/* Campo de entrada manual */}
+                      <div className="space-y-2">
+                        <Label className="text-sm text-muted-foreground">Ou defina um tempo personalizado:</Label>
+                        <div className="flex gap-2 items-center">
+                          <FormControl>
+                            <Input
+                              type="number"
+                              min="1"
+                              placeholder="480"
+                              className="flex-1"
+                              data-testid="input-followup-delay"
+                              {...field}
+                            />
+                          </FormControl>
+                          <span className="text-sm text-muted-foreground whitespace-nowrap">minutos</span>
+                        </div>
+                        
+                        {/* Preview visual do tempo */}
+                        {currentDelay > 0 && (
+                          <div className="flex items-center gap-2 p-2 rounded-md bg-muted/50">
+                            <Clock className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm">
+                              Mensagem será enviada após <strong>{formatDelay(currentDelay)}</strong> sem resposta
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
+                {/* Mensagem de follow-up */}
                 <FormField
                   control={form.control}
                   name="message"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Mensagem</FormLabel>
+                      <FormLabel>Mensagem que será enviada</FormLabel>
                       <FormControl>
                         <Textarea
-                          placeholder="Digite a mensagem de follow-up..."
-                          className="min-h-[120px]"
+                          placeholder="Exemplo: Olá! Notei que você não respondeu nossa última mensagem. Posso ajudar com mais alguma informação sobre o seguro?"
+                          className="min-h-[100px] resize-none"
                           data-testid="input-followup-message"
                           {...field}
                         />
                       </FormControl>
                       <FormDescription>
-                        O texto que será enviado ao lead
+                        Seja amigável e ofereça ajuda. Evite ser insistente.
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
+                {/* Status ativo/inativo */}
                 <FormField
                   control={form.control}
                   name="isActive"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-md border p-4">
+                    <FormItem className="flex flex-row items-center justify-between rounded-md border p-3">
                       <div className="space-y-0.5">
-                        <FormLabel className="text-base">Ativa</FormLabel>
-                        <FormDescription>
-                          Se esta mensagem deve ser enviada automaticamente
+                        <FormLabel className="text-base">Ativar envio automático</FormLabel>
+                        <FormDescription className="text-sm">
+                          A mensagem será enviada automaticamente no tempo configurado
                         </FormDescription>
                       </div>
                       <FormControl>
@@ -329,7 +380,7 @@ export default function FollowupPage() {
                   )}
                 />
 
-                <DialogFooter>
+                <DialogFooter className="gap-2 sm:gap-0">
                   <Button
                     type="button"
                     variant="outline"
@@ -346,7 +397,7 @@ export default function FollowupPage() {
                     {(createMutation.isPending || updateMutation.isPending) && (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     )}
-                    {editingMessage ? "Salvar Alterações" : "Criar Mensagem"}
+                    {editingMessage ? "Salvar" : "Criar Follow-up"}
                   </Button>
                 </DialogFooter>
               </form>

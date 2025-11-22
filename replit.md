@@ -2,6 +2,17 @@
 
 This project, "Seguro IA," is a CRM and chatbot system designed to streamline customer interactions, primarily through WhatsApp, for the insurance industry. Its core purpose is to manage leads, track conversations, facilitate document uploads, and provide automated, AI-driven chatbot responses for insurance-related inquiries. The system aims to enhance customer engagement and operational efficiency for insurance businesses, built as a full-stack TypeScript application with real-time capabilities. It features configurable, visual flow-based conversation systems and an automatic follow-up system to re-engage leads.
 
+# Recent Changes
+
+**November 22, 2025 - Enhanced Follow-up Form UX**
+- Improved the follow-up message creation dialog with intuitive controls and visual feedback
+- **Key Improvements**:
+  - **Quick Selection Buttons**: 5 preset time options (4h, 8h, 12h, 24h, 48h) with descriptions
+  - **Visual Preview**: Real-time display showing when message will be sent
+  - **Better Labels**: Changed technical terms to user-friendly questions
+  - **Example Placeholder**: Added sample message to guide users
+  - **Simplified Flow**: Reorganized fields for natural configuration process
+
 # User Preferences
 
 Preferred communication style: Simple, everyday language.
