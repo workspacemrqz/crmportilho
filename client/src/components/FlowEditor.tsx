@@ -184,18 +184,6 @@ const FlowStepNode = memo(({ data, selected }: any) => {
             <Copy className="h-3.5 w-3.5" />
           </Button>
         </div>
-        <div className="bg-destructive/90 rounded-md p-1 shadow-lg border border-destructive">
-          <Button
-            size="icon"
-            variant="ghost"
-            className="h-7 w-7 text-destructive-foreground hover:bg-destructive hover:text-destructive-foreground"
-            onClick={handleDelete}
-            title="Excluir etapa"
-            data-testid={`button-delete-${data.stepId}`}
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
-        </div>
         <div className="bg-background rounded-md p-1 shadow-lg border border-border">
           <Button
             size="icon"
@@ -206,6 +194,18 @@ const FlowStepNode = memo(({ data, selected }: any) => {
             data-testid={`button-duplicate-${data.stepId}`}
           >
             <Files className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+        <div className="bg-background rounded-md p-1 shadow-lg border border-border">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-7 w-7 hover-elevate active-elevate-2"
+            onClick={handleDelete}
+            title="Excluir etapa"
+            data-testid={`button-delete-${data.stepId}`}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
           </Button>
         </div>
       </div>
