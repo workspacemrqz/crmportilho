@@ -4,6 +4,19 @@ This project, "Seguro IA," is a CRM and chatbot system designed to streamline cu
 
 # Recent Changes
 
+**November 22, 2025 - Fixed AI Node Not Sending Messages**
+- Resolved critical bug where AI nodes in the chatbot flow were not sending messages to leads
+- **Problem**: When AI determined to stay on the same step (not transition), it was incorrectly treated as a "transition" and the message was skipped
+- **Root Cause**: 
+  - Logic checked if `proximaEtapaId` existed, without verifying if it was different from current step
+  - When AI returned same stepId (e.g., "identificar_problema" → "identificar_problema"), code thought it was a transition
+  - This caused the message to be skipped with "⏭️ Skipping AI message - just updating state"
+- **Solution**: Added check `aiResponse.proximaEtapaId !== currentStep.stepId` before treating as transition
+- **Fix Details**:
+  - If AI returns DIFFERENT stepId: Skip message, update state, continue loop (real transition)
+  - If AI returns SAME stepId or no stepId: Send message and stop loop (stay on step)
+- **Status**: ✅ Fixed - AI nodes now correctly send messages when staying on current step
+
 **November 22, 2025 - Fixed Follow-up Timing Precision**
 - Resolved issue where follow-up messages were not sent at exact configured times
 - **Problem**: Service was checking conversations every 5 minutes, causing up to 5-minute delays in message delivery

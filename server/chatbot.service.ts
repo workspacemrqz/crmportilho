@@ -1626,12 +1626,13 @@ export class ChatbotService {
       console.log(`[ChatbotService] 🤖 AI Response: ${aiResponse.mensagemAgente.substring(0, 100)}...`);
       console.log(`[ChatbotService] ➡️ Next step suggested: ${aiResponse.proximaEtapaId || 'none'}`);
       
-      // Check if AI determined a transition to another step
-      if (aiResponse.proximaEtapaId) {
+      // Check if AI determined a transition to ANOTHER step (different from current)
+      // IMPORTANT: If AI returns the SAME stepId as current, it means "stay here and send message"
+      if (aiResponse.proximaEtapaId && aiResponse.proximaEtapaId !== currentStep.stepId) {
         const nextStep = allSteps.find(s => s.stepId === aiResponse.proximaEtapaId);
         if (nextStep) {
-          console.log(`[ChatbotService] 🔀 AI determined transition to: ${nextStep.stepName}`);
-          console.log(`[ChatbotService] ⏭️ Skipping AI message - just updating state`);
+          console.log(`[ChatbotService] 🔀 AI determined transition to DIFFERENT step: ${nextStep.stepName}`);
+          console.log(`[ChatbotService] ⏭️ Skipping AI message - just updating state for transition`);
           
           // Update state to transition to next step
           // The loop in processWithConfigurableFlow will detect this and continue processing
@@ -1656,8 +1657,12 @@ export class ChatbotService {
           return false; // Stop loop
         }
       } else {
-        // AI is staying on current step - send response
-        console.log(`[ChatbotService] ℹ️ Staying on current step: ${currentStep.stepName}`);
+        // AI is staying on current step (or no transition specified) - send response
+        if (aiResponse.proximaEtapaId === currentStep.stepId) {
+          console.log(`[ChatbotService] ℹ️ AI returned SAME step - staying on: ${currentStep.stepName}`);
+        } else {
+          console.log(`[ChatbotService] ℹ️ No transition specified - staying on: ${currentStep.stepName}`);
+        }
         console.log(`[ChatbotService] 📤 Sending AI response to user`);
         
         const aiMessageWithPlaceholders = this.replacePlaceholders(aiResponse.mensagemAgente, lead);
