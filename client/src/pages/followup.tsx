@@ -223,23 +223,26 @@ export default function FollowupPage() {
   const currentDelay = form.watch("delayMinutes");
 
   return (
-    <div className="flex-1 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-6xl mx-auto space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
+    <div className="flex flex-col h-full">
+      <div className="flex-none p-4 sm:p-6 border-b space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold" data-testid="text-page-title">Follow-up</h1>
-            <p className="text-muted-foreground mt-1">
+            <h1 className="text-xl sm:text-2xl font-semibold" data-testid="text-page-title">Follow-up</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">
               Configure mensagens automáticas enviadas quando leads ficam sem responder
             </p>
           </div>
-          <Button onClick={handleOpenCreate} data-testid="button-create-followup">
+          <Button onClick={handleOpenCreate} data-testid="button-create-followup" className="w-full sm:w-auto">
             <Plus className="h-4 w-4 mr-2" />
             Nova Mensagem
           </Button>
         </div>
+      </div>
 
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="sm:max-w-[600px]">
+      <div className="flex-1 overflow-y-auto">
+        <div className="p-4 sm:p-6 space-y-4">
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogContent className="w-[95vw] max-w-[600px] max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {editingMessage ? "Editar Follow-up" : "Novo Follow-up Automático"}
@@ -402,42 +405,42 @@ export default function FollowupPage() {
                 </DialogFooter>
               </form>
             </Form>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
 
-        {isLoading ? (
-          <div className="grid gap-4 md:grid-cols-2">
-            {[1, 2, 3].map((i) => (
-              <Card key={i}>
-                <CardHeader>
-                  <div className="h-6 bg-muted rounded animate-pulse" />
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="h-4 bg-muted rounded animate-pulse" />
-                    <div className="h-4 bg-muted rounded animate-pulse w-3/4" />
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : messages.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <MessageSquare className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Nenhuma mensagem configurada</h3>
-              <p className="text-muted-foreground text-center mb-4">
-                Crie sua primeira mensagem de follow-up automático
-              </p>
-              <Button onClick={handleOpenCreate} data-testid="button-create-first">
-                <Plus className="h-4 w-4 mr-2" />
-                Criar Primeira Mensagem
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2">
-            {messages.map((message) => (
+          {isLoading ? (
+            <div className="grid gap-4 md:grid-cols-2">
+              {[1, 2, 3].map((i) => (
+                <Card key={i}>
+                  <CardHeader>
+                    <div className="h-6 bg-muted rounded animate-pulse" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="h-4 bg-muted rounded animate-pulse" />
+                      <div className="h-4 bg-muted rounded animate-pulse w-3/4" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : messages.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <MessageSquare className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-base sm:text-lg font-semibold mb-2">Nenhuma mensagem configurada</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground text-center mb-4">
+                  Crie sua primeira mensagem de follow-up automático
+                </p>
+                <Button onClick={handleOpenCreate} data-testid="button-create-first" className="w-full sm:w-auto">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Criar Primeira Mensagem
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2">
+              {messages.map((message) => (
               <Card key={message.id} data-testid={`card-followup-${message.id}`}>
                 <CardHeader>
                   <div className="flex items-start justify-between gap-2">
@@ -527,10 +530,11 @@ export default function FollowupPage() {
                     </div>
                   </div>
                 </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

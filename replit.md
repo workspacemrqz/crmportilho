@@ -4,6 +4,17 @@ This project, "Seguro IA," is a CRM and chatbot system designed to streamline cu
 
 # Recent Changes
 
+**November 22, 2025 - Improved Mobile Layout for Follow-up Page**
+- Standardized the /followup page layout to match /clientes page mobile experience
+- **Mobile-First Improvements**:
+  - **Header Layout**: Fixed header with border separator, responsive padding (p-4 sm:p-6)
+  - **Typography**: Mobile-optimized sizes (text-xl sm:text-2xl for title, text-xs sm:text-sm for description)
+  - **Button Behavior**: Full width on mobile (w-full sm:w-auto) for better touch targets
+  - **Content Area**: Scrollable content area with proper overflow handling
+  - **Dialog Width**: 95% viewport width on mobile (w-[95vw]) for better use of screen space
+  - **Responsive Grid**: Consistent responsive breakpoints with /clientes page
+- **Consistency**: Now both pages share the same mobile UX patterns and feel
+
 **November 22, 2025 - Added No-Duplicate Follow-up Rule**
 - Implemented strict rule to prevent leads from receiving the same follow-up message multiple times
 - **Critical Rule**: Once a specific follow-up message is sent to a lead, it will NEVER be sent again to that same conversation, even if the lead responds and stops responding again later
