@@ -4,6 +4,17 @@ This project, "Seguro IA," is a CRM and chatbot system designed to streamline cu
 
 # Recent Changes
 
+**November 22, 2025 - Changed Follow-up Page to Table Layout**
+- Redesigned the `/followup` page from card-based grid to table/spreadsheet format
+- **New Layout**:
+  - Switched from Card grid to Table component (matching `/clientes` page style)
+  - Table columns: Nome, Tempo, Mensagem, Status, Ações
+  - Compact and organized data presentation in rows
+  - Maintained all functionality: create, edit, delete, toggle active/inactive
+  - Responsive design with proper mobile handling
+- **Benefits**: Better data scanning, consistent UI across pages, more professional appearance
+- **Status**: ✅ Implemented - follow-up messages now displayed in table format
+
 **November 22, 2025 - Fixed Chatbot Flow Transitions**
 - Resolved critical bug where AI nodes were sending unwanted messages during transitions
 - **Problem**: When an AI node determined a transition to another node, it would send both its AI-generated message AND the target node's message
