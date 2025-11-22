@@ -68,6 +68,7 @@ interface MessageBuffer {
   }>;
   timer: NodeJS.Timeout | null;
   startTime: number;
+  timeoutMs: number; // Store timeout to preserve it during buffer lifetime
 }
 
 export class ChatbotService {
@@ -309,7 +310,7 @@ export class ChatbotService {
     console.log(`[ChatbotService] 🕐 Buffer customizado definido para ${phone}: ${timeoutMs/1000}s`);
   }
 
-  // Get buffer timeout for a specific phone (checks custom first, then step-specific, then default)
+  // Get buffer timeout for a specific phone (checks custom first, then step-specific, then initial step, then default)
   private async getBufferTimeoutForPhone(phone: string): Promise<number> {
     // Check if there's a custom timeout for this phone
     const customTimeout = this.customBufferTimeouts.get(phone);
@@ -325,48 +326,69 @@ export class ChatbotService {
       const { storage } = await import('./storage');
       const lead = await storage.getLeadByPhone(phone);
       
-      if (lead) {
-        const conversation = await storage.getActiveConversation(lead.id);
-        
-        if (conversation) {
-          const chatbotState = await storage.getChatbotState(conversation.id);
-          
-          if (chatbotState) {
-            // Try to get active flow and identify current step
-            const flowConfig = await this.getActiveFlow();
-            if (flowConfig) {
-              const steps = await this.getFlowSteps(flowConfig.id);
-              if (steps.length > 0) {
+      // Get active flow configuration (needed for fallback to initial step)
+      const flowConfig = await this.getActiveFlow();
+      if (flowConfig) {
+        const steps = await this.getFlowSteps(flowConfig.id);
+        if (steps.length > 0) {
+          // First, try to identify current step if chatbot state exists
+          if (lead) {
+            const conversation = await storage.getActiveConversation(lead.id);
+            if (conversation) {
+              const chatbotState = await storage.getChatbotState(conversation.id);
+              if (chatbotState) {
                 const currentStep = await this.identifyCurrentStep(chatbotState, steps);
                 if (currentStep) {
                   // Type assertion to access buffer field (Drizzle infers all fields)
                   const buffer = (currentStep as any).buffer;
                   
-                  // Validate buffer value using isFinite (clamp between 1 and 300 seconds)
+                  // Validate buffer value using isFinite (clamp between 0 and 300 seconds)
                   let bufferSeconds = Number(buffer);
                   
-                  if (!isFinite(bufferSeconds) || bufferSeconds < 1) {
-                    console.warn(`[ChatbotService] ⚠️ Buffer inválido no step "${currentStep.stepName}" (${buffer}), usando mínimo de 1s`);
-                    bufferSeconds = 1;
+                  if (!isFinite(bufferSeconds) || bufferSeconds < 0) {
+                    console.warn(`[ChatbotService] ⚠️ Buffer inválido no step "${currentStep.stepName}" (${buffer}), usando mínimo de 0s`);
+                    bufferSeconds = 0;
                   } else if (bufferSeconds > 300) {
                     console.warn(`[ChatbotService] ⚠️ Buffer muito alto no step "${currentStep.stepName}" (${bufferSeconds}s), limitando a 300s`);
                     bufferSeconds = 300;
                   }
                   
-                  console.log(`[ChatbotService] 🕐 Usando buffer do step "${currentStep.stepName}": ${bufferSeconds}s (valor original: ${buffer})`);
+                  console.log(`[ChatbotService] 🕐 Usando buffer do step atual "${currentStep.stepName}": ${bufferSeconds}s (valor original: ${buffer})${bufferSeconds === 0 ? ' - ENVIO INSTANTÂNEO' : ''}`);
                   return bufferSeconds * 1000;
                 }
               }
             }
           }
+          
+          // Fallback: Use initial step (lowest order) for new leads or transitional states
+          // This ensures buffer=0 works for first contact without requiring chatbot state
+          const initialStep = steps.reduce((min, step) => 
+            step.order < min.order ? step : min
+          , steps[0]);
+          
+          const buffer = (initialStep as any).buffer;
+          let bufferSeconds = Number(buffer);
+          
+          if (!isFinite(bufferSeconds) || bufferSeconds < 0) {
+            console.warn(`[ChatbotService] ⚠️ Buffer inválido no step inicial "${initialStep.stepName}" (${buffer}), usando mínimo de 0s`);
+            bufferSeconds = 0;
+          } else if (bufferSeconds > 300) {
+            console.warn(`[ChatbotService] ⚠️ Buffer muito alto no step inicial "${initialStep.stepName}" (${bufferSeconds}s), limitando a 300s`);
+            bufferSeconds = 300;
+          }
+          
+          console.log(`[ChatbotService] 🕐 Usando buffer do step inicial "${initialStep.stepName}" (novo lead ou transição): ${bufferSeconds}s (valor original: ${buffer})${bufferSeconds === 0 ? ' - ENVIO INSTANTÂNEO' : ''}`);
+          return bufferSeconds * 1000;
         }
       }
     } catch (error) {
-      console.log(`[ChatbotService] Não foi possível determinar buffer do step, usando padrão:`, error);
+      console.log(`[ChatbotService] Erro ao determinar buffer do step, usando padrão global:`, error);
     }
     
-    // Otherwise use default configured timeout
-    return await this.getBufferTimeout();
+    // Last resort: use default configured timeout
+    const globalTimeout = await this.getBufferTimeout();
+    console.log(`[ChatbotService] ⚠️ Usando buffer global (fallback): ${globalTimeout/1000}s`);
+    return globalTimeout;
   }
 
   /**
@@ -459,9 +481,9 @@ export class ChatbotService {
             const buffer = (currentStep as any).buffer;
             let bufferSeconds = Number(buffer);
             
-            // Validate and clamp buffer value
-            if (!isFinite(bufferSeconds) || bufferSeconds < 1) {
-              bufferSeconds = 1;
+            // Validate and clamp buffer value (allow 0 for instant sending)
+            if (!isFinite(bufferSeconds) || bufferSeconds < 0) {
+              bufferSeconds = 0;
             } else if (bufferSeconds > 300) {
               bufferSeconds = 300;
             }
@@ -473,12 +495,17 @@ export class ChatbotService {
               bufferSeconds,
               bufferMs: bufferSeconds * 1000,
               bufferSource: 'step',
-              allSteps: steps.map(s => ({
-                stepId: s.stepId,
-                stepName: s.stepName,
-                order: s.order,
-                buffer: Number((s as any).buffer) || 30
-              })),
+              allSteps: steps.map(s => {
+                const raw = (s as any).buffer;
+                const parsed = Number(raw);
+                const buffer = Number.isFinite(parsed) && parsed >= 0 ? parsed : 30;
+                return {
+                  stepId: s.stepId,
+                  stepName: s.stepName,
+                  order: s.order,
+                  buffer
+                };
+              }),
               leadId: lead.id,
               conversationId: conversation.id,
               chatbotStateId: chatbotState.id
@@ -524,12 +551,13 @@ export class ChatbotService {
         // Use configured buffer timeout (checks for custom timeout first)
         const timeout = await this.getBufferTimeoutForPhone(phone);
         
-        console.log(`[ChatbotService] Starting new ${timeout/1000}s buffer for ${phone}`);
+        console.log(`[ChatbotService] Starting new ${timeout/1000}s buffer for ${phone}${timeout === 0 ? ' (ENVIO INSTANTÂNEO)' : ''}`);
         buffer = {
           phone,
           messages: [],
           timer: null,
-          startTime: Date.now()
+          startTime: Date.now(),
+          timeoutMs: timeout
         };
         this.messageBuffers.set(phone, buffer);
         
@@ -549,9 +577,9 @@ export class ChatbotService {
         messageData
       });
       
-      const timeoutMs = await this.getBufferTimeout();
-      const timeRemaining = timeoutMs - (Date.now() - buffer.startTime);
-      console.log(`[ChatbotService] Message buffered (${buffer.messages.length} total). Timer ends in ${timeRemaining}ms`);
+      // Use the stored timeout from buffer (preserves the original timeout even during state transitions)
+      const timeRemaining = buffer.timeoutMs - (Date.now() - buffer.startTime);
+      console.log(`[ChatbotService] Message buffered (${buffer.messages.length} total). Timer ends in ${timeRemaining}ms${buffer.timeoutMs === 0 ? ' (ENVIO INSTANTÂNEO)' : ''}`);
 
     } catch (error) {
       console.error('Error processing incoming message:', error);
@@ -1285,11 +1313,11 @@ export class ChatbotService {
         const nextStep = allSteps.find(s => s.stepId === targetStepId);
         
         if (nextStep) {
-          // Get buffer time for this step
-          const buffer = currentStep.buffer || 30;
+          // Get buffer time for this step (use nullish coalescing to allow 0)
+          const buffer = currentStep.buffer ?? 30;
           const bufferMs = buffer * 1000;
           
-          console.log(`[ChatbotService] ⏱️ Single transition detected - will auto-advance to "${nextStep.stepName}" after ${buffer}s buffer`);
+          console.log(`[ChatbotService] ⏱️ Single transition detected - will auto-advance to "${nextStep.stepName}" after ${buffer}s buffer${buffer === 0 ? ' (ENVIO INSTANTÂNEO)' : ''}`);
           
           // Set custom buffer timeout for the next user message
           this.setCustomBufferTimeout(lead.whatsappPhone, bufferMs);
