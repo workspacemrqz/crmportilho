@@ -4,6 +4,26 @@ This project is a CRM and chatbot system named "Seguro IA" (Insurance AI), desig
 
 # Recent Changes
 
+**November 22, 2025 - Fixed Buffer=0 Instant Message Delivery (COMPLETE)**
+- Fixed critical issue where buffer=0 configuration was not resulting in instant message delivery
+- **Problem**: System was forcing a minimum buffer of 1 second even when configured as 0, and falling back to 30s global timeout for new leads
+- **Implementation Details**:
+  - **Buffer Validation**:
+    * Modified `getBufferTimeoutForPhone()` to accept buffer >= 0 (previously required >= 1)
+    * Modified `getBufferDebugInfo()` to properly preserve explicit 0 values using Number.isFinite() validation
+    * Modified `processFixedMessageStep()` to use nullish coalescing (??) instead of OR (||) to preserve buffer=0
+  - **MessageBuffer Interface**:
+    * Added `timeoutMs` field to store and preserve timeout throughout buffer lifetime
+    * Prevents timeout from being recalculated during state transitions
+  - **Fallback Logic for New Leads**:
+    * `getBufferTimeoutForPhone()` now uses hierarchical fallback: custom timeout → current step → **initial step (NEW)** → global timeout
+    * Initial step (lowest order) is used when chatbotState doesn't exist (new leads) or during transitions
+    * Ensures buffer=0 works for first-time contacts without requiring existing chatbot state
+  - **Improved Logging**:
+    * Added "ENVIO INSTANTÂNEO" indicators when buffer=0 is detected
+    * Clear differentiation between current step, initial step, and global fallback paths
+- **User Experience**: When buffer is set to 0 on the 'Gatilho' node (or any node), messages are sent instantly without artificial delays, even for new leads' first contact
+
 **November 21, 2025 - Implemented Two Types of Flow Nodes (COMPLETE)**
 - Implemented support for two distinct types of conversation nodes in the visual flow editor
 - **Feature**: Diferenciação entre nodes com IA e nodes com mensagem fixa
