@@ -1,0 +1,486 @@
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+  FormDescription,
+} from "@/components/ui/form";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { Plus, Edit, Trash2, Clock, MessageSquare, Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+
+type FollowupMessage = {
+  id: string;
+  name: string;
+  message: string;
+  delayMinutes: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+const followupMessageSchema = z.object({
+  name: z.string().min(1, "Nome é obrigatório"),
+  message: z.string().min(1, "Mensagem é obrigatória"),
+  delayMinutes: z.coerce.number().min(1, "Tempo de espera deve ser maior que 0"),
+  isActive: z.boolean().default(true),
+});
+
+type FollowupMessageForm = z.infer<typeof followupMessageSchema>;
+
+export default function FollowupPage() {
+  const { toast } = useToast();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingMessage, setEditingMessage] = useState<FollowupMessage | null>(null);
+
+  const { data: messages = [], isLoading } = useQuery<FollowupMessage[]>({
+    queryKey: ['/api/followup-messages'],
+  });
+
+  const form = useForm<FollowupMessageForm>({
+    resolver: zodResolver(followupMessageSchema),
+    defaultValues: {
+      name: "",
+      message: "",
+      delayMinutes: 480,
+      isActive: true,
+    },
+  });
+
+  const createMutation = useMutation({
+    mutationFn: async (data: FollowupMessageForm) => {
+      return await apiRequest('POST', '/api/followup-messages', data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/followup-messages'] });
+      toast({
+        title: "Mensagem criada",
+        description: "A mensagem de follow-up foi criada com sucesso.",
+      });
+      handleCloseDialog();
+    },
+    onError: () => {
+      toast({
+        title: "Erro",
+        description: "Não foi possível criar a mensagem.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<FollowupMessageForm> }) => {
+      return await apiRequest('PATCH', `/api/followup-messages/${id}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/followup-messages'] });
+      toast({
+        title: "Mensagem atualizada",
+        description: "A mensagem de follow-up foi atualizada com sucesso.",
+      });
+      handleCloseDialog();
+    },
+    onError: () => {
+      toast({
+        title: "Erro",
+        description: "Não foi possível atualizar a mensagem.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return await apiRequest('DELETE', `/api/followup-messages/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/followup-messages'] });
+      toast({
+        title: "Mensagem excluída",
+        description: "A mensagem de follow-up foi excluída com sucesso.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Erro",
+        description: "Não foi possível excluir a mensagem.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const toggleActiveMutation = useMutation({
+    mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
+      return await apiRequest('PATCH', `/api/followup-messages/${id}`, { isActive });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/followup-messages'] });
+      toast({
+        title: "Status atualizado",
+        description: "O status da mensagem foi atualizado.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Erro",
+        description: "Não foi possível atualizar o status.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const onSubmit = (data: FollowupMessageForm) => {
+    if (editingMessage) {
+      updateMutation.mutate({ id: editingMessage.id, data });
+    } else {
+      createMutation.mutate(data);
+    }
+  };
+
+  const handleOpenCreate = () => {
+    setEditingMessage(null);
+    form.reset({
+      name: "",
+      message: "",
+      delayMinutes: 480,
+      isActive: true,
+    });
+    setIsDialogOpen(true);
+  };
+
+  const handleOpenEdit = (message: FollowupMessage) => {
+    setEditingMessage(message);
+    form.reset({
+      name: message.name,
+      message: message.message,
+      delayMinutes: message.delayMinutes,
+      isActive: message.isActive,
+    });
+    setIsDialogOpen(true);
+  };
+
+  const handleCloseDialog = () => {
+    setIsDialogOpen(false);
+    setEditingMessage(null);
+    form.reset();
+  };
+
+  const formatDelay = (minutes: number): string => {
+    if (minutes < 60) {
+      return `${minutes} minuto${minutes !== 1 ? 's' : ''}`;
+    }
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    if (remainingMinutes === 0) {
+      return `${hours} hora${hours !== 1 ? 's' : ''}`;
+    }
+    return `${hours}h ${remainingMinutes}min`;
+  };
+
+  return (
+    <div className="flex-1 p-4 sm:p-6 lg:p-8">
+      <div className="max-w-6xl mx-auto space-y-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold" data-testid="text-page-title">Follow-up</h1>
+            <p className="text-muted-foreground mt-1">
+              Configure mensagens automáticas enviadas quando leads ficam sem responder
+            </p>
+          </div>
+          <Button onClick={handleOpenCreate} data-testid="button-create-followup">
+            <Plus className="h-4 w-4 mr-2" />
+            Nova Mensagem
+          </Button>
+        </div>
+
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>
+                {editingMessage ? "Editar Mensagem de Follow-up" : "Nova Mensagem de Follow-up"}
+              </DialogTitle>
+              <DialogDescription>
+                {editingMessage 
+                  ? "Edite a mensagem de follow-up automático"
+                  : "Crie uma mensagem que será enviada automaticamente após um período sem resposta do lead."
+                }
+              </DialogDescription>
+            </DialogHeader>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nome da Mensagem</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Ex: Follow-up 8 horas"
+                          data-testid="input-followup-name"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Um nome para identificar esta mensagem
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="delayMinutes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tempo de Espera (minutos)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="1"
+                          placeholder="480"
+                          data-testid="input-followup-delay"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Tempo em minutos sem resposta antes de enviar (480 min = 8 horas)
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="message"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Mensagem</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Digite a mensagem de follow-up..."
+                          className="min-h-[120px]"
+                          data-testid="input-followup-message"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        O texto que será enviado ao lead
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="isActive"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-md border p-4">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-base">Ativa</FormLabel>
+                        <FormDescription>
+                          Se esta mensagem deve ser enviada automaticamente
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          data-testid="switch-followup-active"
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                <DialogFooter>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleCloseDialog}
+                    data-testid="button-cancel"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={createMutation.isPending || updateMutation.isPending}
+                    data-testid="button-save-followup"
+                  >
+                    {(createMutation.isPending || updateMutation.isPending) && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    {editingMessage ? "Salvar Alterações" : "Criar Mensagem"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+
+        {isLoading ? (
+          <div className="grid gap-4 md:grid-cols-2">
+            {[1, 2, 3].map((i) => (
+              <Card key={i}>
+                <CardHeader>
+                  <div className="h-6 bg-muted rounded animate-pulse" />
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="h-4 bg-muted rounded animate-pulse" />
+                    <div className="h-4 bg-muted rounded animate-pulse w-3/4" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : messages.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <MessageSquare className="h-12 w-12 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Nenhuma mensagem configurada</h3>
+              <p className="text-muted-foreground text-center mb-4">
+                Crie sua primeira mensagem de follow-up automático
+              </p>
+              <Button onClick={handleOpenCreate} data-testid="button-create-first">
+                <Plus className="h-4 w-4 mr-2" />
+                Criar Primeira Mensagem
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2">
+            {messages.map((message) => (
+              <Card key={message.id} data-testid={`card-followup-${message.id}`}>
+                <CardHeader>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-lg" data-testid={`text-followup-name-${message.id}`}>
+                        {message.name}
+                      </CardTitle>
+                      <CardDescription className="flex items-center gap-2 mt-1">
+                        <Clock className="h-3 w-3" />
+                        <span data-testid={`text-followup-delay-${message.id}`}>
+                          {formatDelay(message.delayMinutes)}
+                        </span>
+                      </CardDescription>
+                    </div>
+                    <Badge
+                      variant={message.isActive ? "default" : "secondary"}
+                      data-testid={`badge-status-${message.id}`}
+                    >
+                      {message.isActive ? "Ativa" : "Inativa"}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Mensagem:</Label>
+                    <p
+                      className="text-sm mt-1 whitespace-pre-wrap"
+                      data-testid={`text-followup-message-${message.id}`}
+                    >
+                      {message.message}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t">
+                    <div className="flex items-center gap-2">
+                      <Label className="text-sm">Envio automático:</Label>
+                      <Switch
+                        checked={message.isActive}
+                        onCheckedChange={(checked) =>
+                          toggleActiveMutation.mutate({ id: message.id, isActive: checked })
+                        }
+                        disabled={toggleActiveMutation.isPending}
+                        data-testid={`switch-toggle-${message.id}`}
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleOpenEdit(message)}
+                        data-testid={`button-edit-${message.id}`}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            data-testid={`button-delete-${message.id}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Excluir mensagem?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Tem certeza que deseja excluir a mensagem "{message.name}"?
+                              Esta ação não pode ser desfeita.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel data-testid="button-cancel-delete">
+                              Cancelar
+                            </AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => deleteMutation.mutate(message.id)}
+                              data-testid={`button-confirm-delete-${message.id}`}
+                            >
+                              Excluir
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

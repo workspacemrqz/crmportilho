@@ -287,6 +287,18 @@ export const workflowTransitions = pgTable("workflow_transitions", {
   toStateIdx: index("workflow_transitions_to_idx").on(table.toState)
 }));
 
+export const followupMessages = pgTable("followup_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  message: text("message").notNull(),
+  delayMinutes: integer("delay_minutes").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
+}, (table) => ({
+  isActiveIdx: index("followup_messages_is_active_idx").on(table.isActive)
+}));
+
 // Relations
 export const leadsRelations = relations(leads, ({ many }) => ({
   conversations: many(conversations),
@@ -414,6 +426,12 @@ export const insertWorkflowTransitionSchema = createInsertSchema(workflowTransit
   updatedAt: true
 });
 
+export const insertFollowupMessageSchema = createInsertSchema(followupMessages).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+
 // Type exports
 export type Lead = typeof leads.$inferSelect;
 export type InsertLead = z.infer<typeof insertLeadSchema>;
@@ -437,6 +455,8 @@ export type WorkflowVersion = typeof workflowVersions.$inferSelect;
 export type InsertWorkflowVersion = z.infer<typeof insertWorkflowVersionSchema>;
 export type WorkflowTransition = typeof workflowTransitions.$inferSelect;
 export type InsertWorkflowTransition = z.infer<typeof insertWorkflowTransitionSchema>;
+export type FollowupMessage = typeof followupMessages.$inferSelect;
+export type InsertFollowupMessage = z.infer<typeof insertFollowupMessageSchema>;
 
 // Keep old user table for compatibility if needed
 export const users = pgTable("users", {

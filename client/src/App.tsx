@@ -10,6 +10,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Dashboard from "@/pages/dashboard";
 import Leads from "@/pages/leads";
 import Conversations from "@/pages/conversations";
+import Followup from "@/pages/followup";
 import Fluxo from "@/pages/fluxo";
 import LoginPage from "@/pages/login";
 import NotFound from "@/pages/not-found";
@@ -21,6 +22,7 @@ function Router() {
       <Route path="/" component={Dashboard} />
       <Route path="/clientes" component={Leads} />
       <Route path="/conversas" component={Conversations} />
+      <Route path="/followup" component={Followup} />
       <Route path="/fluxo" component={Fluxo} />
       <Route component={NotFound} />
     </Switch>

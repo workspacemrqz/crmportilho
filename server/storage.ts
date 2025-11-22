@@ -31,6 +31,8 @@ import {
   type InsertKeywordRule,
   type FlowStep,
   type InsertFlowStep,
+  type FollowupMessage,
+  type InsertFollowupMessage,
   users,
   leads,
   conversations,
@@ -46,7 +48,8 @@ import {
   systemSettings,
   flowConfigs,
   keywordRules,
-  flowSteps
+  flowSteps,
+  followupMessages
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, like, desc, asc, sql, gte, lte } from "drizzle-orm";
@@ -147,6 +150,13 @@ export interface IStorage {
   createFlowStep(data: InsertFlowStep): Promise<FlowStep>;
   updateFlowStep(id: string, data: Partial<InsertFlowStep>): Promise<FlowStep | undefined>;
   deleteFlowStep(id: string): Promise<boolean>;
+
+  // Followup Message methods
+  getFollowupMessages(): Promise<FollowupMessage[]>;
+  getFollowupMessage(id: string): Promise<FollowupMessage | undefined>;
+  createFollowupMessage(data: InsertFollowupMessage): Promise<FollowupMessage>;
+  updateFollowupMessage(id: string, data: Partial<InsertFollowupMessage>): Promise<FollowupMessage | undefined>;
+  deleteFollowupMessage(id: string): Promise<boolean>;
 
   // Dashboard stats
   getDashboardStats(): Promise<DashboardStats>;
@@ -762,6 +772,40 @@ export class PgStorage implements IStorage {
   async deleteFlowStep(id: string): Promise<boolean> {
     const result = await db.delete(flowSteps)
       .where(eq(flowSteps.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async getFollowupMessages(): Promise<FollowupMessage[]> {
+    return await db.select()
+      .from(followupMessages)
+      .orderBy(desc(followupMessages.createdAt));
+  }
+
+  async getFollowupMessage(id: string): Promise<FollowupMessage | undefined> {
+    const [message] = await db.select()
+      .from(followupMessages)
+      .where(eq(followupMessages.id, id));
+    return message || undefined;
+  }
+
+  async createFollowupMessage(data: InsertFollowupMessage): Promise<FollowupMessage> {
+    const [message] = await db.insert(followupMessages)
+      .values(data)
+      .returning();
+    return message;
+  }
+
+  async updateFollowupMessage(id: string, data: Partial<InsertFollowupMessage>): Promise<FollowupMessage | undefined> {
+    const [updated] = await db.update(followupMessages)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(followupMessages.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteFollowupMessage(id: string): Promise<boolean> {
+    const result = await db.delete(followupMessages)
+      .where(eq(followupMessages.id, id));
     return (result.rowCount ?? 0) > 0;
   }
 

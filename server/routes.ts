@@ -19,6 +19,7 @@ import {
   insertFlowConfigSchema,
   insertKeywordRuleSchema,
   insertFlowStepSchema,
+  insertFollowupMessageSchema,
   type Message
 } from "@shared/schema";
 import { 
@@ -2432,6 +2433,83 @@ Retorne APENAS o JSON array, sem texto adicional.`;
     } catch (error) {
       console.error('Error deleting flow step:', error);
       res.status(500).json({ error: 'Failed to delete flow step' });
+    }
+  });
+
+  // Followup Message endpoints
+  app.get('/api/followup-messages', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const messages = await storage.getFollowupMessages();
+      res.json(messages);
+    } catch (error) {
+      console.error('Error fetching followup messages:', error);
+      res.status(500).json({ error: 'Failed to fetch followup messages' });
+    }
+  });
+
+  app.get('/api/followup-messages/:id', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const message = await storage.getFollowupMessage(id);
+      
+      if (!message) {
+        return res.status(404).json({ error: 'Followup message not found' });
+      }
+      
+      res.json(message);
+    } catch (error) {
+      console.error('Error fetching followup message:', error);
+      res.status(500).json({ error: 'Failed to fetch followup message' });
+    }
+  });
+
+  app.post('/api/followup-messages', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const validated = insertFollowupMessageSchema.parse(req.body);
+      const message = await storage.createFollowupMessage(validated);
+      res.json(message);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors });
+      }
+      console.error('Error creating followup message:', error);
+      res.status(500).json({ error: 'Failed to create followup message' });
+    }
+  });
+
+  app.patch('/api/followup-messages/:id', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const validated = insertFollowupMessageSchema.partial().parse(req.body);
+      
+      const message = await storage.updateFollowupMessage(id, validated);
+      if (!message) {
+        return res.status(404).json({ error: 'Followup message not found' });
+      }
+      
+      res.json(message);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors });
+      }
+      console.error('Error updating followup message:', error);
+      res.status(500).json({ error: 'Failed to update followup message' });
+    }
+  });
+
+  app.delete('/api/followup-messages/:id', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteFollowupMessage(id);
+      
+      if (!deleted) {
+        return res.status(404).json({ error: 'Followup message not found' });
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting followup message:', error);
+      res.status(500).json({ error: 'Failed to delete followup message' });
     }
   });
 
