@@ -103,7 +103,7 @@ const FlowStepNode = memo(({ data, selected }: any) => {
   const isAI = stepType === 'ai';
   const isFixed = stepType === 'fixed';
   
-  const bgColorClass = 'bg-[#060606]';
+  const bgColorClass = 'bg-[#121212]';
   
   const borderColorClass = isAI 
     ? 'border-blue-600' 
