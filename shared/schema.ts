@@ -536,6 +536,8 @@ export const flowSteps = pgTable("flow_steps", {
   routingInstructions: text("routing_instructions").notNull(),
   buffer: integer("buffer").notNull().default(30),
   stepType: stepTypeEnum("step_type").notNull().default("ai"),
+  changeStatusTo: leadStatusEnum("change_status_to"),
+  changePriorityTo: priorityEnum("change_priority_to"),
   order: integer("order").notNull().default(0),
   position: jsonb("position").default(sql`'{"x": 0, "y": 0}'`),
   transitions: jsonb("transitions").default(sql`'[]'`),
