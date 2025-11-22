@@ -4,6 +4,20 @@ This project, "Seguro IA," is a CRM and chatbot system designed to streamline cu
 
 # Recent Changes
 
+**November 22, 2025 - Added Automatic Status and Priority Changes to Flow Nodes**
+- Implemented automatic lead status and priority updates when leads reach specific nodes in the chatbot flow
+- **Feature**: Each flow node can now optionally configure which status and/or priority to set when a lead reaches that node
+- **Implementation**:
+  - Added `changeStatusTo` (leadStatusEnum) and `changePriorityTo` (priorityEnum) fields to flow_steps table
+  - Updated NodeEditPanel with two Select dropdowns for choosing status and priority changes
+  - Created `updateLeadStatusAndPriority` method in ChatbotService that runs when processing each node
+  - Method updates both database and local lead object to ensure sequential nodes see latest values
+- **UI**: New "Mudança Automática de Tags" section in node editor with status and priority selectors
+- **Example Use Case**: When lead reaches "AUTO" node, status changes to "Em Atendimento" and priority to "Urgente"
+- **Status Options**: Novo, Em Atendimento, Aguardando Documentos, Encaminhado, Transferido para Humano, Concluído, Cancelado
+- **Priority Options**: Baixa, Normal, Alta, Urgente
+- **Status**: ✅ Implemented and architect-approved - automatic status/priority changes working correctly
+
 **November 22, 2025 - Added {nome} Placeholder Support to Follow-up Messages**
 - Implemented placeholder support in follow-up messages matching the flow nodes functionality
 - **Feature**: Users can now use `{nome}` in follow-up message templates to personalize with first name
