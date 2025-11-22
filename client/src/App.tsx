@@ -11,7 +11,6 @@ import Dashboard from "@/pages/dashboard";
 import Leads from "@/pages/leads";
 import Conversations from "@/pages/conversations";
 import Fluxo from "@/pages/fluxo";
-import Settings from "@/pages/settings";
 import LoginPage from "@/pages/login";
 import NotFound from "@/pages/not-found";
 import { LogOut } from "lucide-react";
@@ -23,7 +22,6 @@ function Router() {
       <Route path="/clientes" component={Leads} />
       <Route path="/conversas" component={Conversations} />
       <Route path="/fluxo" component={Fluxo} />
-      <Route path="/configuracoes" component={Settings} />
       <Route component={NotFound} />
     </Switch>
   );
