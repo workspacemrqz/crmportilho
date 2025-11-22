@@ -1284,6 +1284,14 @@ export class ChatbotService {
           .set(updates)
           .where(eq(leads.id, lead.id));
         
+        // Update the local lead object to reflect changes for subsequent nodes in the same loop
+        if (updates.status) {
+          lead.status = updates.status;
+        }
+        if (updates.priority) {
+          lead.priority = updates.priority;
+        }
+        
         console.log(`[ChatbotService] ✅ Updated lead ${lead.id} with:`, updates);
       }
     } catch (error) {
