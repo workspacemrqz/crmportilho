@@ -68,39 +68,61 @@ export default function NodeEditPanel({
     if (selectedNode) {
       const node = { ...selectedNode };
       setEditedNode(node);
-      
-      // Parse fixed messages if this is a fixed type node
-      if (node.stepType === 'fixed') {
-        let messages: string[] = [];
-        
-        if (node.stepPrompt) {
-          try {
-            // Try to parse as JSON array
-            const parsed = JSON.parse(node.stepPrompt);
-            if (Array.isArray(parsed)) {
-              messages = parsed;
-            } else {
-              // Not an array, treat as single message
-              messages = [node.stepPrompt];
-            }
-          } catch {
-            // Not valid JSON, treat as single message
-            messages = [node.stepPrompt];
-          }
-        }
-        
-        // Ensure at least one message
-        if (messages.length === 0) {
-          messages = [''];
-        }
-        
-        setFixedMessages(messages);
-      }
     } else {
       setEditedNode(null);
       setFixedMessages([]);
     }
   }, [selectedNode]);
+
+  useEffect(() => {
+    if (!editedNode) return;
+
+    if (editedNode.stepType === 'fixed') {
+      // Parse mensagens para nodes Fixed
+      let messages: string[] = [];
+      try {
+        const parsed = JSON.parse(editedNode.stepPrompt || '[]');
+        if (Array.isArray(parsed)) {
+          // Preservar array exatamente como armazenado - permitir strings vazias durante edição
+          messages = parsed;
+        }
+      } catch {
+        messages = editedNode.stepPrompt ? [editedNode.stepPrompt] : [''];
+      }
+      
+      if (messages.length === 0) {
+        messages = [''];
+      }
+      
+      setFixedMessages(messages);
+      
+    } else if (editedNode.stepType === 'ai') {
+      // Para nodes AI, converter JSON array para string se necessário
+      setFixedMessages([]);
+      
+      // NÃO MUTAR: criar nova cópia
+      let promptString = editedNode.stepPrompt || '';
+      try {
+        const parsed = JSON.parse(editedNode.stepPrompt || '');
+        if (Array.isArray(parsed)) {
+          promptString = parsed[0] || '';
+          
+          // Criar CÓPIA imutável e atualizar via onNodeUpdate
+          const updatedNode = {
+            ...editedNode,
+            stepPrompt: promptString
+          };
+          
+          // Chamar onNodeUpdate para propagar mudança corretamente
+          onNodeUpdate(updatedNode);
+          setEditedNode(updatedNode);
+          return; // Evitar re-render duplo
+        }
+      } catch {
+        // Já é string, tudo ok
+      }
+    }
+  }, [editedNode?.stepType, editedNode?.stepPrompt]);
 
   const handleClose = () => {
     setEditedNode(null);
@@ -156,25 +178,46 @@ export default function NodeEditPanel({
   };
 
   const addFixedMessage = () => {
+    // Only for fixed type nodes
+    if (editedNode.stepType !== 'fixed') {
+      console.error('[NodeEditPanel] Attempted to add fixed message to non-fixed node');
+      return;
+    }
+    
     const newMessages = [...fixedMessages, ''];
     setFixedMessages(newMessages);
+    // JSON.stringify ONLY for fixed nodes
     updateField('stepPrompt', JSON.stringify(newMessages));
   };
 
   const updateFixedMessage = (index: number, value: string) => {
+    // Only for fixed type nodes
+    if (editedNode.stepType !== 'fixed') {
+      console.error('[NodeEditPanel] Attempted to update fixed message on non-fixed node');
+      return;
+    }
+    
     const newMessages = [...fixedMessages];
     newMessages[index] = value;
     setFixedMessages(newMessages);
+    // JSON.stringify ONLY for fixed nodes
     updateField('stepPrompt', JSON.stringify(newMessages));
   };
 
   const removeFixedMessage = (index: number) => {
+    // Only for fixed type nodes
+    if (editedNode.stepType !== 'fixed') {
+      console.error('[NodeEditPanel] Attempted to remove fixed message from non-fixed node');
+      return;
+    }
+    
     if (fixedMessages.length <= 1) {
       alert('Deve haver pelo menos uma mensagem');
       return;
     }
     const newMessages = fixedMessages.filter((_, i) => i !== index);
     setFixedMessages(newMessages);
+    // JSON.stringify ONLY for fixed nodes
     updateField('stepPrompt', JSON.stringify(newMessages));
   };
 

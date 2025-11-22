@@ -1195,43 +1195,51 @@ export class ChatbotService {
         return;
       }
       
-      // Parse stepPrompt to check if it contains multiple messages (JSON array)
+      // Parse stepPrompt with robust validation
       let messages: string[] = [];
       try {
         const parsed = JSON.parse(currentStep.stepPrompt);
         if (Array.isArray(parsed)) {
-          messages = parsed;
-          console.log(`[ChatbotService] 📨 Detected ${messages.length} messages in stepPrompt array`);
+          // Filter out empty strings and strings with only whitespace
+          messages = parsed.filter(msg => msg && typeof msg === 'string' && msg.trim().length > 0);
+          console.log(`[ChatbotService] 📨 Detected ${parsed.length} raw messages, ${messages.length} valid messages after filtering`);
         } else {
-          // Not an array, treat as single message
-          messages = [currentStep.stepPrompt];
-          console.log(`[ChatbotService] 📤 stepPrompt is JSON but not an array, treating as single message`);
+          // Not an array, treat as single message if not empty
+          if (currentStep.stepPrompt && currentStep.stepPrompt.trim().length > 0) {
+            messages = [currentStep.stepPrompt];
+            console.log(`[ChatbotService] 📤 stepPrompt is JSON but not an array, treating as single message`);
+          }
         }
       } catch {
-        // Not valid JSON, treat as single message (backward compatibility)
-        messages = [currentStep.stepPrompt];
-        console.log(`[ChatbotService] 📤 stepPrompt is plain text, treating as single message`);
-      }
-      
-      // Send messages sequentially with random delay between them
-      for (let i = 0; i < messages.length; i++) {
-        const message = messages[i];
-        console.log(`[ChatbotService] 📤 Sending message ${i + 1}/${messages.length}: "${message.substring(0, 100)}..."`);
-        await this.sendMessageWithRetry(lead.whatsappPhone, message, conversation.id);
-        console.log(`[ChatbotService] ✅ Message ${i + 1}/${messages.length} sent successfully`);
-        
-        // Add random delay between messages (except after the last one)
-        if (i < messages.length - 1) {
-          // Random delay between 2000ms (2s) and 4000ms (4s)
-          const randomDelay = Math.floor(Math.random() * 2000) + 2000;
-          console.log(`[ChatbotService] ⏱️ Waiting ${randomDelay}ms before sending next message...`);
-          await new Promise(resolve => setTimeout(resolve, randomDelay));
+        // Not valid JSON, treat as single message if not empty (backward compatibility)
+        if (currentStep.stepPrompt && currentStep.stepPrompt.trim().length > 0) {
+          messages = [currentStep.stepPrompt];
+          console.log(`[ChatbotService] 📤 stepPrompt is plain text, treating as single message`);
         }
       }
       
-      console.log(`[ChatbotService] ✅ All ${messages.length} message(s) sent successfully`);
+      // CRITICAL FIX: Ensure ALL messages are sent before advancing state
+      if (messages.length === 0) {
+        console.warn(`[ChatbotService] ⚠️ No valid messages to send`);
+        // Continue with transitions
+      } else if (messages.length === 1) {
+        // Single message: send and await
+        console.log(`[ChatbotService] 📤 Sending single message`);
+        await this.sendMessageWithRetry(lead.whatsappPhone, messages[0], conversation.id);
+        console.log(`[ChatbotService] ✅ Message sent successfully`);
+      } else {
+        // Multiple messages: await first, then await ALL remaining messages
+        console.log(`[ChatbotService] 📤 Sending first of ${messages.length} messages`);
+        await this.sendMessageWithRetry(lead.whatsappPhone, messages[0], conversation.id);
+        console.log(`[ChatbotService] ✅ First message sent, now sending remaining ${messages.length - 1} messages`);
+        
+        // CRITICAL: AWAIT all remaining messages before advancing state
+        const remainingMessages = messages.slice(1);
+        await this.sendMessagesInBackground(lead.whatsappPhone, remainingMessages, conversation.id, currentStep.stepName);
+        console.log(`[ChatbotService] ✅ All ${messages.length} messages sent successfully - safe to advance state`);
+      }
       
-      // Determine next step based on number of transitions
+      // ONLY AFTER ALL MESSAGES ARE SENT: Determine next step based on number of transitions
       if (transitions.length === 0) {
         // No transitions - stay on current step
         console.log(`[ChatbotService] ⚠️ No transitions defined for fixed step "${currentStep.stepName}" - staying on current step`);
@@ -1285,6 +1293,57 @@ export class ChatbotService {
       
     } catch (error) {
       console.error('[ChatbotService] Error processing fixed message step:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send remaining messages sequentially with delays
+   * CRITICAL: This method is now AWAITABLE to ensure ALL messages are sent before state transitions
+   * 
+   * NOTE: This method typically receives REMAINING messages (not all messages).
+   * The first message should already have been sent and awaited before calling this method.
+   * 
+   * CHANGE FROM PREVIOUS VERSION:
+   * - Now returns Promise<void> instead of void
+   * - Removed fire-and-forget wrapper - method is now properly awaitable
+   * - Errors are propagated to caller instead of being swallowed
+   * - Ensures state only advances AFTER all messages are successfully sent
+   */
+  private async sendMessagesInBackground(
+    phone: string,
+    messages: string[],
+    conversationId: string,
+    stepName: string
+  ): Promise<void> {
+    console.log(`[Fixed Step] Sending ${messages.length} remaining message(s) sequentially`);
+    
+    try {
+      for (let i = 0; i < messages.length; i++) {
+        try {
+          console.log(`[Fixed Step] Sending message ${i + 2}/${messages.length + 1}`); // +2 because first message was already sent
+          await this.sendMessageWithRetry(phone, messages[i], conversationId);
+          console.log(`[Fixed Step] Message ${i + 2}/${messages.length + 1} sent successfully`);
+          
+          // Delay between messages (except for the last one)
+          if (i < messages.length - 1) {
+            const delay = Math.floor(Math.random() * 2000) + 2000;
+            console.log(`[Fixed Step] Waiting ${delay}ms before next message`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          }
+        } catch (messageError) {
+          console.error(`[Fixed Step] Error sending message ${i + 2}:`, messageError);
+          // CRITICAL CHANGE: Propagate error instead of continuing
+          // This ensures state doesn't advance if ANY message fails
+          throw messageError;
+        }
+      }
+      
+      console.log(`[Fixed Step] ✅ All ${messages.length} remaining messages sent successfully`);
+      
+    } catch (error) {
+      console.error('[Fixed Step] Critical error in sendMessagesInBackground:', error);
+      // Propagate error to prevent state advancement
       throw error;
     }
   }

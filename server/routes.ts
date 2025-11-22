@@ -62,6 +62,37 @@ function addToCache(messageId: string) {
   processedMessageIds.add(messageId);
 }
 
+/**
+ * Normaliza stepPrompt de nodes Fixed para JSON array
+ * Garante que nodes Fixed sempre armazenam mensagens como JSON array
+ */
+function normalizeFlowSteps(steps: any[]): any[] {
+  return steps.map(step => {
+    // Apenas normalizar nodes Fixed
+    if (step.stepType === 'fixed' && step.stepPrompt) {
+      // Verificar se já é JSON array válido
+      try {
+        const parsed = JSON.parse(step.stepPrompt);
+        if (Array.isArray(parsed)) {
+          // Já é array - manter como está
+          return step;
+        }
+      } catch {
+        // Não é JSON válido - converter para array
+      }
+      
+      // Converter string simples para array de 1 elemento
+      return {
+        ...step,
+        stepPrompt: JSON.stringify([step.stepPrompt])
+      };
+    }
+    
+    // Nodes AI ou sem stepPrompt: manter como está
+    return step;
+  });
+}
+
 // Ensure uploads directory exists
 const uploadsDir = path.join(process.cwd(), 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -2179,7 +2210,8 @@ Retorne APENAS o JSON array, sem texto adicional.`;
       }
       
       const createdSteps = [];
-      for (const step of steps) {
+      const normalizedSteps = normalizeFlowSteps(steps);
+      for (const step of normalizedSteps) {
         const validatedStep = insertFlowStepSchema.parse({
           ...step,
           flowConfigId: config.id
@@ -2250,7 +2282,8 @@ Retorne APENAS o JSON array, sem texto adicional.`;
         
         // Create new steps with position and transitions
         updatedSteps = [];
-        for (const step of steps) {
+        const normalizedSteps = normalizeFlowSteps(steps);
+        for (const step of normalizedSteps) {
           const validatedStep = insertFlowStepSchema.parse({
             ...step,
             flowConfigId: id
