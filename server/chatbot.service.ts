@@ -1100,23 +1100,89 @@ export class ChatbotService {
       
       console.log(`[ChatbotService] 📋 Flow "${flowConfig.id}" loaded with ${steps.length} steps`);
       
-      // Identify current step
-      const currentStep = await this.identifyCurrentStep(chatbotState, steps);
-      if (!currentStep) {
-        console.log(`[ChatbotService] ⚠️ Could not identify current step, starting from first step`);
-        // Start from first step
-        const firstStep = steps.find(s => s.order === 0) || steps[0];
-        await this.updateChatbotState(chatbotState.id, {
-          currentState: firstStep.stepId
+      // Process steps in a loop to handle automatic transitions
+      // Limit iterations to prevent infinite loops
+      const MAX_AUTO_TRANSITIONS = 10;
+      let iteration = 0;
+      let shouldContinue = true;
+      
+      while (shouldContinue && iteration < MAX_AUTO_TRANSITIONS) {
+        iteration++;
+        
+        // Refresh chatbot state from database to get latest state
+        const freshState = await db.query.chatbotStates.findFirst({
+          where: eq(chatbotStates.id, chatbotState.id)
         });
-        await this.processFlowStep(lead, conversation, chatbotState, firstStep, steps, flowConfig, messageContent);
-        return;
+        
+        if (!freshState) {
+          console.error(`[ChatbotService] ❌ Could not find chatbot state ${chatbotState.id}`);
+          break;
+        }
+        
+        // Identify current step
+        const currentStep = await this.identifyCurrentStep(freshState, steps);
+        if (!currentStep) {
+          console.log(`[ChatbotService] ⚠️ Could not identify current step, starting from first step`);
+          const firstStep = steps.find(s => s.order === 0) || steps[0];
+          await this.updateChatbotState(chatbotState.id, {
+            currentState: firstStep.stepId
+          });
+          continue;
+        }
+        
+        console.log(`[ChatbotService] 📍 Iteration ${iteration}: Current step: ${currentStep.stepName} (${currentStep.stepId})`);
+        
+        // Track state before processing
+        const stateBefore = freshState.currentState;
+        
+        // Process the current step and get continuation signal
+        const shouldContinueLoop = await this.processFlowStep(lead, conversation, freshState, currentStep, steps, flowConfig, messageContent);
+        
+        // Check if we should continue based on step processing result
+        if (!shouldContinueLoop) {
+          // Step processing determined we should stop (FIXED→AI, no transitions, or waiting for user)
+          shouldContinue = false;
+          console.log(`[ChatbotService] ✅ Processing complete - step signaled to stop loop`);
+          
+          // Update the in-memory chatbotState reference for the caller
+          const stateAfter = await db.query.chatbotStates.findFirst({
+            where: eq(chatbotStates.id, chatbotState.id)
+          });
+          if (stateAfter) {
+            Object.assign(chatbotState, stateAfter);
+          }
+        } else {
+          // Step processing wants loop to continue (AI→FIXED, AI→AI, FIXED→FIXED)
+          const stateAfter = await db.query.chatbotStates.findFirst({
+            where: eq(chatbotStates.id, chatbotState.id)
+          });
+          
+          if (!stateAfter) {
+            console.error(`[ChatbotService] ❌ Could not find updated chatbot state`);
+            shouldContinue = false;
+          } else if (stateAfter.currentState === stateBefore) {
+            // State didn't change - something went wrong, stop processing
+            console.warn(`[ChatbotService] ⚠️ State didn't change but step wanted to continue - stopping`);
+            shouldContinue = false;
+          } else {
+            // Automatic transition occurred - continue loop
+            console.log(`[ChatbotService] 🔄 Automatic transition detected: ${stateBefore} → ${stateAfter.currentState}`);
+            console.log(`[ChatbotService] 📝 Keeping original message for all auto-transitions`);
+            
+            // NOTE: We keep the original messageContent for all auto-transitions
+            // - AI steps need it to understand context
+            // - FIXED steps ignore it anyway (they just send their fixed messages)
+            
+            // Update the in-memory chatbotState reference for the caller
+            Object.assign(chatbotState, stateAfter);
+            shouldContinue = true;
+          }
+        }
       }
       
-      console.log(`[ChatbotService] 📍 Current step: ${currentStep.stepName} (${currentStep.stepId})`);
-      
-      // Process the current step
-      await this.processFlowStep(lead, conversation, chatbotState, currentStep, steps, flowConfig, messageContent);
+      if (iteration >= MAX_AUTO_TRANSITIONS) {
+        console.warn(`[ChatbotService] ⚠️ Reached max auto-transitions limit (${MAX_AUTO_TRANSITIONS})`);
+      }
       
     } catch (error) {
       console.error('[ChatbotService] ❌ Error processing with configurable flow:', error);
@@ -1195,6 +1261,7 @@ export class ChatbotService {
   
   /**
    * Process a specific flow step
+   * @returns true if loop should continue, false if it should stop
    */
   private async processFlowStep(
     lead: Lead,
@@ -1204,18 +1271,18 @@ export class ChatbotService {
     allSteps: FlowStep[],
     flowConfig: FlowConfig,
     messageContent: string
-  ): Promise<void> {
+  ): Promise<boolean> {
     try {
       console.log(`[ChatbotService] 🔄 Processing step: ${currentStep.stepName} (type: ${currentStep.stepType})`);
       
       // Check if this is a FIXED message node or AI node
       if (currentStep.stepType === 'fixed') {
         console.log(`[ChatbotService] 📌 FIXED message node detected`);
-        await this.processFixedMessageStep(lead, conversation, chatbotState, currentStep, allSteps, messageContent);
+        return await this.processFixedMessageStep(lead, conversation, chatbotState, currentStep, allSteps, messageContent);
       } else {
         // AI node - existing logic
         console.log(`[ChatbotService] 🤖 AI node detected - using OpenAI`);
-        await this.processAIStep(lead, conversation, chatbotState, currentStep, allSteps, flowConfig, messageContent);
+        return await this.processAIStep(lead, conversation, chatbotState, currentStep, allSteps, flowConfig, messageContent);
       }
       
     } catch (error) {
@@ -1226,6 +1293,7 @@ export class ChatbotService {
 
   /**
    * Process a FIXED message step (no AI involved)
+   * @returns true if loop should continue (FIXED→FIXED), false if should stop (FIXED→AI, no transitions, or waiting for user)
    */
   private async processFixedMessageStep(
     lead: Lead,
@@ -1234,7 +1302,7 @@ export class ChatbotService {
     currentStep: FlowStep,
     allSteps: FlowStep[],
     messageContent: string
-  ): Promise<void> {
+  ): Promise<boolean> {
     try {
       // Parse transitions from JSONB field
       const transitions = (currentStep.transitions as any) || [];
@@ -1244,7 +1312,7 @@ export class ChatbotService {
       const context = chatbotState.context as any || {};
       if (context.waitingForFixedTransition && context.currentStepId === currentStep.stepId) {
         console.log(`[ChatbotService] 🔍 Processing user response for fixed message with multiple transitions`);
-        await this.handleFixedMessageTransitionSelection(
+        return await this.handleFixedMessageTransitionSelection(
           lead,
           conversation,
           chatbotState,
@@ -1253,7 +1321,6 @@ export class ChatbotService {
           transitions,
           messageContent
         );
-        return;
       }
       
       // Parse stepPrompt with robust validation
@@ -1304,8 +1371,10 @@ export class ChatbotService {
       
       // ONLY AFTER ALL MESSAGES ARE SENT: Determine next step based on number of transitions
       if (transitions.length === 0) {
-        // No transitions - stay on current step
+        // No transitions - stay on current step and stop loop
         console.log(`[ChatbotService] ⚠️ No transitions defined for fixed step "${currentStep.stepName}" - staying on current step`);
+        console.log(`[ChatbotService] 🛑 Stopping loop - no transitions`);
+        return false;
       } else if (transitions.length === 1) {
         // Single transition - auto-advance after buffer
         const singleTransition = transitions[0];
@@ -1333,8 +1402,18 @@ export class ChatbotService {
           });
           
           console.log(`[ChatbotService] ✅ Auto-transitioned to next step: ${nextStep.stepName}`);
+          
+          // CRITICAL: Check target step type to determine if loop should continue
+          if (nextStep.stepType === 'ai') {
+            console.log(`[ChatbotService] 🛑 Target is AI step - stopping loop (AI will wait for next user message)`);
+            return false;
+          } else {
+            console.log(`[ChatbotService] 🔄 Target is FIXED step - continuing loop`);
+            return true;
+          }
         } else {
           console.error(`[ChatbotService] ❌ Target step not found: ${targetStepId}`);
+          return false;
         }
       } else {
         // Multiple transitions - wait for user response
@@ -1352,6 +1431,8 @@ export class ChatbotService {
         });
         
         console.log(`[ChatbotService] ⏸️ Waiting for user to select one of ${transitions.length} options`);
+        console.log(`[ChatbotService] 🛑 Stopping loop - waiting for user selection`);
+        return false;
       }
       
     } catch (error) {
@@ -1414,6 +1495,7 @@ export class ChatbotService {
 
   /**
    * Handle user response when a fixed message has multiple transitions
+   * @returns true if loop should continue, false if should stop
    */
   private async handleFixedMessageTransitionSelection(
     lead: Lead,
@@ -1423,7 +1505,7 @@ export class ChatbotService {
     allSteps: FlowStep[],
     transitions: any[],
     userResponse: string
-  ): Promise<void> {
+  ): Promise<boolean> {
     try {
       console.log(`[ChatbotService] 🔍 Analyzing user response: "${userResponse}"`);
       console.log(`[ChatbotService] 📋 Available transitions:`, transitions.map(t => ({ label: t.label, targetStepId: t.targetStepId })));
@@ -1479,7 +1561,10 @@ export class ChatbotService {
           
           // Process the next step immediately (recursively)
           console.log(`[ChatbotService] 🔄 Processing next step immediately: ${nextStep.stepName}`);
-          await this.processFlowStep(lead, conversation, chatbotState, nextStep, allSteps, {} as FlowConfig, userResponse);
+          const shouldContinue = await this.processFlowStep(lead, conversation, chatbotState, nextStep, allSteps, {} as FlowConfig, userResponse);
+          
+          // Return the result from processing the next step
+          return shouldContinue;
         } else {
           console.error(`[ChatbotService] ❌ Target step not found: ${targetStepId}`);
           await this.sendMessageWithRetry(
@@ -1487,6 +1572,7 @@ export class ChatbotService {
             'Desculpe, houve um erro ao processar sua escolha. Por favor, tente novamente.',
             conversation.id
           );
+          return false;
         }
       } else {
         // No match found - ask user to try again
@@ -1497,6 +1583,7 @@ export class ChatbotService {
         
         await this.sendMessageWithRetry(lead.whatsappPhone, retryMessage, conversation.id);
         console.log(`[ChatbotService] 📤 Sent retry message with available options`);
+        return false;
       }
       
     } catch (error) {
@@ -1507,6 +1594,7 @@ export class ChatbotService {
 
   /**
    * Process an AI step (existing logic)
+   * @returns true if loop should continue (AI transitions always allow continuation)
    */
   private async processAIStep(
     lead: Lead,
@@ -1516,7 +1604,7 @@ export class ChatbotService {
     allSteps: FlowStep[],
     flowConfig: FlowConfig,
     messageContent: string
-  ): Promise<void> {
+  ): Promise<boolean> {
     try {
       // Get conversation history
       const conversationHistory = await this.getConversationHistory(conversation.id, 10);
@@ -1532,33 +1620,54 @@ export class ChatbotService {
       
       if (!aiResponse) {
         console.error('[ChatbotService] ❌ Failed to generate AI response');
-        return;
+        return false;
       }
       
       console.log(`[ChatbotService] 🤖 AI Response: ${aiResponse.mensagemAgente.substring(0, 100)}...`);
       console.log(`[ChatbotService] ➡️ Next step suggested: ${aiResponse.proximaEtapaId || 'none'}`);
       
-      // Send response to user (replace placeholders)
-      const aiMessageWithPlaceholders = this.replacePlaceholders(aiResponse.mensagemAgente, lead);
-      await this.sendMessageWithRetry(
-        lead.whatsappPhone,
-        aiMessageWithPlaceholders,
-        conversation.id
-      );
-      
-      // Update chatbot state with next step if determined
+      // Check if AI determined a transition to another step
       if (aiResponse.proximaEtapaId) {
         const nextStep = allSteps.find(s => s.stepId === aiResponse.proximaEtapaId);
         if (nextStep) {
-          console.log(`[ChatbotService] ✅ Transitioning to next step: ${nextStep.stepName}`);
+          console.log(`[ChatbotService] 🔀 AI determined transition to: ${nextStep.stepName}`);
+          console.log(`[ChatbotService] ⏭️ Skipping AI message - just updating state`);
+          
+          // Update state to transition to next step
+          // The loop in processWithConfigurableFlow will detect this and continue processing
           await this.updateChatbotState(chatbotState.id, {
             currentState: nextStep.stepId
           });
+          
+          console.log(`[ChatbotService] ✅ State updated to: ${nextStep.stepName} (${nextStep.stepId})`);
+          console.log(`[ChatbotService] 🔄 Returning true - loop will continue to process next step`);
+          return true; // Allow loop to continue
         } else {
           console.log(`[ChatbotService] ⚠️ Next step ID not found: ${aiResponse.proximaEtapaId}`);
+          console.log(`[ChatbotService] 📤 Sending AI response as fallback`);
+          
+          // Fallback: send AI message
+          const aiMessageWithPlaceholders = this.replacePlaceholders(aiResponse.mensagemAgente, lead);
+          await this.sendMessageWithRetry(
+            lead.whatsappPhone,
+            aiMessageWithPlaceholders,
+            conversation.id
+          );
+          return false; // Stop loop
         }
       } else {
+        // AI is staying on current step - send response
         console.log(`[ChatbotService] ℹ️ Staying on current step: ${currentStep.stepName}`);
+        console.log(`[ChatbotService] 📤 Sending AI response to user`);
+        
+        const aiMessageWithPlaceholders = this.replacePlaceholders(aiResponse.mensagemAgente, lead);
+        await this.sendMessageWithRetry(
+          lead.whatsappPhone,
+          aiMessageWithPlaceholders,
+          conversation.id
+        );
+        console.log(`[ChatbotService] 🛑 Returning false - no transition, stopping loop`);
+        return false; // Stop loop - no transition
       }
       
     } catch (error) {
