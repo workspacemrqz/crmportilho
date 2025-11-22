@@ -174,6 +174,39 @@ export class ChatbotService {
     return numbers;
   }
 
+  /**
+   * Extract first name from lead's name
+   * Example: "Gabriel Marquez" -> "Gabriel"
+   */
+  private extractFirstName(lead: Lead): string {
+    // Tentar pegar o nome completo de várias fontes possíveis
+    const fullName = lead.name || lead.whatsappName || '';
+    
+    if (!fullName || fullName.trim() === '') {
+      return '';
+    }
+    
+    // Pegar apenas o primeiro nome (primeira palavra)
+    const firstName = fullName.trim().split(/\s+/)[0];
+    return firstName;
+  }
+
+  /**
+   * Replace placeholders in text with lead information
+   * Currently supports: {nome}
+   */
+  private replacePlaceholders(text: string, lead: Lead): string {
+    let result = text;
+    
+    // Replace {nome} with first name
+    const firstName = this.extractFirstName(lead);
+    if (firstName) {
+      result = result.replace(/\{nome\}/gi, firstName);
+    }
+    
+    return result;
+  }
+
   private formatPhone(phone: string): string {
     // Remove tudo que não é número
     const numbers = this.extractNumbers(phone);
@@ -1223,19 +1256,21 @@ export class ChatbotService {
         console.warn(`[ChatbotService] ⚠️ No valid messages to send`);
         // Continue with transitions
       } else if (messages.length === 1) {
-        // Single message: send and await
+        // Single message: send and await (replace placeholders)
         console.log(`[ChatbotService] 📤 Sending single message`);
-        await this.sendMessageWithRetry(lead.whatsappPhone, messages[0], conversation.id);
+        const messageWithPlaceholders = this.replacePlaceholders(messages[0], lead);
+        await this.sendMessageWithRetry(lead.whatsappPhone, messageWithPlaceholders, conversation.id);
         console.log(`[ChatbotService] ✅ Message sent successfully`);
       } else {
         // Multiple messages: await first, then await ALL remaining messages
         console.log(`[ChatbotService] 📤 Sending first of ${messages.length} messages`);
-        await this.sendMessageWithRetry(lead.whatsappPhone, messages[0], conversation.id);
+        const firstMessageWithPlaceholders = this.replacePlaceholders(messages[0], lead);
+        await this.sendMessageWithRetry(lead.whatsappPhone, firstMessageWithPlaceholders, conversation.id);
         console.log(`[ChatbotService] ✅ First message sent, now sending remaining ${messages.length - 1} messages`);
         
         // CRITICAL: AWAIT all remaining messages before advancing state
         const remainingMessages = messages.slice(1);
-        await this.sendMessagesInBackground(lead.whatsappPhone, remainingMessages, conversation.id, currentStep.stepName);
+        await this.sendMessagesInBackground(lead, remainingMessages, conversation.id, currentStep.stepName);
         console.log(`[ChatbotService] ✅ All ${messages.length} messages sent successfully - safe to advance state`);
       }
       
@@ -1311,7 +1346,7 @@ export class ChatbotService {
    * - Ensures state only advances AFTER all messages are successfully sent
    */
   private async sendMessagesInBackground(
-    phone: string,
+    lead: Lead,
     messages: string[],
     conversationId: string,
     stepName: string
@@ -1322,7 +1357,8 @@ export class ChatbotService {
       for (let i = 0; i < messages.length; i++) {
         try {
           console.log(`[Fixed Step] Sending message ${i + 2}/${messages.length + 1}`); // +2 because first message was already sent
-          await this.sendMessageWithRetry(phone, messages[i], conversationId);
+          const messageWithPlaceholders = this.replacePlaceholders(messages[i], lead);
+          await this.sendMessageWithRetry(lead.whatsappPhone, messageWithPlaceholders, conversationId);
           console.log(`[Fixed Step] Message ${i + 2}/${messages.length + 1} sent successfully`);
           
           // Delay between messages (except for the last one)
@@ -1474,10 +1510,11 @@ export class ChatbotService {
       console.log(`[ChatbotService] 🤖 AI Response: ${aiResponse.mensagemAgente.substring(0, 100)}...`);
       console.log(`[ChatbotService] ➡️ Next step suggested: ${aiResponse.proximaEtapaId || 'none'}`);
       
-      // Send response to user
+      // Send response to user (replace placeholders)
+      const aiMessageWithPlaceholders = this.replacePlaceholders(aiResponse.mensagemAgente, lead);
       await this.sendMessageWithRetry(
         lead.whatsappPhone,
-        aiResponse.mensagemAgente,
+        aiMessageWithPlaceholders,
         conversation.id
       );
       
@@ -1625,7 +1662,7 @@ Lembre-se: Use EXATAMENTE os stepIds disponíveis listados acima. Se não for ne
       const recentMessages = await db.select()
         .from(messages)
         .where(eq(messages.conversationId, conversationId))
-        .orderBy(desc(messages.createdAt))
+        .orderBy(desc(messages.timestamp))
         .limit(limit);
       
       // Reverse to get chronological order
