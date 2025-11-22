@@ -122,11 +122,17 @@ export default function FluxoPage() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const initialLoadRef = useRef(true);
+  const stepsRef = useRef<FlowStep[]>(DEFAULT_STEPS); // Ref sempre sincronizado com steps
 
   const { data: activeFlow, isLoading: loadingActive } = useQuery<any>({
     queryKey: ['/api/flows/active'],
     retry: false
   });
+
+  // Sincronizar ref com state steps
+  useEffect(() => {
+    stepsRef.current = steps;
+  }, [steps]);
 
   useEffect(() => {
     if (activeFlow) {
@@ -159,6 +165,7 @@ export default function FluxoPage() {
         
         console.log('[FluxoPage] useEffect activeFlow - setando steps com:', loadedSteps.length, 'nodes');
         setSteps(loadedSteps);
+        stepsRef.current = loadedSteps; // Atualiza ref sincronamente
         initialLoadRef.current = false;
       } else if (hasUnsavedChanges) {
         console.log('[FluxoPage] useEffect activeFlow - BLOQUEADO: não sobrescreve porque há mudanças não salvas');
@@ -168,13 +175,17 @@ export default function FluxoPage() {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      console.log('[FluxoPage] saveMutation - salvando com steps:', steps.length, steps.map(s => s.stepId));
+      // CRÍTICO: Usa stepsRef.current para garantir acesso ao valor mais atual
+      // Isso previne race condition onde setSteps ainda não foi aplicado
+      const currentSteps = stepsRef.current;
+      console.log('[FluxoPage] saveMutation - salvando com steps:', currentSteps.length, currentSteps.map(s => s.stepId));
+      console.log('[FluxoPage] saveMutation - usando stepsRef.current para evitar race condition');
       
       if (config.id) {
         const payload = {
           ...config,
           keywords: keywords.map((k, index) => ({ ...k, isActive: true })),
-          steps: steps.map((s, index) => ({ ...s, order: index, isActive: true }))
+          steps: currentSteps.map((s, index) => ({ ...s, order: index, isActive: true }))
         };
         console.log('[FluxoPage] saveMutation - enviando PUT com payload:', payload);
         return apiRequest("PUT", `/api/flows/${config.id}`, payload);
@@ -183,7 +194,7 @@ export default function FluxoPage() {
           ...config,
           isActive: true,
           keywords: keywords.map((k) => ({ ...k, isActive: true })),
-          steps: steps.map((s, index) => ({ ...s, order: index, isActive: true }))
+          steps: currentSteps.map((s, index) => ({ ...s, order: index, isActive: true }))
         });
         
         if (newFlow.id) {
@@ -272,7 +283,7 @@ export default function FluxoPage() {
   };
 
   const addStep = () => {
-    setSteps([...steps, {
+    const newSteps = [...steps, {
       stepId: `etapa_${steps.length + 1}`,
       stepName: `Nova Etapa ${steps.length + 1}`,
       objective: "",
@@ -280,17 +291,25 @@ export default function FluxoPage() {
       routingInstructions: "",
       order: steps.length,
       exampleMessage: ""
-    }]);
+    }];
+    setSteps(newSteps);
+    stepsRef.current = newSteps; // Atualiza ref sincronamente
+    setHasUnsavedChanges(true); // Marca mudanças não salvas
   };
 
   const removeStep = (index: number) => {
-    setSteps(steps.filter((_, i) => i !== index));
+    const newSteps = steps.filter((_, i) => i !== index);
+    setSteps(newSteps);
+    stepsRef.current = newSteps; // Atualiza ref sincronamente
+    setHasUnsavedChanges(true); // Marca mudanças não salvas
   };
 
   const updateStep = (index: number, field: keyof FlowStep, value: string | number) => {
     const updated = [...steps];
     updated[index] = { ...updated[index], [field]: value };
     setSteps(updated);
+    stepsRef.current = updated; // Atualiza ref sincronamente
+    setHasUnsavedChanges(true); // Marca mudanças não salvas
   };
 
   const generatePreview = (step: FlowStep) => {
@@ -310,6 +329,8 @@ export default function FluxoPage() {
       step.stepId === updatedNode.stepId ? updatedNode : step
     );
     setSteps(updatedSteps);
+    stepsRef.current = updatedSteps; // Atualiza ref sincronamente
+    setHasUnsavedChanges(true); // Marca mudanças não salvas
   };
 
   const handleRegenerateStepId = (oldStepId: string, newTitle: string) => {
@@ -396,6 +417,8 @@ export default function FluxoPage() {
 
     // TERCEIRO: Atualizar states
     setSteps(updatedSteps);
+    stepsRef.current = updatedSteps; // Atualiza ref sincronamente
+    setHasUnsavedChanges(true); // Marca mudanças não salvas
 
     // QUARTO: Atualizar selectedNodeId se necessário
     if (selectedNodeId === oldStepId) {
@@ -418,6 +441,9 @@ export default function FluxoPage() {
     console.log('[FluxoPage] handleStepsChange CHAMADO - marcando hasUnsavedChanges = true');
     console.log('[FluxoPage] handleStepsChange - tipo:', typeof newStepsOrUpdater);
     
+    // CRÍTICO: Marca mudanças não salvas ANTES de atualizar steps
+    setHasUnsavedChanges(true);
+    
     setSteps((prevSteps) => {
       const newSteps = typeof newStepsOrUpdater === 'function' 
         ? newStepsOrUpdater(prevSteps) 
@@ -426,7 +452,11 @@ export default function FluxoPage() {
       console.log('[FluxoPage] handleStepsChange - ANTES:', prevSteps.length, 'steps:', prevSteps.map(s => s.stepId));
       console.log('[FluxoPage] handleStepsChange - DEPOIS:', newSteps.length, 'steps:', newSteps.map(s => s.stepId));
       
-      setHasUnsavedChanges(true);
+      // CRÍTICO: Atualiza ref SINCRONAMENTE para evitar race condition
+      // Isso garante que saveMutation sempre lê o valor mais atual
+      stepsRef.current = newSteps;
+      console.log('[FluxoPage] handleStepsChange - stepsRef.current atualizado sincronamente');
+      
       return newSteps;
     });
   }, []);
