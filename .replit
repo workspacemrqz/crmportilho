@@ -79,3 +79,6 @@ build = ["npm", "run", "build"]
 [userenv.development]
 ALLOW_WEAK_WEBHOOK_AUTH = "true"
 WHATSAPP_API = "waha"
+
+[userenv.shared]
+FOLLOWUP_CHECK_INTERVAL_MINUTES = "1"

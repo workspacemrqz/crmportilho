@@ -4,6 +4,18 @@ This project, "Seguro IA," is a CRM and chatbot system designed to streamline cu
 
 # Recent Changes
 
+**November 22, 2025 - Fixed Follow-up Timing Precision**
+- Resolved issue where follow-up messages were not sent at exact configured times
+- **Problem**: Service was checking conversations every 5 minutes, causing up to 5-minute delays in message delivery
+- **Root Cause**: 
+  - Check interval (`FOLLOWUP_CHECK_INTERVAL_MINUTES = 5`) was too infrequent for precise timing
+  - Interval was counted from last execution, not synchronized to clock minutes
+  - Example: If check ran at 19h58, next check would be 20h03, but delays could push it to 20h07
+- **Solution**: Reduced check interval to 1 minute (`FOLLOWUP_CHECK_INTERVAL_MINUTES = 1`)
+- **Result**: Follow-up messages now sent within 1-minute precision of configured delays
+- **Impact**: Messages configured for 5, 10, 15, 20, 25 minutes now send at approximately :58, :03, :08, :13, :18 (within ±1 minute)
+- **Status**: ✅ Implemented - service now checks every 60 seconds for improved timing accuracy
+
 **November 22, 2025 - Changed Follow-up Page to Table Layout**
 - Redesigned the `/followup` page from card-based grid to table/spreadsheet format
 - **New Layout**:
