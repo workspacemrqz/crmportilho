@@ -6,6 +6,7 @@ import { ChatbotService } from "./chatbot.service";
 import { WAHAService } from "./waha.service";
 import { LocalStorageService } from "./storage.service";
 import { flowAIService } from "./flow-ai.service";
+import { followupService } from "./followup.service";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -2510,6 +2511,17 @@ Retorne APENAS o JSON array, sem texto adicional.`;
     } catch (error) {
       console.error('Error deleting followup message:', error);
       res.status(500).json({ error: 'Failed to delete followup message' });
+    }
+  });
+
+  // Trigger follow-up check manually (for testing)
+  app.post('/api/followup-messages/trigger-check', requireAuth, async (req: Request, res: Response) => {
+    try {
+      await followupService.triggerCheck();
+      res.json({ success: true, message: 'Follow-up check triggered successfully' });
+    } catch (error) {
+      console.error('Error triggering follow-up check:', error);
+      res.status(500).json({ error: 'Failed to trigger follow-up check' });
     }
   });
 

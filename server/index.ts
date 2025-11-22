@@ -8,6 +8,7 @@ import { securityHeaders } from "./middleware/security";
 import { logSecurityEvent } from "./middleware/webhook-auth";
 import { validateRequiredEnvVars } from "./middleware/auth";
 import { setupWebSocket } from "./websocket";
+import { followupService } from "./followup.service";
 
 // Validate required environment variables before starting
 try {
@@ -136,5 +137,32 @@ app.use((req, res, next) => {
   }, () => {
     log(`serving on port ${port}`);
     log(`WebSocket server available at ws://localhost:${port}/ws`);
+    
+    // Start the follow-up service
+    followupService.start();
+    log('Follow-up service started');
   });
+
+  // Graceful shutdown handling
+  const gracefulShutdown = (signal: string) => {
+    log(`${signal} received, shutting down gracefully...`);
+    
+    // Stop the follow-up service
+    followupService.stop();
+    
+    // Close the server
+    server.close(() => {
+      log('Server closed');
+      process.exit(0);
+    });
+
+    // Force exit if graceful shutdown takes too long (30 seconds)
+    setTimeout(() => {
+      log('Forced shutdown after timeout');
+      process.exit(1);
+    }, 30000);
+  };
+
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 })();

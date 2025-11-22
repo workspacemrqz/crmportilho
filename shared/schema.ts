@@ -9,6 +9,7 @@ import {
   integer,
   jsonb,
   index,
+  uniqueIndex,
   pgEnum
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
@@ -297,6 +298,18 @@ export const followupMessages = pgTable("followup_messages", {
   updatedAt: timestamp("updated_at").notNull().defaultNow()
 }, (table) => ({
   isActiveIdx: index("followup_messages_is_active_idx").on(table.isActive)
+}));
+
+export const followupSent = pgTable("followup_sent", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  conversationId: varchar("conversation_id").notNull().references(() => conversations.id, { onDelete: "cascade" }),
+  followupMessageId: varchar("followup_message_id").notNull().references(() => followupMessages.id, { onDelete: "cascade" }),
+  sentAt: timestamp("sent_at").notNull().defaultNow(),
+  leadLastMessageAt: timestamp("lead_last_message_at").notNull()
+}, (table) => ({
+  conversationIdx: index("followup_sent_conversation_idx").on(table.conversationId),
+  followupIdx: index("followup_sent_followup_idx").on(table.followupMessageId),
+  uniqueConversationFollowup: uniqueIndex("followup_sent_unique_idx").on(table.conversationId, table.followupMessageId)
 }));
 
 // Relations
