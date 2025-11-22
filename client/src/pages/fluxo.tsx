@@ -141,8 +141,11 @@ export default function FluxoPage() {
         setKeywords(activeFlow.keywords);
       }
       
-      if (activeFlow.steps && activeFlow.steps.length > 0) {
-        setSteps(activeFlow.steps.sort((a: FlowStep, b: FlowStep) => a.order - b.order));
+      if (activeFlow.steps !== undefined) {
+        setSteps(activeFlow.steps.length > 0 
+          ? activeFlow.steps.sort((a: FlowStep, b: FlowStep) => a.order - b.order)
+          : []
+        );
       }
     }
   }, [activeFlow]);
