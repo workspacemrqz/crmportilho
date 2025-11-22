@@ -105,17 +105,13 @@ const FlowStepNode = memo(({ data, selected }: any) => {
   
   const bgColorClass = 'bg-[#121212]';
   
-  const borderColorClass = isAI 
-    ? 'border-blue-600' 
-    : 'border-green-600';
+  const borderColorClass = 'border-blue-600';
   
   const textColorClass = 'text-gray-100';
   
   const IconComponent = isAI ? Sparkles : MessageSquare;
   const badgeText = isAI ? 'IA' : 'Fixa';
-  const badgeColorClass = isAI 
-    ? 'bg-blue-700 dark:bg-blue-800 text-blue-100 dark:text-blue-200' 
-    : 'bg-green-700 dark:bg-green-800 text-green-100 dark:text-green-200';
+  const badgeColorClass = 'bg-blue-700 dark:bg-blue-800 text-blue-100 dark:text-blue-200';
 
   const handleMouseEnter = () => {
     if (hoverTimeoutRef.current) {
@@ -219,7 +215,7 @@ const FlowStepNode = memo(({ data, selected }: any) => {
         <div className="space-y-1">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-1.5 flex-1">
-              <IconComponent className={`w-4 h-4 flex-shrink-0 ${isAI ? 'text-blue-600 dark:text-blue-400' : 'text-green-600 dark:text-green-400'}`} />
+              <IconComponent className="w-4 h-4 flex-shrink-0 text-blue-600 dark:text-blue-400" />
               <div className="font-semibold text-sm">{data.stepName}</div>
             </div>
             {transitionsCount > 0 && (
