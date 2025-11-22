@@ -104,18 +104,20 @@ const FlowStepNode = memo(({ data, selected }: any) => {
   const isFixed = stepType === 'fixed';
   
   const bgColorClass = isAI 
-    ? 'bg-blue-50 dark:bg-blue-950' 
-    : 'bg-green-50 dark:bg-green-950';
+    ? 'bg-blue-900 dark:bg-blue-950' 
+    : 'bg-green-900 dark:bg-green-950';
   
   const borderColorClass = isAI 
-    ? 'border-blue-400' 
-    : 'border-green-400';
+    ? 'border-blue-600' 
+    : 'border-green-600';
+  
+  const textColorClass = 'text-gray-100';
   
   const IconComponent = isAI ? Sparkles : MessageSquare;
   const badgeText = isAI ? 'IA' : 'Fixa';
   const badgeColorClass = isAI 
-    ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' 
-    : 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300';
+    ? 'bg-blue-700 dark:bg-blue-800 text-blue-100 dark:text-blue-200' 
+    : 'bg-green-700 dark:bg-green-800 text-green-100 dark:text-green-200';
 
   const handleMouseEnter = () => {
     if (hoverTimeoutRef.current) {
