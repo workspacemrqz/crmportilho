@@ -154,8 +154,14 @@ const FlowStepNode = memo(({ data, selected }: any) => {
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
+    console.log('[CustomNode] handleDelete CLICADO para stepId:', data.stepId);
+    console.log('[CustomNode] handleDelete - onDelete existe?', !!data.onDelete);
     if (data.onDelete) {
+      console.log('[CustomNode] handleDelete - EXECUTANDO data.onDelete');
       data.onDelete(data.stepId);
+      console.log('[CustomNode] handleDelete - data.onDelete EXECUTADO');
+    } else {
+      console.error('[CustomNode] handleDelete - ERRO: onDelete não está definido!');
     }
   };
   

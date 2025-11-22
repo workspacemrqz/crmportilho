@@ -415,9 +415,20 @@ export default function FluxoPage() {
 
   // Wrapper para setSteps que marca mudanças não salvas
   const handleStepsChange = useCallback((newStepsOrUpdater: FlowStep[] | ((prev: FlowStep[]) => FlowStep[])) => {
-    console.log('[FluxoPage] handleStepsChange - marcando hasUnsavedChanges = true');
-    setHasUnsavedChanges(true);
-    setSteps(newStepsOrUpdater);
+    console.log('[FluxoPage] handleStepsChange CHAMADO - marcando hasUnsavedChanges = true');
+    console.log('[FluxoPage] handleStepsChange - tipo:', typeof newStepsOrUpdater);
+    
+    setSteps((prevSteps) => {
+      const newSteps = typeof newStepsOrUpdater === 'function' 
+        ? newStepsOrUpdater(prevSteps) 
+        : newStepsOrUpdater;
+      
+      console.log('[FluxoPage] handleStepsChange - ANTES:', prevSteps.length, 'steps:', prevSteps.map(s => s.stepId));
+      console.log('[FluxoPage] handleStepsChange - DEPOIS:', newSteps.length, 'steps:', newSteps.map(s => s.stepId));
+      
+      setHasUnsavedChanges(true);
+      return newSteps;
+    });
   }, []);
 
   const selectedNode = selectedNodeId ? steps.find((s) => s.stepId === selectedNodeId) || null : null;
