@@ -427,15 +427,11 @@ export default function FollowupPage() {
           ) : messages.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
-                <MessageSquare className="h-12 w-12 text-muted-foreground mb-4" />
+                <Clock className="h-12 w-12 text-muted-foreground mb-4" />
                 <h3 className="text-base sm:text-lg font-semibold mb-2">Nenhuma mensagem configurada</h3>
-                <p className="text-xs sm:text-sm text-muted-foreground text-center mb-4">
+                <p className="text-xs sm:text-sm text-muted-foreground text-center">
                   Crie sua primeira mensagem de follow-up automático
                 </p>
-                <Button onClick={handleOpenCreate} data-testid="button-create-first" className="w-full sm:w-auto">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Criar Primeira Mensagem
-                </Button>
               </CardContent>
             </Card>
           ) : (

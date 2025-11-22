@@ -21,6 +21,14 @@ This project, "Seguro IA," is a CRM and chatbot system designed to streamline cu
 - **Implementation**: Simplified deduplication logic to check only if the message was ever sent to that conversation, removing temporal conditions
 - **User Benefit**: Prevents annoying repetition and maintains professional communication standards
 
+**November 22, 2025 - Cleaned Up Empty State UI**
+- Removed the "Criar Primeira Mensagem" button from the empty state
+- Changed the chat icon to a clock icon for better visual consistency with the follow-up feature
+- **Changes**:
+  - Removed redundant CTA button (users can use the header button instead)
+  - Updated icon from MessageSquare to Clock for thematic consistency
+  - Streamlined empty state message
+
 **November 22, 2025 - Enhanced Follow-up Form UX**
 - Improved the follow-up message creation dialog with intuitive controls and visual feedback
 - **Key Improvements**:
