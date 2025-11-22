@@ -1,5 +1,5 @@
 import { db } from './db';
-import { conversations, messages, followupMessages, followupSent, leads } from '@shared/schema';
+import { conversations, messages, followupMessages, followupSent, leads, type Lead } from '@shared/schema';
 import { eq, and, sql, desc, isNull } from 'drizzle-orm';
 import { WAHAService } from './waha.service';
 import { EvolutionAPIService } from './evolution.service';
@@ -224,6 +224,39 @@ export class FollowupService {
   }
 
   /**
+   * Extract first name from lead's name
+   * Example: "Gabriel Marquez" -> "Gabriel"
+   */
+  private extractFirstName(lead: Lead): string {
+    // Tentar pegar o nome completo de várias fontes possíveis
+    const fullName = lead.name || lead.whatsappName || '';
+    
+    if (!fullName || fullName.trim() === '') {
+      return '';
+    }
+    
+    // Pegar apenas o primeiro nome (primeira palavra)
+    const firstName = fullName.trim().split(/\s+/)[0];
+    return firstName;
+  }
+
+  /**
+   * Replace placeholders in text with lead information
+   * Currently supports: {nome}
+   */
+  private replacePlaceholders(text: string, lead: Lead): string {
+    let result = text;
+    
+    // Replace {nome} with first name
+    const firstName = this.extractFirstName(lead);
+    if (firstName) {
+      result = result.replace(/\{nome\}/gi, firstName);
+    }
+    
+    return result;
+  }
+
+  /**
    * Send a follow-up message to a lead
    */
   private async sendFollowup(
@@ -248,19 +281,36 @@ export class FollowupService {
         return;
       }
 
+      // Fetch full lead data for placeholder replacement
+      const [lead] = await db
+        .select()
+        .from(leads)
+        .where(eq(leads.id, conversation.leadId))
+        .limit(1);
+
+      if (!lead) {
+        console.error(`[Followup] Cannot send follow-up: lead ${conversation.leadId} not found`);
+        return;
+      }
+
       console.log(`[Followup] Sending follow-up "${followup.name}" to ${conversation.leadPhone} (conversation: ${conversation.id})`);
+
+      // Process placeholders in message
+      const messageWithPlaceholders = this.replacePlaceholders(followup.message, lead);
+      console.log(`[Followup] Original message: "${followup.message}"`);
+      console.log(`[Followup] Processed message: "${messageWithPlaceholders}"`);
 
       // Send message via the appropriate service
       if (this.wahaService) {
         await this.wahaService.sendText(
           conversation.leadPhone,
-          followup.message,
+          messageWithPlaceholders,
           conversation.id
         );
       } else if (this.evolutionService) {
         await this.evolutionService.sendText(
           conversation.leadPhone,
-          followup.message,
+          messageWithPlaceholders,
           conversation.id
         );
       } else {

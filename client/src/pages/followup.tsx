@@ -354,14 +354,14 @@ export default function FollowupPage() {
                         <FormLabel>Mensagem que será enviada</FormLabel>
                         <FormControl>
                           <Textarea
-                            placeholder="Exemplo: Olá! Notei que você não respondeu nossa última mensagem. Posso ajudar com mais alguma informação sobre o seguro?"
+                            placeholder="Exemplo: Olá {nome}! Notei que você não respondeu nossa última mensagem. Posso ajudar com mais alguma informação sobre o seguro?"
                             className="min-h-[100px] resize-none"
                             data-testid="input-followup-message"
                             {...field}
                           />
                         </FormControl>
                         <FormDescription>
-                          Seja amigável e ofereça ajuda. Evite ser insistente.
+                          Use <code className="px-1 py-0.5 rounded bg-muted text-xs">{"{nome}"}</code> para personalizar com o primeiro nome do lead. Seja amigável e ofereça ajuda.
                         </FormDescription>
                         <FormMessage />
                       </FormItem>

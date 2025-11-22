@@ -4,6 +4,18 @@ This project, "Seguro IA," is a CRM and chatbot system designed to streamline cu
 
 # Recent Changes
 
+**November 22, 2025 - Added {nome} Placeholder Support to Follow-up Messages**
+- Implemented placeholder support in follow-up messages matching the flow nodes functionality
+- **Feature**: Users can now use `{nome}` in follow-up message templates to personalize with first name
+- **Implementation**:
+  - Added `extractFirstName` method to FollowupService (same logic as chatbot nodes)
+  - Added `replacePlaceholders` method to process `{nome}` placeholder before sending
+  - Fetches full lead data to extract first name from `name` or `whatsappName` fields
+  - Logs original and processed messages for debugging
+- **UI Enhancement**: Added visual hint in form description showing `{nome}` placeholder with example
+- **Example**: "Olá {nome}!" becomes "Olá Gabriel!" for lead "Gabriel Marquez"
+- **Status**: ✅ Implemented - follow-up messages now support name personalization
+
 **November 22, 2025 - Fixed AI Node Not Sending Messages**
 - Resolved critical bug where AI nodes in the chatbot flow were not sending messages to leads
 - **Problem**: When AI determined to stay on the same step (not transition), it was incorrectly treated as a "transition" and the message was skipped
