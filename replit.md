@@ -4,6 +4,20 @@ This project, "Seguro IA," is a CRM and chatbot system designed to streamline cu
 
 # Recent Changes
 
+**November 22, 2025 - Fixed Chatbot Flow Transitions**
+- Resolved critical bug where AI nodes were sending unwanted messages during transitions
+- **Problem**: When an AI node determined a transition to another node, it would send both its AI-generated message AND the target node's message
+- **Solution**: Implemented boolean return value system to control flow processing loop
+  - AI nodes that transition now update state without sending messages
+  - Only the destination node sends its configured message
+  - Proper handling of all transition scenarios: AI→AI, AI→FIXED, FIXED→FIXED, FIXED→AI
+- **Technical Implementation**:
+  - Changed `processFlowStep`, `processAIStep`, `processFixedMessageStep` to return `Promise<boolean>`
+  - Return `true` = continue loop for automatic transitions
+  - Return `false` = stop loop and wait for user input
+  - Loop refreshes state from database each iteration (max 10 iterations to prevent infinite loops)
+- **Status**: ✅ Architect approved - transitions now work correctly without duplicate messages
+
 **November 22, 2025 - Improved Mobile Layout for Follow-up Page**
 - Standardized the /followup page layout to match /clientes page mobile experience
 - **Mobile-First Improvements**:
