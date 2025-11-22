@@ -152,12 +152,16 @@ export default function FluxoPage() {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
+      console.log('[FluxoPage] saveMutation - salvando com steps:', steps.length, steps.map(s => s.stepId));
+      
       if (config.id) {
-        return apiRequest("PUT", `/api/flows/${config.id}`, {
+        const payload = {
           ...config,
           keywords: keywords.map((k, index) => ({ ...k, isActive: true })),
           steps: steps.map((s, index) => ({ ...s, order: index, isActive: true }))
-        });
+        };
+        console.log('[FluxoPage] saveMutation - enviando PUT com payload:', payload);
+        return apiRequest("PUT", `/api/flows/${config.id}`, payload);
       } else {
         const newFlow: any = await apiRequest("POST", "/api/flows", {
           ...config,

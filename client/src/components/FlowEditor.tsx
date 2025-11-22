@@ -853,17 +853,26 @@ function FlowEditorInnerComponent(
   }, [onStepsChange]);
 
   const handleDeleteNode = useCallback((stepId: string) => {
+    console.log('[FlowEditor] handleDeleteNode chamado para stepId:', stepId);
+    
     onStepsChange((currentSteps: FlowStep[]) => {
+      console.log('[FlowEditor] handleDeleteNode - steps antes da remoção:', currentSteps.length, currentSteps.map(s => s.stepId));
+      
       // Remove o node
       const updatedSteps = currentSteps.filter(s => s.stepId !== stepId);
       
+      console.log('[FlowEditor] handleDeleteNode - steps após remoção:', updatedSteps.length, updatedSteps.map(s => s.stepId));
+      
       // Remove transições que apontam para o node deletado
-      return updatedSteps.map(step => ({
+      const finalSteps = updatedSteps.map(step => ({
         ...step,
         transitions: Array.isArray(step.transitions) 
           ? step.transitions.filter((t: StepTransition) => t.targetStepId !== stepId)
           : []
       }));
+      
+      console.log('[FlowEditor] handleDeleteNode - retornando steps finais:', finalSteps.length);
+      return finalSteps;
     });
     
     // Desselecionar se o node deletado estava selecionado
