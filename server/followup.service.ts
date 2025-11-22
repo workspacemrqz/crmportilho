@@ -97,8 +97,8 @@ export class FollowupService {
           leadId: conversations.leadId,
           protocol: conversations.protocol,
           lastActivity: conversations.lastActivity,
-          leadPhone: leads.phone,
-          leadName: leads.name,
+          leadPhone: leads.whatsappPhone,
+          leadName: leads.whatsappName,
         })
         .from(conversations)
         .leftJoin(leads, eq(conversations.leadId, leads.id))

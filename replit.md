@@ -21,6 +21,17 @@ This project, "Seguro IA," is a CRM and chatbot system designed to streamline cu
 - **Implementation**: Simplified deduplication logic to check only if the message was ever sent to that conversation, removing temporal conditions
 - **User Benefit**: Prevents annoying repetition and maintains professional communication standards
 
+**November 22, 2025 - Fixed Follow-up Service Not Sending Messages**
+- Diagnosed and resolved critical bugs preventing automatic follow-up messages from being sent
+- **Root Causes Identified**:
+  - **Bug 1**: Service was querying incorrect field names (`leads.phone` and `leads.name` instead of `leads.whatsappPhone` and `leads.whatsappName`), causing it to find 0 active conversations
+  - **Bug 2**: Missing `WHATSAPP_API=waha` environment variable caused service to use unconfigured Evolution API instead of WAHA API
+- **Fixes Applied**:
+  - Updated `followup.service.ts` to use correct field names from leads table
+  - Set `WHATSAPP_API=waha` environment variable in development
+- **Verification**: Successfully sent follow-up message "Teste" to Gabriel Marquez (protocol 2025-818) and confirmed database record in `followup_sent` table
+- **Status**: ✅ Follow-up service now working correctly - finds active conversations and sends messages via WAHA API
+
 **November 22, 2025 - Cleaned Up Empty State UI**
 - Removed the "Criar Primeira Mensagem" button from the empty state
 - Changed the chat icon to a clock icon for better visual consistency with the follow-up feature
