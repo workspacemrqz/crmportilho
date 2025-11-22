@@ -765,17 +765,36 @@ function FlowEditorInnerComponent(
   }, [onNodeSelect]);
 
   const addNodeLockRef = useRef(false);
+  const lastAddNodeTimeRef = useRef(0);
 
   const handleAddNode = useCallback((stepType: 'ai' | 'fixed' = 'ai') => {
+    const now = Date.now();
+    
     // Previne múltiplas execuções simultâneas (evita duplicação de nodes)
-    if (addNodeLockRef.current) return;
+    // Implementa debounce de 300ms para garantir que só uma execução aconteça
+    if (addNodeLockRef.current || (now - lastAddNodeTimeRef.current) < 300) {
+      console.log('[FlowEditor] handleAddNode bloqueado - tentativa de duplicação prevenida');
+      return;
+    }
     
     addNodeLockRef.current = true;
+    lastAddNodeTimeRef.current = now;
+    
+    console.log('[FlowEditor] handleAddNode - criando novo node', { stepType });
     
     onStepsChange((currentSteps: FlowStep[]) => {
       const stepName = stepType === 'ai' ? 'Nova Etapa IA' : 'Nova Mensagem Fixa';
       const existingIds = currentSteps.map(s => s.stepId);
       const newStepId = generateStepId(stepName, existingIds);
+      
+      // Verificação extra: se o ID gerado já existe (não deveria, mas por segurança)
+      if (existingIds.includes(newStepId)) {
+        console.error('[FlowEditor] handleAddNode - ERRO: stepId duplicado detectado:', newStepId);
+        addNodeLockRef.current = false;
+        return currentSteps; // Não adiciona nada
+      }
+      
+      console.log('[FlowEditor] handleAddNode - novo stepId gerado:', newStepId);
       
       const newStep: FlowStep = {
         stepId: newStepId,
@@ -793,10 +812,11 @@ function FlowEditorInnerComponent(
         exampleMessage: '',
       };
 
-      // Libera o lock após a atualização do state
+      // Libera o lock após um intervalo seguro
       setTimeout(() => {
         addNodeLockRef.current = false;
-      }, 0);
+        console.log('[FlowEditor] handleAddNode - lock liberado');
+      }, 300);
 
       return [...currentSteps, newStep];
     });
