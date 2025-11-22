@@ -30,7 +30,7 @@ import 'reactflow/dist/style.css';
 import { FlowStepNode as FlowStepNodeType, StepTransition } from '@shared/schema';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, AlertCircle, Star, X, Save, Loader2, Copy, Files, Sparkles, MessageSquare } from 'lucide-react';
+import { Plus, AlertCircle, Star, X, Save, Loader2, Copy, Files, Sparkles, MessageSquare, Trash2 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 
@@ -151,6 +151,13 @@ const FlowStepNode = memo(({ data, selected }: any) => {
       data.onDuplicate(data.stepId);
     }
   };
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (data.onDelete) {
+      data.onDelete(data.stepId);
+    }
+  };
   
   return (
     <div 
@@ -175,6 +182,18 @@ const FlowStepNode = memo(({ data, selected }: any) => {
             data-testid={`button-copy-id-${data.stepId}`}
           >
             <Copy className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+        <div className="bg-destructive/90 rounded-md p-1 shadow-lg border border-destructive">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-7 w-7 text-destructive-foreground hover:bg-destructive hover:text-destructive-foreground"
+            onClick={handleDelete}
+            title="Excluir etapa"
+            data-testid={`button-delete-${data.stepId}`}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
           </Button>
         </div>
         <div className="bg-background rounded-md p-1 shadow-lg border border-border">
@@ -395,7 +414,9 @@ function FlowEditorInnerComponent(
               data: { 
                 ...node.data, 
                 stepId: newId,
-                stepType: updatedStep?.stepType || node.data.stepType || 'ai'
+                stepType: updatedStep?.stepType || node.data.stepType || 'ai',
+                onDuplicate: handleDuplicateNode,
+                onDelete: handleDeleteNode,
               }
             };
           }
@@ -540,6 +561,7 @@ function FlowEditorInnerComponent(
               isStart: index === 0,
               transitionsCount: Array.isArray(step.transitions) ? step.transitions.length : 0,
               onDuplicate: handleDuplicateNode,
+              onDelete: handleDeleteNode,
             },
           };
           
@@ -578,6 +600,7 @@ function FlowEditorInnerComponent(
               stepType: step.stepType || 'ai',
               isStart: index === 0,
               onDuplicate: handleDuplicateNode,
+              onDelete: handleDeleteNode,
             }
           };
           nodesMapRef.current.set(step.stepId, updatedNode);
@@ -619,6 +642,7 @@ function FlowEditorInnerComponent(
               stepType: step.stepType || 'ai',
               transitionsCount: newTransitionsCount,
               onDuplicate: handleDuplicateNode,
+              onDelete: handleDeleteNode,
             }
           };
         }
@@ -795,6 +819,24 @@ function FlowEditorInnerComponent(
       return [...currentSteps, duplicatedStep];
     });
   }, [onStepsChange]);
+
+  const handleDeleteNode = useCallback((stepId: string) => {
+    onStepsChange((currentSteps: FlowStep[]) => {
+      // Remove o node
+      const updatedSteps = currentSteps.filter(s => s.stepId !== stepId);
+      
+      // Remove transições que apontam para o node deletado
+      return updatedSteps.map(step => ({
+        ...step,
+        transitions: Array.isArray(step.transitions) 
+          ? step.transitions.filter((t: StepTransition) => t.targetStepId !== stepId)
+          : []
+      }));
+    });
+    
+    // Desselecionar se o node deletado estava selecionado
+    onNodeSelect(null);
+  }, [onStepsChange, onNodeSelect]);
 
   return (
     <div className="w-full h-full border rounded-md bg-background relative">
