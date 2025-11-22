@@ -764,7 +764,14 @@ function FlowEditorInnerComponent(
     onNodeSelect(null);
   }, [onNodeSelect]);
 
+  const addNodeLockRef = useRef(false);
+
   const handleAddNode = useCallback((stepType: 'ai' | 'fixed' = 'ai') => {
+    // Previne múltiplas execuções simultâneas (evita duplicação de nodes)
+    if (addNodeLockRef.current) return;
+    
+    addNodeLockRef.current = true;
+    
     onStepsChange((currentSteps: FlowStep[]) => {
       const stepName = stepType === 'ai' ? 'Nova Etapa IA' : 'Nova Mensagem Fixa';
       const existingIds = currentSteps.map(s => s.stepId);
@@ -785,6 +792,11 @@ function FlowEditorInnerComponent(
         transitions: [],
         exampleMessage: '',
       };
+
+      // Libera o lock após a atualização do state
+      setTimeout(() => {
+        addNodeLockRef.current = false;
+      }, 0);
 
       return [...currentSteps, newStep];
     });
