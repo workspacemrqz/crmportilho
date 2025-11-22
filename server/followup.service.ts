@@ -196,22 +196,22 @@ export class FollowupService {
           continue;
         }
 
-        // Check if we've already sent this follow-up after the lead's last message
+        // RULE: A specific follow-up message can only be sent ONCE per conversation
+        // Even if the lead responds and stops responding again, we don't send the same message twice
         const alreadySent = await db
           .select()
           .from(followupSent)
           .where(
             and(
               eq(followupSent.conversationId, conversation.id),
-              eq(followupSent.followupMessageId, followup.id),
-              // Check if sent after the lead's last message
-              sql`${followupSent.leadLastMessageAt} >= ${leadLastMessageAt}`
+              eq(followupSent.followupMessageId, followup.id)
             )
           )
           .limit(1);
 
         if (alreadySent.length > 0) {
-          // Already sent this follow-up for this message cycle
+          // This follow-up message has already been sent to this conversation
+          // We never send the same message twice, regardless of timing
           continue;
         }
 

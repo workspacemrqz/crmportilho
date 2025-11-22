@@ -4,6 +4,12 @@ This project, "Seguro IA," is a CRM and chatbot system designed to streamline cu
 
 # Recent Changes
 
+**November 22, 2025 - Added No-Duplicate Follow-up Rule**
+- Implemented strict rule to prevent leads from receiving the same follow-up message multiple times
+- **Critical Rule**: Once a specific follow-up message is sent to a lead, it will NEVER be sent again to that same conversation, even if the lead responds and stops responding again later
+- **Implementation**: Simplified deduplication logic to check only if the message was ever sent to that conversation, removing temporal conditions
+- **User Benefit**: Prevents annoying repetition and maintains professional communication standards
+
 **November 22, 2025 - Enhanced Follow-up Form UX**
 - Improved the follow-up message creation dialog with intuitive controls and visual feedback
 - **Key Improvements**:
