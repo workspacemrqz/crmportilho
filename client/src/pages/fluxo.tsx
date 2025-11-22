@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -120,6 +120,8 @@ export default function FluxoPage() {
   const [steps, setSteps] = useState<FlowStep[]>(DEFAULT_STEPS);
   const [previewResults, setPreviewResults] = useState<Map<string, AIPreviewResponse>>(new Map());
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const initialLoadRef = useRef(true);
 
   const { data: activeFlow, isLoading: loadingActive } = useQuery<any>({
     queryKey: ['/api/flows/active'],
@@ -128,6 +130,13 @@ export default function FluxoPage() {
 
   useEffect(() => {
     if (activeFlow) {
+      console.log('[FluxoPage] useEffect activeFlow - carregando dados do banco:', {
+        stepsCount: activeFlow.steps?.length || 0,
+        stepIds: activeFlow.steps?.map((s: FlowStep) => s.stepId) || [],
+        hasUnsavedChanges,
+        initialLoad: initialLoadRef.current
+      });
+      
       setConfig({
         id: activeFlow.id,
         welcomeMessage: activeFlow.welcomeMessage,
@@ -141,14 +150,21 @@ export default function FluxoPage() {
         setKeywords(activeFlow.keywords);
       }
       
-      if (activeFlow.steps !== undefined) {
-        setSteps(activeFlow.steps.length > 0 
+      // CRÍTICO: Só sobrescreve steps se NÃO houver mudanças não salvas
+      // Isso previne que o React Query refetch sobrescreva mudanças locais (ex: nodes deletados)
+      if (activeFlow.steps !== undefined && !hasUnsavedChanges) {
+        const loadedSteps = activeFlow.steps.length > 0 
           ? activeFlow.steps.sort((a: FlowStep, b: FlowStep) => a.order - b.order)
-          : []
-        );
+          : [];
+        
+        console.log('[FluxoPage] useEffect activeFlow - setando steps com:', loadedSteps.length, 'nodes');
+        setSteps(loadedSteps);
+        initialLoadRef.current = false;
+      } else if (hasUnsavedChanges) {
+        console.log('[FluxoPage] useEffect activeFlow - BLOQUEADO: não sobrescreve porque há mudanças não salvas');
       }
     }
-  }, [activeFlow]);
+  }, [activeFlow, hasUnsavedChanges]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -178,6 +194,8 @@ export default function FluxoPage() {
       }
     },
     onSuccess: (data: any) => {
+      console.log('[FluxoPage] saveMutation - sucesso! Limpando flag hasUnsavedChanges');
+      setHasUnsavedChanges(false); // Limpa flag de mudanças não salvas
       queryClient.invalidateQueries({ queryKey: ['/api/flows/active'] });
       setConfig(prev => ({ ...prev, id: data.id }));
       toast({
@@ -395,6 +413,13 @@ export default function FluxoPage() {
     setSelectedNodeId(step?.stepId || null);
   };
 
+  // Wrapper para setSteps que marca mudanças não salvas
+  const handleStepsChange = useCallback((newStepsOrUpdater: FlowStep[] | ((prev: FlowStep[]) => FlowStep[])) => {
+    console.log('[FluxoPage] handleStepsChange - marcando hasUnsavedChanges = true');
+    setHasUnsavedChanges(true);
+    setSteps(newStepsOrUpdater);
+  }, []);
+
   const selectedNode = selectedNodeId ? steps.find((s) => s.stepId === selectedNodeId) || null : null;
 
   if (loadingActive) {
@@ -411,7 +436,7 @@ export default function FluxoPage() {
         <FlowEditor
           ref={flowEditorRef}
           steps={steps}
-          onStepsChange={setSteps}
+          onStepsChange={handleStepsChange}
           onNodeSelect={handleNodeSelect}
           selectedNodeId={selectedNodeId}
           onSave={() => saveMutation.mutate()}
