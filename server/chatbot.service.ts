@@ -1260,6 +1260,39 @@ export class ChatbotService {
   }
   
   /**
+   * Update lead status and priority if configured in the current step
+   */
+  private async updateLeadStatusAndPriority(lead: Lead, currentStep: FlowStep): Promise<void> {
+    try {
+      const updates: any = {};
+      
+      // Check if this step should change the lead's status
+      if (currentStep.changeStatusTo) {
+        updates.status = currentStep.changeStatusTo;
+        console.log(`[ChatbotService] 🏷️ Changing lead status to: ${currentStep.changeStatusTo}`);
+      }
+      
+      // Check if this step should change the lead's priority
+      if (currentStep.changePriorityTo) {
+        updates.priority = currentStep.changePriorityTo;
+        console.log(`[ChatbotService] ⚡ Changing lead priority to: ${currentStep.changePriorityTo}`);
+      }
+      
+      // Only update if there are changes
+      if (Object.keys(updates).length > 0) {
+        await db.update(leads)
+          .set(updates)
+          .where(eq(leads.id, lead.id));
+        
+        console.log(`[ChatbotService] ✅ Updated lead ${lead.id} with:`, updates);
+      }
+    } catch (error) {
+      console.error('[ChatbotService] ❌ Error updating lead status/priority:', error);
+      // Don't throw - we want the flow to continue even if the update fails
+    }
+  }
+  
+  /**
    * Process a specific flow step
    * @returns true if loop should continue, false if it should stop
    */
@@ -1274,6 +1307,9 @@ export class ChatbotService {
   ): Promise<boolean> {
     try {
       console.log(`[ChatbotService] 🔄 Processing step: ${currentStep.stepName} (type: ${currentStep.stepType})`);
+      
+      // Update lead status/priority if configured in this node
+      await this.updateLeadStatusAndPriority(lead, currentStep);
       
       // Check if this is a FIXED message node or AI node
       if (currentStep.stepType === 'fixed') {
