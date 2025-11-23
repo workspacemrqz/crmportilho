@@ -10,7 +10,10 @@ Preferred communication style: Simple, everyday language.
 
 ## November 23, 2025 - Automatic WAHA Configuration on Instance Creation
 - **Feature Enhancement**: Instances now auto-configure webhook, events, and custom headers on creation
-- **Webhook URL**: Automatically constructed from request origin (`${protocol}://${host}/api/webhook/waha`)
+- **Webhook URL**: Automatically constructed using Replit public domain (from `REPLIT_DEV_DOMAIN` or `REPLIT_DOMAINS` env vars)
+  - Format: `https://{replit-domain}/api/webhook/waha`
+  - Falls back to request host for local development
+  - Ensures webhooks work in production without manual configuration
 - **Events**: Fixed set `["message", "session.status"]` configured automatically
 - **Custom Headers**: `X-Api-Key` header injected automatically if `WAHA_API_KEY` is available
 - **Rollback Mechanism**: Complete rollback on failure (deletes WAHA session + DB instance) to prevent inconsistent state

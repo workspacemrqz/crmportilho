@@ -2682,10 +2682,20 @@ Retorne APENAS o JSON array, sem texto adicional.`;
       // Configure webhook, events and custom headers automatically
       console.log('[INSTANCE-CREATE] Configuring webhook, events and custom headers automatically...');
       
-      // Build webhook URL from request
-      const protocol = req.protocol;
-      const host = req.get('host');
-      const webhookUrl = `${protocol}://${host}/api/webhook/waha`;
+      // Build webhook URL using Replit public domain
+      let domain: string;
+      if (process.env.REPLIT_DEV_DOMAIN) {
+        domain = `https://${process.env.REPLIT_DEV_DOMAIN}`;
+      } else if (process.env.REPLIT_DOMAINS) {
+        // REPLIT_DOMAINS may contain multiple domains separated by comma
+        const firstDomain = process.env.REPLIT_DOMAINS.split(',')[0].trim();
+        domain = `https://${firstDomain}`;
+      } else {
+        // Fallback to request host (for local development)
+        domain = `${req.protocol}://${req.get('host')}`;
+      }
+      
+      const webhookUrl = `${domain}/api/webhook/waha`;
       const webhooks = [webhookUrl];
       
       // Set mandatory events
