@@ -2856,13 +2856,16 @@ Retorne APENAS o JSON array, sem texto adicional.`;
   app.patch('/api/instancias/:name/waha-config', requireAuth, async (req: Request, res: Response) => {
     try {
       const { name } = req.params;
-      const { webhooks, events, customHeaders } = req.body;
+      const { webhooks, customHeaders } = req.body;
 
       // Check if instance exists in database
       const instance = await storage.getInstance(name);
       if (!instance) {
         return res.status(404).json({ error: 'Instância não encontrada' });
       }
+
+      // Eventos obrigatórios sempre fixos no backend
+      const events = ["message", "session.status"];
 
       // Update WAHA configuration in database
       const updated = await storage.updateInstanceWahaConfig(name, webhooks, events, customHeaders);

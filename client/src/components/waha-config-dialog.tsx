@@ -20,28 +20,19 @@ interface WahaConfigDialogProps {
   onOpenChange: (open: boolean) => void;
   instanceName: string;
   initialWebhooks?: string[];
-  initialEvents?: string[];
   initialCustomHeaders?: Record<string, string>;
 }
 
-const AVAILABLE_EVENTS = [
-  { id: "message", label: "Mensagens" },
-  { id: "session.status", label: "Status da Sessão" },
-];
-
-const DEFAULT_EVENTS = ["message", "session.status"];
 
 export function WahaConfigDialog({
   open,
   onOpenChange,
   instanceName,
   initialWebhooks = [],
-  initialEvents = [],
   initialCustomHeaders = {},
 }: WahaConfigDialogProps) {
   const { toast } = useToast();
   const [webhooks, setWebhooks] = useState<string[]>(initialWebhooks.length > 0 ? initialWebhooks : [""]);
-  const [selectedEvents, setSelectedEvents] = useState<string[]>(initialEvents);
   const [customHeaders, setCustomHeaders] = useState<Array<{ key: string; value: string }>>(
     Object.entries(initialCustomHeaders).map(([key, value]) => ({ key, value }))
   );
@@ -51,12 +42,11 @@ export function WahaConfigDialog({
   useEffect(() => {
     if (open) {
       setWebhooks(initialWebhooks.length > 0 ? initialWebhooks : [""]);
-      setSelectedEvents(initialEvents.length > 0 ? initialEvents : DEFAULT_EVENTS);
       setCustomHeaders(
         Object.entries(initialCustomHeaders).map(([key, value]) => ({ key, value }))
       );
     }
-  }, [open, initialWebhooks, initialEvents, initialCustomHeaders]);
+  }, [open, initialWebhooks, initialCustomHeaders]);
 
   const handleAddWebhook = () => {
     setWebhooks([...webhooks, ""]);
@@ -73,17 +63,6 @@ export function WahaConfigDialog({
     setWebhooks(newWebhooks);
   };
 
-  const handleEventToggle = (eventId: string) => {
-    // Não permite desmarcar eventos obrigatórios
-    if (DEFAULT_EVENTS.includes(eventId)) {
-      return;
-    }
-    setSelectedEvents((prev) =>
-      prev.includes(eventId)
-        ? prev.filter((e) => e !== eventId)
-        : [...prev, eventId]
-    );
-  };
 
   const handleAddHeader = () => {
     setCustomHeaders([...customHeaders, { key: "", value: "" }]);
@@ -112,12 +91,8 @@ export function WahaConfigDialog({
         return acc;
       }, {} as Record<string, string>);
 
-      // Garante que os eventos obrigatórios sempre sejam enviados
-      const eventsToSend = Array.from(new Set([...DEFAULT_EVENTS]));
-
       await apiRequest("PATCH", `/api/instancias/${instanceName}/waha-config`, {
         webhooks: filteredWebhooks,
-        events: eventsToSend,
         customHeaders: headersObject,
       });
 
@@ -149,7 +124,7 @@ export function WahaConfigDialog({
             Configuração WAHA
           </DialogTitle>
           <DialogDescription>
-            Configure webhooks, eventos e cabeçalhos personalizados para a instância{" "}
+            Configure webhooks e cabeçalhos personalizados para a instância{" "}
             <strong>{instanceName}</strong>
           </DialogDescription>
         </DialogHeader>
@@ -189,31 +164,6 @@ export function WahaConfigDialog({
                       <X className="w-4 h-4" />
                     </Button>
                   )}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <Label className="text-base font-semibold">Eventos</Label>
-            <p className="text-sm text-muted-foreground">
-              Eventos obrigatórios sempre ativos
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-              {AVAILABLE_EVENTS.map((event) => (
-                <div key={event.id} className="flex items-center gap-2">
-                  <Checkbox
-                    id={`event-${event.id}`}
-                    checked={true}
-                    disabled={true}
-                    data-testid={`checkbox-event-${event.id}`}
-                  />
-                  <Label
-                    htmlFor={`event-${event.id}`}
-                    className="text-sm font-normal"
-                  >
-                    {event.label}
-                  </Label>
                 </div>
               ))}
             </div>
