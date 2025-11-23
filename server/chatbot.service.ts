@@ -397,6 +397,85 @@ export class ChatbotService {
   }
 
   /**
+   * Get buffer timeout using an already loaded chatbot state
+   * This avoids race conditions and ensures we use the correct step's buffer
+   */
+  private async getBufferTimeoutWithState(
+    phone: string,
+    chatbotState: ChatbotState | null
+  ): Promise<number> {
+    // Check if there's a custom timeout for this phone
+    const customTimeout = this.customBufferTimeouts.get(phone);
+    if (customTimeout !== undefined) {
+      console.log(`[ChatbotService] 🕐 Usando buffer customizado para ${phone}: ${customTimeout/1000}s`);
+      // Remove custom timeout after retrieving (one-time use)
+      this.customBufferTimeouts.delete(phone);
+      return customTimeout;
+    }
+    
+    // If we have a chatbot state, use its current step's buffer
+    if (chatbotState && chatbotState.currentState) {
+      try {
+        const flowConfig = await this.getActiveFlow();
+        if (flowConfig) {
+          const steps = await this.getFlowSteps(flowConfig.id);
+          const currentStep = steps.find(s => s.stepId === chatbotState.currentState);
+          
+          if (currentStep) {
+            const buffer = (currentStep as any).buffer;
+            let bufferSeconds = Number(buffer);
+            
+            if (!isFinite(bufferSeconds) || bufferSeconds < 0) {
+              console.warn(`[ChatbotService] ⚠️ Buffer inválido no step "${currentStep.stepName}" (${buffer}), usando mínimo de 0s`);
+              bufferSeconds = 0;
+            } else if (bufferSeconds > 300) {
+              console.warn(`[ChatbotService] ⚠️ Buffer muito alto no step "${currentStep.stepName}" (${bufferSeconds}s), limitando a 300s`);
+              bufferSeconds = 300;
+            }
+            
+            console.log(`[ChatbotService] 🕐 ✅ BUFFER CORRETO DO STEP ATUAL "${currentStep.stepName}": ${bufferSeconds}s${bufferSeconds === 0 ? ' - ENVIO INSTANTÂNEO' : ''}`);
+            return bufferSeconds * 1000;
+          }
+        }
+      } catch (error) {
+        console.error(`[ChatbotService] Erro ao obter buffer do step atual:`, error);
+      }
+    }
+    
+    // Fallback to initial step for new leads
+    try {
+      const flowConfig = await this.getActiveFlow();
+      if (flowConfig) {
+        const steps = await this.getFlowSteps(flowConfig.id);
+        if (steps.length > 0) {
+          const initialStep = steps.reduce((min, step) => 
+            step.order < min.order ? step : min
+          , steps[0]);
+          
+          const buffer = (initialStep as any).buffer;
+          let bufferSeconds = Number(buffer);
+          
+          if (!isFinite(bufferSeconds) || bufferSeconds < 0) {
+            bufferSeconds = 0;
+          } else if (bufferSeconds > 300) {
+            bufferSeconds = 300;
+          }
+          
+          console.log(`[ChatbotService] 🕐 Usando buffer do step inicial "${initialStep.stepName}" (NOVO LEAD): ${bufferSeconds}s${bufferSeconds === 0 ? ' - ENVIO INSTANTÂNEO' : ''}`);
+          return bufferSeconds * 1000;
+        }
+      }
+    } catch (error) {
+      console.log(`[ChatbotService] Erro ao determinar buffer do step inicial:`, error);
+    }
+    
+    // Last resort: use default configured timeout
+    const globalTimeout = await this.getBufferTimeout();
+    console.log(`[ChatbotService] ⚠️ Usando buffer global (fallback): ${globalTimeout/1000}s`);
+    return globalTimeout;
+  }
+
+  /**
    * Public method to get buffer debug information for testing
    * Returns detailed information about buffer configuration for a phone number
    */
@@ -549,14 +628,32 @@ export class ChatbotService {
         throw new Error('Phone number is required but was null or empty');
       }
       
-      // Buscar ou criar buffer para este telefone
+      // CRITICAL FIX: Get/create lead, conversation, and chatbot state FIRST
+      // This ensures we have the current state before determining buffer timeout
+      const contactInfo = {
+        name: messageData?.name,
+        pushName: messageData?.pushName
+      };
+      
+      // Find or create lead
+      const lead = await this.findOrCreateLead(phone, contactInfo);
+      
+      // Find or create conversation
+      const conversation = await this.findOrCreateConversation(lead.id, lead.protocol);
+      
+      // Get or create chatbot state - this tells us the current flow step
+      const chatbotState = await this.getOrCreateChatbotState(conversation.id);
+      
+      // NOW determine buffer timeout using the actual current state
+      // This ensures we use the correct step's buffer, not the initial step
+      const timeout = await this.getBufferTimeoutWithState(phone, chatbotState);
+      
+      // Check if buffer exists
       let buffer = this.messageBuffers.get(phone);
       
       if (!buffer) {
-        // Use configured buffer timeout (checks for custom timeout first)
-        const timeout = await this.getBufferTimeoutForPhone(phone);
-        
-        console.log(`[ChatbotService] Starting new ${timeout/1000}s buffer for ${phone}${timeout === 0 ? ' (ENVIO INSTANTÂNEO)' : ''}`);
+        // Create new buffer with correct timeout
+        console.log(`[ChatbotService] 🔄 Creating NEW buffer with ${timeout/1000}s timeout for ${phone}${timeout === 0 ? ' (ENVIO INSTANTÂNEO)' : ''}`);
         buffer = {
           phone,
           messages: [],
@@ -573,9 +670,39 @@ export class ChatbotService {
             this.messageBuffers.delete(phone);
           });
         }, timeout);
+      } else {
+        // Buffer exists - reset timer if timeout changed
+        // This can happen when transitioning between steps with different buffers
+        if (buffer.timeoutMs !== timeout) {
+          console.log(`[ChatbotService] ⚠️ Buffer timeout changed from ${buffer.timeoutMs/1000}s to ${timeout/1000}s - recreating buffer`);
+          
+          // Clear existing timer
+          if (buffer.timer) {
+            clearTimeout(buffer.timer);
+          }
+          
+          // Create new buffer with updated timeout but keep existing messages
+          const existingMessages = buffer.messages;
+          buffer = {
+            phone,
+            messages: existingMessages,
+            timer: null,
+            startTime: Date.now(),
+            timeoutMs: timeout
+          };
+          this.messageBuffers.set(phone, buffer);
+          
+          // Start new timer
+          buffer.timer = setTimeout(() => {
+            void this.flushBuffer(phone).catch(err => {
+              console.error(`[ChatbotService] Error flushing buffer for ${phone}:`, err);
+              this.messageBuffers.delete(phone);
+            });
+          }, timeout);
+        }
       }
       
-      // Adicionar mensagem ao buffer
+      // Add message to buffer
       buffer.messages.push({
         content: messageContent,
         timestamp: Date.now(),
@@ -584,7 +711,7 @@ export class ChatbotService {
       
       // Use the stored timeout from buffer (preserves the original timeout even during state transitions)
       const timeRemaining = buffer.timeoutMs - (Date.now() - buffer.startTime);
-      console.log(`[ChatbotService] Message buffered (${buffer.messages.length} total). Timer ends in ${timeRemaining}ms${buffer.timeoutMs === 0 ? ' (ENVIO INSTANTÂNEO)' : ''}`);
+      console.log(`[ChatbotService] 📨 Message buffered (${buffer.messages.length} total). Timer ends in ${timeRemaining}ms${buffer.timeoutMs === 0 ? ' (ENVIO INSTANTÂNEO)' : ''}`);
 
     } catch (error) {
       console.error('Error processing incoming message:', error);
