@@ -2710,8 +2710,8 @@ Retorne APENAS o JSON array, sem texto adicional.`;
     try {
       const { name } = req.params;
 
-      // Get QR code from WAHA
-      const wahaUrl = `${process.env.WAHA_API}/api/${name}/auth/qr`;
+      // Get QR code from WAHA in image format
+      const wahaUrl = `${process.env.WAHA_API}/api/${name}/auth/qr?format=image`;
       const wahaResponse = await fetch(wahaUrl, {
         headers: {
           'Accept': 'application/json',
@@ -2726,10 +2726,56 @@ Retorne APENAS o JSON array, sem texto adicional.`;
       }
 
       const qrData = await wahaResponse.json();
-      res.json(qrData);
+      
+      // Return QR code as base64 data URL
+      if (qrData.mimetype && qrData.data) {
+        res.json({
+          qr: `data:${qrData.mimetype};base64,${qrData.data}`
+        });
+      } else {
+        res.json(qrData);
+      }
     } catch (error) {
       console.error('Error getting QR code:', error);
       res.status(500).json({ error: 'Falha ao obter QR code' });
+    }
+  });
+
+  app.post('/api/instancias/:name/start', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { name } = req.params;
+
+      // Check if instance exists in database
+      const instance = await storage.getInstance(name);
+      if (!instance) {
+        return res.status(404).json({ error: 'Instância não encontrada' });
+      }
+
+      // Start session in WAHA
+      const wahaUrl = `${process.env.WAHA_API}/api/sessions/${name}/start`;
+      const wahaResponse = await fetch(wahaUrl, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'X-Api-Key': process.env.WAHA_API_KEY || ''
+        }
+      });
+
+      if (!wahaResponse.ok) {
+        const errorText = await wahaResponse.text();
+        console.error('[WAHA] Error starting session:', errorText);
+        return res.status(500).json({ error: 'Falha ao iniciar sessão no WAHA' });
+      }
+
+      const sessionData = await wahaResponse.json();
+      
+      // Update status in database
+      await storage.updateInstanceStatus(name, sessionData.status || 'STARTING');
+
+      res.json({ name, status: sessionData.status });
+    } catch (error) {
+      console.error('Error starting instance:', error);
+      res.status(500).json({ error: 'Falha ao iniciar instância' });
     }
   });
 
