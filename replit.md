@@ -8,6 +8,19 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Changes
 
+## November 23, 2025 - Added Routing Instructions to Fixed Message Nodes
+- **Feature Enhancement**: Fixed message nodes now include AI-powered routing instructions
+- **User Request**: Enable automatic next-step routing via AI for nodes that send fixed (non-AI-generated) messages
+- **Implementation Details**:
+  - Added "Instruções de Roteamento" textarea field to fixed-type nodes in NodeEditPanel
+  - Field appears after the fixed messages section with a top border separator for visual clarity
+  - Reuses the existing `routingInstructions` database field (already present in schema)
+  - Includes explanatory helper text: "Mesmo com mensagens fixas, a IA usará estas instruções para decidir automaticamente qual será a próxima etapa do fluxo"
+- **Behavior**: Fixed nodes send their pre-configured messages to users, but AI uses routing instructions to determine the next flow step based on user responses
+- **Code Location**: `client/src/components/NodeEditPanel.tsx` (lines 350-363)
+- **UI Consistency**: Maintains visual patterns with AI nodes' routing instructions field
+- **Architect Review**: Approved - correct implementation with no regressions
+
 ## November 23, 2025 - Fixed AI Node Message Duplication on Transitions
 - **Critical Bug Fix**: Resolved issue where AI nodes sent TWO messages when transitioning to another step
 - **Root Cause**: AI nodes were sending their own message AND then the next step was also sending its message
