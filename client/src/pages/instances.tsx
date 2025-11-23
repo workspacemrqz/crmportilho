@@ -166,17 +166,43 @@ export default function Instances() {
 
   useEffect(() => {
     let intervalId: NodeJS.Timeout;
+    let statusCheckId: NodeJS.Timeout;
     
     if (qrDialogOpen && selectedInstance) {
+      // Set up interval to refresh QR code every 5 seconds
       intervalId = setInterval(async () => {
         await fetchQrCode(selectedInstance);
-        await refreshStatus(selectedInstance);
       }, 5000);
+
+      // Check instance status every 3 seconds to detect when connected
+      statusCheckId = setInterval(async () => {
+        try {
+          const response = await fetch(`/api/instancias/${selectedInstance}/status`);
+          if (response.ok) {
+            const data = await response.json();
+            
+            // If status is WORKING (connected), close modal and show success
+            if (data.status === 'WORKING') {
+              setQrDialogOpen(false);
+              toast({
+                title: "WhatsApp conectado!",
+                description: "Sua instância foi conectada com sucesso.",
+              });
+              queryClient.invalidateQueries({ queryKey: ['/api/instancias'] });
+            }
+          }
+        } catch (error) {
+          console.error('Error checking status:', error);
+        }
+      }, 3000);
     }
 
     return () => {
       if (intervalId) {
         clearInterval(intervalId);
+      }
+      if (statusCheckId) {
+        clearInterval(statusCheckId);
       }
     };
   }, [qrDialogOpen, selectedInstance]);
