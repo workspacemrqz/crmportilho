@@ -8,6 +8,17 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Changes
 
+## November 23, 2025 - Fixed Audio Transcription Integration with WhatsApp
+- **Bug Fix**: Resolved issue preventing audio messages from being transcribed
+- **Problem**: The `downloadMedia` function was receiving parameters in the wrong order, causing the media URL to be ignored
+- **Root Cause**: In `server/routes.ts` line 592, the function was called with `(messageId, mediaUrl)` instead of `(messageId, instanceName, mediaUrl)`
+- **Impact**: Audio messages from WhatsApp were failing to download with 404 errors
+- **Solution**: Corrected parameter order to properly pass instanceName and mediaUrl to downloadMedia
+- **Result**: Audio messages are now properly downloaded from S3 and transcribed using OpenAI Whisper API
+- **Technology**: Uses OpenAI Whisper (`whisper-1` model) configured for Portuguese language
+- **User Experience**: When users send voice messages on WhatsApp, they are automatically transcribed to text and processed by the chatbot as normal text messages
+- **Code Location**: `server/routes.ts` (line 595), `server/waha.service.ts` (downloadMedia: lines 136-174, transcribeAudio: lines 176-219)
+
 ## November 23, 2025 - Added Routing Instructions to Fixed Message Nodes
 - **Feature Enhancement**: Fixed message nodes now include AI-powered routing instructions
 - **User Request**: Enable automatic next-step routing via AI for nodes that send fixed (non-AI-generated) messages

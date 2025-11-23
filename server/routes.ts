@@ -589,7 +589,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log('[WAHA-WEBHOOK] Media URL:', mediaUrl ? 'Found' : 'Not found');
           
           // Download and transcribe audio
-          const audioBuffer = await wahaAPI.downloadMedia(parsedMessage.messageId, mediaUrl);
+          const audioBuffer = await wahaAPI.downloadMedia(parsedMessage.messageId, instanceName, mediaUrl);
           if (audioBuffer) {
             const transcription = await wahaAPI.transcribeAudio(audioBuffer);
             if (transcription) {
