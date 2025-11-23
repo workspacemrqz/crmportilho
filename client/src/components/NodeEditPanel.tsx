@@ -343,6 +343,21 @@ export default function NodeEditPanel({
                 <br />
                 Tags disponíveis: <code className="px-1 py-0.5 rounded bg-muted">{"{nome}"}</code> (primeiro nome), <code className="px-1 py-0.5 rounded bg-muted">[DD/MM/AAAA]</code> (data atual), <code className="px-1 py-0.5 rounded bg-muted">[NÚMERO_DO_PROTOCOLO]</code> (protocolo do cliente)
               </p>
+
+              <div className="space-y-2 border-t pt-4">
+                <Label htmlFor="routing-fixed">Instruções de Roteamento</Label>
+                <Textarea
+                  id="routing-fixed"
+                  value={editedNode.routingInstructions}
+                  onChange={(e) => updateField('routingInstructions', e.target.value)}
+                  rows={3}
+                  placeholder="Como a IA deve decidir o próximo passo"
+                  data-testid="textarea-edit-routing-fixed"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Mesmo com mensagens fixas, a IA usará estas instruções para decidir automaticamente qual será a próxima etapa do fluxo.
+                </p>
+              </div>
             </div>
           ) : (
             <>
