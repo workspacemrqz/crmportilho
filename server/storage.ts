@@ -741,23 +741,34 @@ export class PgStorage implements IStorage {
       .where(eq(flowSteps.flowConfigId, flowConfigId))
       .orderBy(asc(flowSteps.order), asc(flowSteps.createdAt));
     
-    // Debug: verificar se buffer está presente (linha adicionada para diagnóstico)
+    // Debug: verificar se position e transitions estão presentes
     if (steps.length > 0) {
-      console.log('[PgStorage] getFlowSteps returned:', steps.map(s => ({
-        stepId: s.stepId,
-        stepName: s.stepName,
-        buffer: (s as any).buffer,
-        hasBuffer: 'buffer' in s
-      })));
+      console.log('[PgStorage] getFlowSteps DEBUG - retornando steps com position e transitions:');
+      steps.forEach(s => {
+        console.log(`  - ${s.stepId}: position=${JSON.stringify(s.position)}, transitions=${JSON.stringify(s.transitions)}`);
+      });
     }
     
     return steps;
   }
 
   async createFlowStep(data: InsertFlowStep): Promise<FlowStep> {
+    console.log('[PgStorage] createFlowStep DEBUG - salvando step:', {
+      stepId: data.stepId,
+      position: data.position,
+      transitions: data.transitions
+    });
+    
     const [step] = await db.insert(flowSteps)
       .values(data)
       .returning();
+    
+    console.log('[PgStorage] createFlowStep DEBUG - step salvo com:', {
+      stepId: step.stepId,
+      position: step.position,
+      transitions: step.transitions
+    });
+    
     return step;
   }
 
