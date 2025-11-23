@@ -316,105 +316,64 @@ export default function Instances() {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-6xl">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold">Instâncias WhatsApp</h1>
-          <p className="text-muted-foreground mt-1">
-            Gerencie suas conexões WhatsApp via WAHA
-          </p>
+    <div className="flex flex-col h-full">
+      <div className="flex-none p-4 sm:p-6 border-b space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-semibold" data-testid="text-page-title">Instâncias WhatsApp</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">
+              Gerencie suas conexões WhatsApp via WAHA
+            </p>
+          </div>
+          <Button onClick={() => setDialogOpen(true)} data-testid="button-create-instance" className="w-full sm:w-auto">
+            <Plus className="w-4 h-4 mr-2" />
+            Nova Instância
+          </Button>
         </div>
-
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button data-testid="button-create-instance">
-              <Plus className="w-4 h-4 mr-2" />
-              Nova Instância
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Criar Nova Instância</DialogTitle>
-              <DialogDescription>
-                Insira um nome único para a nova instância WhatsApp
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 mt-4">
-              <div className="space-y-2">
-                <Label htmlFor="instance-name">Nome da Instância</Label>
-                <Input
-                  id="instance-name"
-                  data-testid="input-instance-name"
-                  placeholder="Ex: principal, suporte, vendas"
-                  value={newInstanceName}
-                  onChange={(e) => setNewInstanceName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      handleCreate();
-                    }
-                  }}
-                />
-              </div>
-              <Button
-                data-testid="button-confirm-create"
-                onClick={handleCreate}
-                disabled={createMutation.isPending}
-                className="w-full"
-              >
-                {createMutation.isPending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Criando...
-                  </>
-                ) : (
-                  "Criar Instância"
-                )}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
 
-      {!instances || instances.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Smartphone className="w-16 h-16 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Nenhuma instância criada</h3>
-            <p className="text-muted-foreground text-center mb-4">
-              Crie sua primeira instância WhatsApp para começar
-            </p>
-            <Button
-              data-testid="button-create-first-instance"
-              onClick={() => setDialogOpen(true)}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Criar Primeira Instância
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {instances.map((instance) => (
-            <Card key={instance.id} data-testid={`card-instance-${instance.name}`}>
-              <CardHeader>
-                <div className="flex items-center justify-between gap-2">
-                  <CardTitle className="text-lg">{instance.name}</CardTitle>
-                  {getStatusBadge(instance.status)}
-                </div>
-                <CardDescription>
-                  Criado em {new Date(instance.createdAt).toLocaleDateString('pt-BR')}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <MessageSquare className="w-4 h-4 text-muted-foreground" />
-                      <Label htmlFor={`chatbot-${instance.name}`} className="text-sm font-medium">
-                        Chatbot
-                      </Label>
+      <div className="flex-1 overflow-y-auto">
+        <div className="p-4 sm:p-6">
+          {!instances || instances.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Smartphone className="w-16 h-16 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Nenhuma instância criada</h3>
+                <p className="text-muted-foreground text-center mb-4">
+                  Crie sua primeira instância WhatsApp para começar
+                </p>
+                <Button
+                  data-testid="button-create-first-instance"
+                  onClick={() => setDialogOpen(true)}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Criar Primeira Instância
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {instances.map((instance) => (
+                <Card key={instance.id} data-testid={`card-instance-${instance.name}`}>
+                  <CardHeader>
+                    <div className="flex items-center justify-between gap-2">
+                      <CardTitle className="text-lg">{instance.name}</CardTitle>
+                      {getStatusBadge(instance.status)}
                     </div>
-                    <Switch
+                    <CardDescription>
+                      Criado em {new Date(instance.createdAt).toLocaleDateString('pt-BR')}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <MessageSquare className="w-4 h-4 text-muted-foreground" />
+                          <Label htmlFor={`chatbot-${instance.name}`} className="text-sm font-medium">
+                            Chatbot
+                          </Label>
+                        </div>
+                        <Switch
                       id={`chatbot-${instance.name}`}
                       data-testid={`switch-chatbot-${instance.name}`}
                       checked={instance.chatbotEnabled}
@@ -538,6 +497,49 @@ export default function Instances() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Criar Nova Instância</DialogTitle>
+            <DialogDescription>
+              Insira um nome único para a nova instância WhatsApp
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <Label htmlFor="instance-name">Nome da Instância</Label>
+              <Input
+                id="instance-name"
+                data-testid="input-instance-name"
+                placeholder="Ex: principal, suporte, vendas"
+                value={newInstanceName}
+                onChange={(e) => setNewInstanceName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleCreate();
+                  }
+                }}
+              />
+            </div>
+            <Button
+              data-testid="button-confirm-create"
+              onClick={handleCreate}
+              disabled={createMutation.isPending}
+              className="w-full"
+            >
+              {createMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Criando...
+                </>
+              ) : (
+                "Criar Instância"
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -561,6 +563,8 @@ export default function Instances() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+        </div>
+      </div>
     </div>
   );
 }
