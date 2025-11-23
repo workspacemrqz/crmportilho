@@ -1,0 +1,39 @@
+[0] [WAHA] Instance: default
+[0] [WAHA] Response status: 422 Unprocessable Entity
+[0] [WAHA] API Error Response: {"error":"Session \"default\" does not exist","session":"default"}
+[0] [WAHA] ✗ Error sending text message: Error: WAHA API error: 422 - {"error":"Session \"default\" does not exist","session":"default"}
+[0]     at WAHAService.sendText (/home/runner/workspace/server/waha.service.ts:49:15)
+[0]     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+[0]     at async ChatbotService.sendMessageWithRetry (/home/runner/workspace/server/chatbot.service.ts:5368:24)
+[0]     at async ChatbotService.processAIStep (/home/runner/workspace/server/chatbot.service.ts:1936:9)
+[0]     at async ChatbotService.processFlowStep (/home/runner/workspace/server/chatbot.service.ts:1528:26)
+[0]     at async ChatbotService.processWithConfigurableFlow (/home/runner/workspace/server/chatbot.service.ts:1324:36)
+[0]     at async ChatbotService.flushBuffer (/home/runner/workspace/server/chatbot.service.ts:932:7)
+[0] [ChatbotService] ❌ Erro na tentativa 1: Error: WAHA API error: 422 - {"error":"Session \"default\" does not exist","session":"default"}
+[0]     at WAHAService.sendText (/home/runner/workspace/server/waha.service.ts:49:15)
+[0]     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+[0]     at async ChatbotService.sendMessageWithRetry (/home/runner/workspace/server/chatbot.service.ts:5368:24)
+[0]     at async ChatbotService.processAIStep (/home/runner/workspace/server/chatbot.service.ts:1936:9)
+[0]     at async ChatbotService.processFlowStep (/home/runner/workspace/server/chatbot.service.ts:1528:26)
+[0]     at async ChatbotService.processWithConfigurableFlow (/home/runner/workspace/server/chatbot.service.ts:1324:36)
+[0]     at async ChatbotService.flushBuffer (/home/runner/workspace/server/chatbot.service.ts:932:7)
+[0] [ChatbotService] ⏳ Aguardando 1000ms antes de tentar novamente...
+[0] [ChatbotService] 📤 Tentativa 2/3 de enviar mensagem para 5512974041539 na instância default
+[0] [WAHA] Sending text to 5512974041539@c.us via https://waha.evolutiaoficial.com/api/sendText
+[0] [WAHA] Message content: Ótimo, Gabriel! Para começarmos a sua cotação, preciso saber qual tipo de plano você está interessado: seguro de auto ou seguro de vida?
+[0] [WAHA] Instance: default
+[0] [WAHA] Response status: 422 Unprocessable Entity
+[0] [WAHA] API Error Response: {"error":"Session \"default\" does not exist","session":"default"}
+[0] [WAHA] ✗ Error sending text message: Error: WAHA API error: 422 - {"error":"Session \"default\" does not exist","session":"default"}
+[0]     at WAHAService.sendText (/home/runner/workspace/server/waha.service.ts:49:15)
+[0]     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+[0]     at async ChatbotService.sendMessageWithRetry (/home/runner/workspace/server/chatbot.service.ts:5368:24)
+[0]     at async ChatbotService.processAIStep (/home/runner/workspace/server/chatbot.service.ts:1936:9)
+[0]     at async ChatbotService.processFlowStep (/home/runner/workspace/server/chatbot.service.ts:1528:26)
+[0]     at async ChatbotService.processWithConfigurableFlow (/home/runner/workspace/server/chatbot.service.ts:1324:36)
+[0]     at async ChatbotService.flushBuffer (/home/runner/workspace/server/chatbot.service.ts:932:7)
+[0] [ChatbotService] ❌ Erro na tentativa 2: Error: WAHA API error: 422 - {"error":"Session \"default\" does not exist","session":"default"}
+[0]     at WAHAService.sendText (/home/runner/workspace/server/waha.service.ts:49:15)
+[0]     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+[0]     at async ChatbotService.sendMessageWithRetry (/home/runner/workspace/server/chatbot.service.ts:5368:24)
+[0]     at async ChatbotService.processAIStep (/home/runner/workspace/server/chatbo

@@ -8,6 +8,19 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Changes
 
+## November 23, 2025 - Fixed "Session Default Does Not Exist" Error
+- **Critical Bug Fix**: Resolved error where chatbot was trying to send messages to a non-existent WAHA session named "default"
+- **Root Cause**: Code was using `conversation.instanceName` from database (outdated/default value) instead of the `instanceName` parameter from webhooks (current/correct value)
+- **Changes Made**:
+  1. **WAHAService Enhancement**: Added support for `INSTANCIA` environment variable (similar to EvolutionAPIService)
+  2. **Added getInstanceName() Method**: Returns configured instance name with validation
+  3. **Added isConfigured() Method**: Checks if all required WAHA configuration is present
+  4. **Fixed routes.ts**: Now uses `wahaAPI.getInstanceName()` instead of hardcoded "default" fallback
+  5. **Fixed processAIStep**: Changed 2 occurrences from `conversation.instanceName` to `instanceName` parameter
+  6. **Fixed processStateMachine**: Changed 40+ occurrences from `conversation.instanceName` to `instanceName` parameter in all helper methods
+- **Environment Variable**: Configured `INSTANCIA=Marquez` to match the actual WAHA session name
+- **Result**: All messages now correctly route to the "Marquez" WAHA instance instead of failing with "Session default does not exist"
+
 ## November 23, 2025 - Automatic WAHA Configuration on Instance Creation
 - **Feature Enhancement**: Instances now auto-configure webhook, events, and custom headers on creation
 - **Webhook URL**: Automatically constructed using Replit public domain (from `REPLIT_DEV_DOMAIN` or `REPLIT_DOMAINS` env vars)
