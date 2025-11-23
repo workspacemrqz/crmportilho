@@ -61,6 +61,7 @@ interface ChatbotMenuSelections {
 
 interface MessageBuffer {
   phone: string;
+  instanceName: string; // Store instance name for processing
   messages: Array<{
     content: string;
     timestamp: number;
@@ -661,13 +662,18 @@ export class ChatbotService {
     }
   }
 
-  async processIncomingMessage(phone: string, messageContent: string, messageData: any) {
+  async processIncomingMessage(phone: string, messageContent: string, messageData: any, instanceName: string) {
     try {
-      console.log(`[ChatbotService] processIncomingMessage called with phone: ${phone}`);
+      console.log(`[ChatbotService] processIncomingMessage called with phone: ${phone}, instance: ${instanceName}`);
       
       // Validate phone is not null/empty
       if (!phone || phone.trim() === '') {
         throw new Error('Phone number is required but was null or empty');
+      }
+      
+      // Validate instanceName is not null/empty
+      if (!instanceName || instanceName.trim() === '') {
+        throw new Error('Instance name is required but was null or empty');
       }
       
       // CRITICAL FIX: Get/create lead, conversation, and chatbot state FIRST
@@ -698,6 +704,7 @@ export class ChatbotService {
         console.log(`[ChatbotService] 🔄 Creating NEW buffer with ${timeout/1000}s timeout for ${phone}${timeout === 0 ? ' (ENVIO INSTANTÂNEO)' : ''}`);
         buffer = {
           phone,
+          instanceName,
           messages: [],
           timer: null,
           startTime: Date.now(),
@@ -707,7 +714,7 @@ export class ChatbotService {
         
         // Start timer with configured timeout
         buffer.timer = setTimeout(() => {
-          void this.flushBuffer(phone).catch(err => {
+          void this.flushBuffer(phone, instanceName).catch(err => {
             console.error(`[ChatbotService] Error flushing buffer for ${phone}:`, err);
             this.messageBuffers.delete(phone);
           });
@@ -727,6 +734,7 @@ export class ChatbotService {
           const existingMessages = buffer.messages;
           buffer = {
             phone,
+            instanceName,
             messages: existingMessages,
             timer: null,
             startTime: Date.now(),
@@ -736,7 +744,7 @@ export class ChatbotService {
           
           // Start new timer
           buffer.timer = setTimeout(() => {
-            void this.flushBuffer(phone).catch(err => {
+            void this.flushBuffer(phone, instanceName).catch(err => {
               console.error(`[ChatbotService] Error flushing buffer for ${phone}:`, err);
               this.messageBuffers.delete(phone);
             });
@@ -761,7 +769,7 @@ export class ChatbotService {
     }
   }
 
-  private async flushBuffer(phone: string) {
+  private async flushBuffer(phone: string, instanceName: string) {
     const buffer = this.messageBuffers.get(phone);
     if (!buffer || buffer.messages.length === 0) {
       console.log(`[ChatbotService] No messages to flush for ${phone}`);
@@ -770,6 +778,7 @@ export class ChatbotService {
     
     console.log(`[ChatbotService] ========== INÍCIO DO PROCESSAMENTO DE BUFFER ==========`);
     console.log(`[ChatbotService] 📱 Telefone: ${phone}`);
+    console.log(`[ChatbotService] 📱 Instância: ${instanceName}`);
     console.log(`[ChatbotService] 📨 Mensagens coletadas: ${buffer.messages.length}`);
     console.log(`[ChatbotService] ⏱️ Tempo de buffer: ${Date.now() - buffer.startTime}ms`);
     
@@ -920,7 +929,7 @@ export class ChatbotService {
       console.log(`[ChatbotService] 📊 Dados coletados antes do processamento:`, JSON.stringify(chatbotState.collectedData));
       
       // Try to use configurable flow first, fallback to state machine if no active flow
-      await this.processWithConfigurableFlow(lead, conversation, chatbotState, allMessages);
+      await this.processWithConfigurableFlow(lead, conversation, chatbotState, allMessages, instanceName);
       
       console.log(`[ChatbotService] ========== FIM DO PROCESSAMENTO DE BUFFER ==========`);
       
@@ -936,6 +945,7 @@ export class ChatbotService {
         await this.wahaAPI.sendText(
           phone,
           'Desculpe, encontrei um problema técnico. Vou transferir você para um atendente humano que poderá ajudá-lo melhor.',
+          instanceName,
           undefined // conversation.id pode não estar disponível
         );
       } catch (sendError) {
@@ -1253,7 +1263,8 @@ export class ChatbotService {
     lead: Lead,
     conversation: Conversation,
     chatbotState: ChatbotState,
-    messageContent: string
+    messageContent: string,
+    instanceName: string
   ): Promise<void> {
     try {
       console.log(`[ChatbotService] 🎯 Processing with configurable flow for lead ${lead.protocol}`);
@@ -1262,14 +1273,14 @@ export class ChatbotService {
       const flowConfig = await this.getActiveFlow();
       if (!flowConfig) {
         console.log(`[ChatbotService] ⚠️ No active flow found, falling back to state machine`);
-        return await this.processStateMachine(lead, conversation, chatbotState, messageContent);
+        return await this.processStateMachine(lead, conversation, chatbotState, messageContent, instanceName);
       }
       
       // Get all flow steps
       const steps = await this.getFlowSteps(flowConfig.id);
       if (!steps || steps.length === 0) {
         console.log(`[ChatbotService] ⚠️ No steps found in flow, cannot process`);
-        return await this.processStateMachine(lead, conversation, chatbotState, messageContent);
+        return await this.processStateMachine(lead, conversation, chatbotState, messageContent, instanceName);
       }
       
       console.log(`[ChatbotService] 📋 Flow "${flowConfig.id}" loaded with ${steps.length} steps`);
@@ -1310,7 +1321,7 @@ export class ChatbotService {
         const stateBefore = freshState.currentState;
         
         // Process the current step and get continuation signal
-        const shouldContinueLoop = await this.processFlowStep(lead, conversation, freshState, currentStep, steps, flowConfig, messageContent);
+        const shouldContinueLoop = await this.processFlowStep(lead, conversation, freshState, currentStep, steps, flowConfig, messageContent, instanceName);
         
         // Check if we should continue based on step processing result
         if (!shouldContinueLoop) {
@@ -1361,7 +1372,7 @@ export class ChatbotService {
     } catch (error) {
       console.error('[ChatbotService] ❌ Error processing with configurable flow:', error);
       console.log('[ChatbotService] Falling back to state machine');
-      return await this.processStateMachine(lead, conversation, chatbotState, messageContent);
+      return await this.processStateMachine(lead, conversation, chatbotState, messageContent, instanceName);
     }
   }
   
@@ -1485,7 +1496,8 @@ export class ChatbotService {
     currentStep: FlowStep,
     allSteps: FlowStep[],
     flowConfig: FlowConfig,
-    messageContent: string
+    messageContent: string,
+    instanceName: string
   ): Promise<boolean> {
     try {
       console.log(`[ChatbotService] 🔄 Processing step: ${currentStep.stepName} (type: ${currentStep.stepType})`);
@@ -1509,11 +1521,11 @@ export class ChatbotService {
       let shouldContinue: boolean;
       if (currentStep.stepType === 'fixed') {
         console.log(`[ChatbotService] 📌 FIXED message node detected`);
-        shouldContinue = await this.processFixedMessageStep(lead, conversation, chatbotState, currentStep, allSteps, messageContent);
+        shouldContinue = await this.processFixedMessageStep(lead, conversation, chatbotState, currentStep, allSteps, messageContent, instanceName);
       } else {
         // AI node - existing logic
         console.log(`[ChatbotService] 🤖 AI node detected - using OpenAI`);
-        shouldContinue = await this.processAIStep(lead, conversation, chatbotState, currentStep, allSteps, flowConfig, messageContent);
+        shouldContinue = await this.processAIStep(lead, conversation, chatbotState, currentStep, allSteps, flowConfig, messageContent, instanceName);
       }
       
       // Mark as executed ONLY AFTER successful processing
@@ -1551,7 +1563,8 @@ export class ChatbotService {
     chatbotState: ChatbotState,
     currentStep: FlowStep,
     allSteps: FlowStep[],
-    messageContent: string
+    messageContent: string,
+    instanceName: string
   ): Promise<boolean> {
     try {
       // Parse transitions from JSONB field
@@ -1853,7 +1866,8 @@ export class ChatbotService {
     currentStep: FlowStep,
     allSteps: FlowStep[],
     flowConfig: FlowConfig,
-    messageContent: string
+    messageContent: string,
+    instanceName: string
   ): Promise<boolean> {
     try {
       // Get conversation history
@@ -2072,129 +2086,130 @@ Lembre-se: Use EXATAMENTE os stepIds disponíveis listados acima. Se não for ne
     lead: Lead, 
     conversation: Conversation, 
     chatbotState: ChatbotState, 
-    messageContent: string
+    messageContent: string,
+    instanceName: string
   ) {
     const state = chatbotState.currentState;
 
     switch(state) {
       case 'initial':
-        await this.handleInitialState(lead, conversation, chatbotState);
+        await this.handleInitialState(lead, conversation, chatbotState, instanceName);
         break;
       
       case 'menu_selection':
-        await this.handleMenuSelection(lead, conversation, chatbotState, messageContent);
+        await this.handleMenuSelection(lead, conversation, chatbotState, messageContent, instanceName);
         break;
       
       case 'menu1_como_conheceu':
-        await this.handleMenu1ComoConheceu(lead, conversation, chatbotState, messageContent);
+        await this.handleMenu1ComoConheceu(lead, conversation, chatbotState, messageContent, instanceName);
         break;
       
       case 'menu1_seguros_novos':
-        await this.handleMenu1SegurosNovos(lead, conversation, chatbotState, messageContent);
+        await this.handleMenu1SegurosNovos(lead, conversation, chatbotState, messageContent, instanceName);
         break;
       
       case 'menu1_tipo_seguro':
-        await this.handleMenu1TipoSeguro(lead, conversation, chatbotState, messageContent);
+        await this.handleMenu1TipoSeguro(lead, conversation, chatbotState, messageContent, instanceName);
         break;
       
       case 'menu2_autorio_status':
-        await this.handleMenu2AutorioStatus(lead, conversation, chatbotState, messageContent);
+        await this.handleMenu2AutorioStatus(lead, conversation, chatbotState, messageContent, instanceName);
         break;
       
       case 'menu2_autorio_quando_pega':
-        await this.handleMenu2AutorioQuandoPega(lead, conversation, chatbotState, messageContent);
+        await this.handleMenu2AutorioQuandoPega(lead, conversation, chatbotState, messageContent, instanceName);
         break;
       
       case 'fluxo_auto_status':
-        await this.handleFluxoAutoStatus(lead, conversation, chatbotState, messageContent);
+        await this.handleFluxoAutoStatus(lead, conversation, chatbotState, messageContent, instanceName);
         break;
       
       case 'fluxo_auto_dados_pessoais':
-        await this.handleFluxoAutoDadosPessoais(lead, conversation, chatbotState, messageContent);
+        await this.handleFluxoAutoDadosPessoais(lead, conversation, chatbotState, messageContent, instanceName);
         break;
       
       case 'fluxo_auto_dados_pessoais_confirmacao':
-        await this.handleFluxoAutoDadosPessoaisConfirmacao(lead, conversation, chatbotState, messageContent);
+        await this.handleFluxoAutoDadosPessoaisConfirmacao(lead, conversation, chatbotState, messageContent, instanceName);
         break;
       
       case 'fluxo_auto_dados_veiculo':
-        await this.handleFluxoAutoDadosVeiculo(lead, conversation, chatbotState, messageContent);
+        await this.handleFluxoAutoDadosVeiculo(lead, conversation, chatbotState, messageContent, instanceName);
         break;
       
       case 'dados_veiculo_estacionamento':
-        await this.handleDadosVeiculoEstacionamento(lead, conversation, chatbotState, messageContent);
+        await this.handleDadosVeiculoEstacionamento(lead, conversation, chatbotState, messageContent, instanceName);
         break;
       
       case 'dados_veiculo_portao':
-        await this.handleDadosVeiculoPortao(lead, conversation, chatbotState, messageContent);
+        await this.handleDadosVeiculoPortao(lead, conversation, chatbotState, messageContent, instanceName);
         break;
       
       case 'dados_veiculo_trabalho_estudo':
-        await this.handleDadosVeiculoTrabalhoEstudo(lead, conversation, chatbotState, messageContent);
+        await this.handleDadosVeiculoTrabalhoEstudo(lead, conversation, chatbotState, messageContent, instanceName);
         break;
       
       case 'dados_veiculo_moradia':
-        await this.handleDadosVeiculoMoradia(lead, conversation, chatbotState, messageContent);
+        await this.handleDadosVeiculoMoradia(lead, conversation, chatbotState, messageContent, instanceName);
         break;
       
       case 'dados_veiculo_carro_reserva':
-        await this.handleDadosVeiculoCarroReserva(lead, conversation, chatbotState, messageContent);
+        await this.handleDadosVeiculoCarroReserva(lead, conversation, chatbotState, messageContent, instanceName);
         break;
       
       case 'dados_veiculo_reboque':
-        await this.handleDadosVeiculoReboque(lead, conversation, chatbotState, messageContent);
+        await this.handleDadosVeiculoReboque(lead, conversation, chatbotState, messageContent, instanceName);
         break;
       
       case 'dados_veiculo_condutor_menor_25':
-        await this.handleDadosVeiculoCondutorMenor25(lead, conversation, chatbotState, messageContent);
+        await this.handleDadosVeiculoCondutorMenor25(lead, conversation, chatbotState, messageContent, instanceName);
         break;
       
       case 'dados_veiculo_tipo_uso':
-        await this.handleDadosVeiculoTipoUso(lead, conversation, chatbotState, messageContent);
+        await this.handleDadosVeiculoTipoUso(lead, conversation, chatbotState, messageContent, instanceName);
         break;
 
       case 'menu3_renovacao':
-        await this.handleMenu3Renovacao(lead, conversation, chatbotState, messageContent);
+        await this.handleMenu3Renovacao(lead, conversation, chatbotState, messageContent, instanceName);
         break;
 
       case 'menu4_endosso':
-        await this.handleMenu4Endosso(lead, conversation, chatbotState, messageContent);
+        await this.handleMenu4Endosso(lead, conversation, chatbotState, messageContent, instanceName);
         break;
 
       case 'menu5_parcelas':
-        await this.handleMenu5Parcelas(lead, conversation, chatbotState, messageContent);
+        await this.handleMenu5Parcelas(lead, conversation, chatbotState, messageContent, instanceName);
         break;
 
       case 'menu6_sinistros':
-        await this.handleMenu6Sinistros(lead, conversation, chatbotState, messageContent);
+        await this.handleMenu6Sinistros(lead, conversation, chatbotState, messageContent, instanceName);
         break;
       
       case 'aguardando_apolice':
-        await this.handleAguardandoApolice(lead, conversation, chatbotState, messageContent);
+        await this.handleAguardandoApolice(lead, conversation, chatbotState, messageContent, instanceName);
         break;
       
       case 'fluxo_auto_quando_pega':
-        await this.handleFluxoAutoQuandoPega(lead, conversation, chatbotState, messageContent);
+        await this.handleFluxoAutoQuandoPega(lead, conversation, chatbotState, messageContent, instanceName);
         break;
       
       case 'aguardando_identificador':
-        await this.handleAguardandoIdentificador(lead, conversation, chatbotState, messageContent);
+        await this.handleAguardandoIdentificador(lead, conversation, chatbotState, messageContent, instanceName);
         break;
       
       case 'aguardando_identificador_parcelas':
-        await this.handleAguardandoIdentificadorParcelas(lead, conversation, chatbotState, messageContent);
+        await this.handleAguardandoIdentificadorParcelas(lead, conversation, chatbotState, messageContent, instanceName);
         break;
       
       case 'aguardando_identificador_sinistros':
-        await this.handleAguardandoIdentificadorSinistros(lead, conversation, chatbotState, messageContent);
+        await this.handleAguardandoIdentificadorSinistros(lead, conversation, chatbotState, messageContent, instanceName);
         break;
       
       case 'endosso_item':
-        await this.handleEndossoItem(lead, conversation, chatbotState, messageContent);
+        await this.handleEndossoItem(lead, conversation, chatbotState, messageContent, instanceName);
         break;
       
       case 'aguardando_documentos':
-        await this.handleAguardandoDocumentos(lead, conversation, chatbotState, messageContent);
+        await this.handleAguardandoDocumentos(lead, conversation, chatbotState, messageContent, instanceName);
         break;
       
       case 'conversa_finalizada':
@@ -2212,6 +2227,7 @@ Lembre-se: Use EXATAMENTE os stepIds disponíveis listados acima. Se não for ne
         await this.wahaAPI.sendText(
           lead.whatsappPhone,
           'Encontrei um problema técnico. Vou transferir você para um atendente humano. Aguarde um momento, por favor.',
+          instanceName,
           conversation.id
         );
         
@@ -2220,7 +2236,7 @@ Lembre-se: Use EXATAMENTE os stepIds disponíveis listados acima. Se não for ne
     }
   }
 
-  private async handleInitialState(lead: Lead, conversation: Conversation, chatbotState: ChatbotState) {
+  private async handleInitialState(lead: Lead, conversation: Conversation, chatbotState: ChatbotState, instanceName: string) {
     try {
       console.log(`[ChatbotService] 📍 Estado: INICIAL | Lead: ${lead.protocol}`);
       console.log(`[ChatbotService] 🔍 Verificando se é primeira vez...`);
@@ -2259,7 +2275,7 @@ Lembre-se: Use EXATAMENTE os stepIds disponíveis listados acima. Se não for ne
         console.log(`[ChatbotService] 🔧 Corrigindo estado de "initial" para "${appropriateState}"`);
         
         // Enviar mensagem apropriada
-        await this.wahaAPI.sendText(lead.whatsappPhone, message, conversation.id);
+        await this.wahaAPI.sendText(lead.whatsappPhone, message, instanceName, conversation.id);
         
         // Atualizar estado
         await this.updateChatbotState(chatbotState.id, {
@@ -2294,7 +2310,7 @@ Lembre-se: Use EXATAMENTE os stepIds disponíveis listados acima. Se não for ne
       const message2 = await this.getMessageTemplate('MENSAGEM2');
       
       console.log('[ChatbotService] 📤 Enviando MENSAGEM1 para', lead.whatsappPhone);
-      await this.sendMessageWithRetry(lead.whatsappPhone, message1, conversation.id);
+      await this.sendMessageWithRetry(lead.whatsappPhone, message1, instanceName, conversation.id);
       console.log('[ChatbotService] ✅ MENSAGEM1 enviada com sucesso');
       
       // Small delay to ensure proper ordering
@@ -2346,7 +2362,8 @@ Lembre-se: Use EXATAMENTE os stepIds disponíveis listados acima. Se não for ne
     lead: Lead, 
     conversation: Conversation, 
     chatbotState: ChatbotState, 
-    messageContent: string
+    messageContent: string,
+    instanceName: string
   ) {
     try {
       console.log(`[ChatbotService] 📍 Estado Atual: menu_selection | Lead: ${lead.protocol}`);
@@ -2361,7 +2378,7 @@ Lembre-se: Use EXATAMENTE os stepIds disponíveis listados acima. Se não for ne
           const menu1Message = `Perfeito! 😄 Antes de começarmos, como você conheceu a Portilho?
 💚 Será um prazer ajudar você a garantir tranquilidade e segurança.`;
           
-          await this.sendMessageWithRetry(lead.whatsappPhone, menu1Message, conversation.id);
+          await this.sendMessageWithRetry(lead.whatsappPhone, menu1Message, instanceName, conversation.id);
           await this.updateChatbotState(chatbotState.id, {
             currentState: 'menu1_como_conheceu',
             menuSelections: { mainMenu: '1' }
@@ -2375,7 +2392,7 @@ Lembre-se: Use EXATAMENTE os stepIds disponíveis listados acima. Se não for ne
 
 O veículo já está com você ou quando você irá pegá-lo?`;
           
-          await this.sendMessageWithRetry(lead.whatsappPhone, menu2Message, conversation.id);
+          await this.sendMessageWithRetry(lead.whatsappPhone, menu2Message, instanceName, conversation.id);
           await this.updateChatbotState(chatbotState.id, {
             currentState: 'menu2_autorio_status',
             menuSelections: { mainMenu: '2' }
@@ -2385,7 +2402,7 @@ O veículo já está com você ou quando você irá pegá-lo?`;
         
         case '3':
           const template3 = await this.getMessageTemplate('MENU3_RENOVACAO_ABERTURA');
-          await this.sendMessageWithRetry(lead.whatsappPhone, template3, conversation.id);
+          await this.sendMessageWithRetry(lead.whatsappPhone, template3, instanceName, conversation.id);
           await this.updateChatbotState(chatbotState.id, {
             currentState: 'menu3_renovacao',
             menuSelections: { mainMenu: '3' }
@@ -2395,7 +2412,7 @@ O veículo já está com você ou quando você irá pegá-lo?`;
         
         case '4':
           const template4 = await this.getMessageTemplate('MENU4_ENDOSSO_ABERTURA');
-          await this.sendMessageWithRetry(lead.whatsappPhone, template4, conversation.id);
+          await this.sendMessageWithRetry(lead.whatsappPhone, template4, instanceName, conversation.id);
           await this.updateChatbotState(chatbotState.id, {
             currentState: 'menu4_endosso',
             menuSelections: { mainMenu: '4' }
@@ -2405,7 +2422,7 @@ O veículo já está com você ou quando você irá pegá-lo?`;
         
         case '5':
           const template5 = await this.getMessageTemplate('MENU5_PARCELAS_ABERTURA');
-          await this.sendMessageWithRetry(lead.whatsappPhone, template5, conversation.id);
+          await this.sendMessageWithRetry(lead.whatsappPhone, template5, instanceName, conversation.id);
           await this.updateChatbotState(chatbotState.id, {
             currentState: 'menu5_parcelas',
             menuSelections: { mainMenu: '5' }
@@ -2415,7 +2432,7 @@ O veículo já está com você ou quando você irá pegá-lo?`;
         
         case '6':
           const template6 = await this.getMessageTemplate('MENU6_SINISTROS_ABERTURA');
-          await this.sendMessageWithRetry(lead.whatsappPhone, template6, conversation.id);
+          await this.sendMessageWithRetry(lead.whatsappPhone, template6, instanceName, conversation.id);
           await this.updateChatbotState(chatbotState.id, {
             currentState: 'menu6_sinistros',
             menuSelections: { mainMenu: '6' }
@@ -2426,7 +2443,7 @@ O veículo já está com você ou quando você irá pegá-lo?`;
         default:
           const menuMsg = await this.getMessageTemplate('MENSAGEM2');
           const helpMsg = `Desculpe, não entendi sua escolha. ${menuMsg}`;
-          await this.sendMessageWithRetry(lead.whatsappPhone, helpMsg, conversation.id);
+          await this.sendMessageWithRetry(lead.whatsappPhone, helpMsg, instanceName, conversation.id);
           console.log(`[ChatbotService] ⚠️ Opção não reconhecida, reenviando menu`);
           break;
       }
@@ -2435,6 +2452,7 @@ O veículo já está com você ou quando você irá pegá-lo?`;
       await this.sendMessageWithRetry(
         lead.whatsappPhone, 
         'Desculpe, houve um erro ao processar sua mensagem. Por favor, tente novamente ou digite "humano" para falar com um atendente.',
+        instanceName,
         conversation.id
       );
     }
@@ -2444,7 +2462,8 @@ O veículo já está com você ou quando você irá pegá-lo?`;
     lead: Lead, 
     conversation: Conversation, 
     chatbotState: ChatbotState, 
-    messageContent: string
+    messageContent: string,
+    instanceName: string
   ) {
     try {
       console.log(`[ChatbotService] 📍 Estado: menu1_como_conheceu | Lead: ${lead.protocol}`);
@@ -2479,7 +2498,7 @@ Trabalhamos com:
 🔑 Seguro Fiança
 ⚙️ Equipamentos / Máquinas Agrícolas`;
 
-        await this.sendMessageWithRetry(lead.whatsappPhone, tipoSeguroMessage, conversation.id);
+        await this.sendMessageWithRetry(lead.whatsappPhone, tipoSeguroMessage, instanceName, conversation.id);
         await this.updateChatbotState(chatbotState.id, {
           currentState: 'menu1_tipo_seguro',
           collectedData: { ...(chatbotState.collectedData as ChatbotCollectedData || {}), escolha: 'seguro_novo' }
@@ -2496,7 +2515,7 @@ Para agilizar, você deseja manter todos os dados da ficha cadastral do item seg
 🔘 Sim, manter os dados
 🔘 Não, desejo revisar ou atualizar alguns dados`;
 
-        await this.sendMessageWithRetry(lead.whatsappPhone, cotacaoMessage, conversation.id);
+        await this.sendMessageWithRetry(lead.whatsappPhone, cotacaoMessage, instanceName, conversation.id);
         await this.updateChatbotState(chatbotState.id, {
           currentState: 'aguardando_apolice',
           collectedData: { ...(chatbotState.collectedData as ChatbotCollectedData || {}), escolha: 'cotacao_outra' }
@@ -2509,7 +2528,7 @@ Para agilizar, você deseja manter todos os dados da ficha cadastral do item seg
 🔘 Fazer um seguro novo
 🔘 Fazer cotação de um seguro de outra seguradora`;
         
-        await this.sendMessageWithRetry(lead.whatsappPhone, resendMessage, conversation.id);
+        await this.sendMessageWithRetry(lead.whatsappPhone, resendMessage, instanceName, conversation.id);
         console.log(`[ChatbotService] ⚠️ Intenção não clara, reenviando opções`);
       }
     } catch (error) {
@@ -2517,6 +2536,7 @@ Para agilizar, você deseja manter todos os dados da ficha cadastral do item seg
       await this.sendMessageWithRetry(
         lead.whatsappPhone, 
         'Desculpe, houve um erro ao processar sua resposta. Por favor, tente novamente ou digite "humano" para falar com um atendente.',
+        instanceName,
         conversation.id
       );
     }
@@ -2526,7 +2546,8 @@ Para agilizar, você deseja manter todos os dados da ficha cadastral do item seg
     lead: Lead, 
     conversation: Conversation, 
     chatbotState: ChatbotState, 
-    messageContent: string
+    messageContent: string,
+    instanceName: string
   ) {
     try {
       console.log(`[ChatbotService] 📍 Estado: menu1_seguros_novos | Lead: ${lead.protocol}`);
@@ -2549,7 +2570,7 @@ Trabalhamos com:
 🔑 Seguro Fiança
 ⚙️ Equipamentos / Máquinas Agrícolas`;
 
-        await this.sendMessageWithRetry(lead.whatsappPhone, tipoSeguroMessage, conversation.id);
+        await this.sendMessageWithRetry(lead.whatsappPhone, tipoSeguroMessage, instanceName, conversation.id);
         await this.updateChatbotState(chatbotState.id, {
           currentState: 'menu1_tipo_seguro',
           collectedData: { ...(chatbotState.collectedData as ChatbotCollectedData || {}), escolha: 'seguro_novo' }
@@ -2566,7 +2587,7 @@ Para agilizar, você deseja manter todos os dados da ficha cadastral do item seg
 🔘 Sim, manter os dados
 🔘 Não, desejo revisar ou atualizar alguns dados`;
 
-        await this.sendMessageWithRetry(lead.whatsappPhone, cotacaoMessage, conversation.id);
+        await this.sendMessageWithRetry(lead.whatsappPhone, cotacaoMessage, instanceName, conversation.id);
         await this.updateChatbotState(chatbotState.id, {
           currentState: 'aguardando_apolice',
           collectedData: { ...(chatbotState.collectedData as ChatbotCollectedData || {}), escolha: 'cotacao_outra' }
@@ -2579,7 +2600,7 @@ Para agilizar, você deseja manter todos os dados da ficha cadastral do item seg
 🔘 Fazer um seguro novo
 🔘 Fazer cotação de um seguro de outra seguradora`;
         
-        await this.sendMessageWithRetry(lead.whatsappPhone, resendMessage, conversation.id);
+        await this.sendMessageWithRetry(lead.whatsappPhone, resendMessage, instanceName, conversation.id);
         console.log(`[ChatbotService] ⚠️ Intenção não clara, reenviando opções`);
       }
     } catch (error) {
@@ -2587,6 +2608,7 @@ Para agilizar, você deseja manter todos os dados da ficha cadastral do item seg
       await this.sendMessageWithRetry(
         lead.whatsappPhone, 
         'Desculpe, houve um erro ao processar sua resposta. Por favor, tente novamente ou digite "humano" para falar com um atendente.',
+        instanceName,
         conversation.id
       );
     }
@@ -2596,7 +2618,8 @@ Para agilizar, você deseja manter todos os dados da ficha cadastral do item seg
     lead: Lead, 
     conversation: Conversation, 
     chatbotState: ChatbotState, 
-    messageContent: string
+    messageContent: string,
+    instanceName: string
   ) {
     try {
       console.log(`[ChatbotService] 📍 Estado: menu1_tipo_seguro | Lead: ${lead.protocol}`);
@@ -2609,7 +2632,7 @@ Para agilizar, você deseja manter todos os dados da ficha cadastral do item seg
 
 O veículo já está com você ou quando você irá pegá-lo?`;
         
-        await this.sendMessageWithRetry(lead.whatsappPhone, autoMessage, conversation.id);
+        await this.sendMessageWithRetry(lead.whatsappPhone, autoMessage, instanceName, conversation.id);
         await this.updateChatbotState(chatbotState.id, {
           currentState: 'fluxo_auto_status',
           collectedData: { ...(chatbotState.collectedData as ChatbotCollectedData || {}), tipoSeguro: 'auto' }
@@ -2618,8 +2641,8 @@ O veículo já está com você ou quando você irá pegá-lo?`;
       } else {
         // Other insurance types - transfer to human
         const transferMessage = `Entendi! Vou transferir você para um de nossos especialistas que poderá ajudá-lo da melhor forma. Um momento, por favor... 💚`;
-        await this.sendMessageWithRetry(lead.whatsappPhone, transferMessage, conversation.id);
-        await this.handleHumanHandoff(lead, conversation, `Tipo de seguro: ${messageContent}`);
+        await this.sendMessageWithRetry(lead.whatsappPhone, transferMessage, instanceName, conversation.id);
+        await this.handleHumanHandoff(lead, conversation, `Tipo de seguro: ${messageContent}`, instanceName);
         console.log(`[ChatbotService] ✅ Transferindo para humano - Tipo: ${messageContent}`);
       }
     } catch (error) {
@@ -2627,6 +2650,7 @@ O veículo já está com você ou quando você irá pegá-lo?`;
       await this.sendMessageWithRetry(
         lead.whatsappPhone, 
         'Desculpe, houve um erro. Por favor, tente novamente ou digite "humano" para falar com um atendente.',
+        instanceName,
         conversation.id
       );
     }
@@ -2636,7 +2660,8 @@ O veículo já está com você ou quando você irá pegá-lo?`;
     lead: Lead, 
     conversation: Conversation, 
     chatbotState: ChatbotState, 
-    messageContent: string
+    messageContent: string,
+    instanceName: string
   ) {
     try {
       console.log(`[ChatbotService] 📍 Estado: menu2_autorio_status | Lead: ${lead.protocol}`);
@@ -2663,10 +2688,10 @@ O veículo já está com você ou quando você irá pegá-lo?`;
         const urgentMessage = `Entendido! Como o veículo já está com você, vou marcar sua solicitação com grau de importância ALTO e COTAÇÃO URGENTE. 🚨
 
 Vou transferir você agora para um de nossos especialistas Autorio que dará prioridade ao seu atendimento. Um momento, por favor... 💚`;
-        await this.sendMessageWithRetry(lead.whatsappPhone, urgentMessage, conversation.id);
+        await this.sendMessageWithRetry(lead.whatsappPhone, urgentMessage, instanceName, conversation.id);
         
         // Transfer to human (STOP AI flow)
-        await this.handleHumanHandoff(lead, conversation, 'Menu 2 - Autorio - COTAÇÃO URGENTE - Veículo já com cliente');
+        await this.handleHumanHandoff(lead, conversation, 'Menu 2 - Autorio - COTAÇÃO URGENTE - Veículo já com cliente', instanceName);
         console.log(`[ChatbotService] ✅ Transferindo para humano - Autorio COTAÇÃO URGENTE`);
         
       } else if (resposta === 'não') {
@@ -2676,7 +2701,7 @@ Vou transferir você agora para um de nossos especialistas Autorio que dará pri
         const whenMessage = `Entendi que você ainda não pegou o carro. Para melhor organizarmos o atendimento, quando está previsto para retirar o veículo? 
 
 Por favor, informe a data e hora aproximadas.`;
-        await this.sendMessageWithRetry(lead.whatsappPhone, whenMessage, conversation.id);
+        await this.sendMessageWithRetry(lead.whatsappPhone, whenMessage, instanceName, conversation.id);
         
         await this.updateChatbotState(chatbotState.id, {
           currentState: 'menu2_autorio_quando_pega',
@@ -2690,7 +2715,7 @@ Por favor, informe a data e hora aproximadas.`;
         
       } else {
         // Not understood - re-ask
-        await this.sendMessageWithRetry(lead.whatsappPhone, 'Desculpe, não entendi sua resposta. O veículo já está com você ou você ainda vai retirá-lo?', conversation.id);
+        await this.sendMessageWithRetry(lead.whatsappPhone, 'Desculpe, não entendi sua resposta. O veículo já está com você ou você ainda vai retirá-lo?', instanceName, conversation.id);
         console.log(`[ChatbotService] ⚠️ Resposta não compreendida, reenviando pergunta`);
       }
     } catch (error) {
@@ -2698,6 +2723,7 @@ Por favor, informe a data e hora aproximadas.`;
       await this.sendMessageWithRetry(
         lead.whatsappPhone, 
         'Desculpe, houve um erro. Por favor, tente novamente ou digite "humano" para falar com um atendente.',
+        instanceName,
         conversation.id
       );
     }
@@ -2707,7 +2733,8 @@ Por favor, informe a data e hora aproximadas.`;
     lead: Lead, 
     conversation: Conversation, 
     chatbotState: ChatbotState, 
-    messageContent: string
+    messageContent: string,
+    instanceName: string
   ) {
     try {
       console.log(`[ChatbotService] 📍 Estado: menu2_autorio_quando_pega | Lead: ${lead.protocol}`);
@@ -2742,10 +2769,10 @@ Como ainda há tempo, defini sua solicitação com prioridade PADRÃO.
 
 Vou transferir você agora para um de nossos especialistas Autorio que irá prosseguir com seu atendimento. Um momento, por favor... 💚`;
       
-      await this.sendMessageWithRetry(lead.whatsappPhone, confirmMessage, conversation.id);
+      await this.sendMessageWithRetry(lead.whatsappPhone, confirmMessage, instanceName, conversation.id);
       
       // Transfer to human (STOP AI flow as per instructions)
-      await this.handleHumanHandoff(lead, conversation, `Menu 2 - Autorio - Prioridade Padrão - Veículo será retirado em: ${quandoPegaVeiculo}`);
+      await this.handleHumanHandoff(lead, conversation, `Menu 2 - Autorio - Prioridade Padrão - Veículo será retirado em: ${quandoPegaVeiculo}`, instanceName);
       console.log(`[ChatbotService] ✅ Transferindo para humano - Autorio (Prioridade Padrão)`);
       
     } catch (error) {
@@ -2753,6 +2780,7 @@ Vou transferir você agora para um de nossos especialistas Autorio que irá pros
       await this.sendMessageWithRetry(
         lead.whatsappPhone, 
         'Desculpe, houve um erro. Por favor, tente novamente ou digite "humano" para falar com um atendente.',
+        instanceName,
         conversation.id
       );
     }
@@ -2762,7 +2790,8 @@ Vou transferir você agora para um de nossos especialistas Autorio que irá pros
     lead: Lead, 
     conversation: Conversation, 
     chatbotState: ChatbotState, 
-    messageContent: string
+    messageContent: string,
+    instanceName: string
   ) {
     // Usar IA para entender a resposta do cliente de forma natural
     const resposta = await this.entenderRespostaBinaria(messageContent, 'O veículo já está com o cliente?');
@@ -2788,7 +2817,7 @@ Agora vou coletar seus dados pessoais. Por favor, informe:
 
 💬 Dica: Você pode responder digitando ou enviando áudio, se for mais rápido e prático.`;
 
-      await this.wahaAPI.sendText(lead.whatsappPhone, urgentMessage, conversation.id);
+      await this.wahaAPI.sendText(lead.whatsappPhone, urgentMessage, instanceName, conversation.id);
       
       // Set custom buffer of 30 seconds for collecting personal data
       this.setCustomBufferTimeout(lead.whatsappPhone, 30000);
@@ -2814,7 +2843,7 @@ Agora vou coletar seus dados pessoais. Por favor, informe:
       });
 
     } else if (resposta === 'não') {
-      await this.wahaAPI.sendText(lead.whatsappPhone, 'Perfeito! Quando você irá pegar o veículo? (Por favor, informe a data e horário aproximado)', conversation.id);
+      await this.wahaAPI.sendText(lead.whatsappPhone, 'Perfeito! Quando você irá pegar o veículo? (Por favor, informe a data e horário aproximado)', instanceName, conversation.id);
       await this.updateChatbotState(chatbotState.id, {
         currentState: 'fluxo_auto_quando_pega',
         collectedData: { 
@@ -2825,7 +2854,7 @@ Agora vou coletar seus dados pessoais. Por favor, informe:
       });
     } else {
       // Não entendeu - pedir novamente de forma natural (sem "SIM ou NÃO")
-      await this.wahaAPI.sendText(lead.whatsappPhone, 'Desculpe, não entendi. O veículo já está com você?', conversation.id);
+      await this.wahaAPI.sendText(lead.whatsappPhone, 'Desculpe, não entendi. O veículo já está com você?', instanceName, conversation.id);
     }
   }
 
@@ -2833,7 +2862,8 @@ Agora vou coletar seus dados pessoais. Por favor, informe:
     lead: Lead, 
     conversation: Conversation, 
     chatbotState: ChatbotState, 
-    messageContent: string
+    messageContent: string,
+    instanceName: string
   ) {
     try {
       console.log(`[ChatbotService] 📍 Estado: fluxo_auto_dados_pessoais | Lead: ${lead.protocol}`);
@@ -2844,6 +2874,7 @@ Agora vou coletar seus dados pessoais. Por favor, informe:
         await this.wahaAPI.sendText(
           lead.whatsappPhone, 
           'Não recebi sua mensagem. Por favor, envie seus dados pessoais novamente ou um áudio com as informações.',
+          instanceName,
           conversation.id
         );
         return;
@@ -2861,6 +2892,7 @@ Agora vou coletar seus dados pessoais. Por favor, informe:
           lead.whatsappPhone,
           '⚠️ Desculpe, nosso sistema de IA está temporariamente indisponível.\n\n' +
           'Por favor, digite "humano" para falar com um atendente que vai te ajudar pessoalmente.',
+          instanceName,
           conversation.id
         );
         return;
@@ -2892,7 +2924,7 @@ Agora vou coletar seus dados pessoais. Por favor, informe:
         console.log(`[ChatbotService] ⚠️ Dados incompletos. Campos faltantes (${validation.missingFields.length}):`, validation.missingFields.join(', '));
         
         const missingMessage = await this.generateMissingFieldsMessage(validation.missingFieldsPortuguese);
-        await this.wahaAPI.sendText(lead.whatsappPhone, missingMessage, conversation.id);
+        await this.wahaAPI.sendText(lead.whatsappPhone, missingMessage, instanceName, conversation.id);
         
         console.log('[ChatbotService] 📤 Mensagem solicitando campos faltantes enviada');
         console.log('[ChatbotService] ⏸️ Mantendo estado em fluxo_auto_dados_pessoais (aguardando dados completos)');
@@ -2909,14 +2941,14 @@ Agora vou coletar seus dados pessoais. Por favor, informe:
       const summary = this.generatePersonalDataSummary(updatedLead);
       
       // Enviar resumo
-      await this.wahaAPI.sendText(lead.whatsappPhone, summary, conversation.id);
+      await this.wahaAPI.sendText(lead.whatsappPhone, summary, instanceName, conversation.id);
       
       // Delay entre mensagens
       await new Promise(resolve => setTimeout(resolve, 800));
       
       // Pedir confirmação
       const confirmationMessage = 'Confira os dados acima. Está tudo correto ou deseja alterar algo?';
-      await this.wahaAPI.sendText(lead.whatsappPhone, confirmationMessage, conversation.id);
+      await this.wahaAPI.sendText(lead.whatsappPhone, confirmationMessage, instanceName, conversation.id);
 
       // Atualizar estado para confirmação
       await this.updateChatbotState(chatbotState.id, {
@@ -2934,6 +2966,7 @@ Agora vou coletar seus dados pessoais. Por favor, informe:
       await this.wahaAPI.sendText(
         lead.whatsappPhone, 
         'Desculpe, houve um erro ao processar seus dados. Por favor, tente novamente ou digite "humano" para falar com um atendente.',
+        instanceName,
         conversation.id
       );
     }
@@ -2943,7 +2976,8 @@ Agora vou coletar seus dados pessoais. Por favor, informe:
     lead: Lead,
     conversation: Conversation,
     chatbotState: ChatbotState,
-    messageContent: string
+    messageContent: string,
+    instanceName: string
   ) {
     try {
       console.log(`[ChatbotService] 📍 Estado: fluxo_auto_dados_pessoais_confirmacao | Lead: ${lead.protocol}`);
@@ -2972,6 +3006,7 @@ Agora vou coletar seus dados pessoais. Por favor, informe:
         await this.wahaAPI.sendText(
           lead.whatsappPhone,
           'Parece que ainda não tenho seus dados pessoais. Por favor, informe seus dados conforme solicitado anteriormente.',
+          instanceName,
           conversation.id
         );
         
@@ -3079,7 +3114,7 @@ Agora vou coletar seus dados pessoais. Por favor, informe:
         const newSummary = this.generatePersonalDataSummary(updatedLead);
         
         // Enviar novo resumo
-        await this.wahaAPI.sendText(lead.whatsappPhone, newSummary, conversation.id);
+        await this.wahaAPI.sendText(lead.whatsappPhone, newSummary, instanceName, conversation.id);
         
         // Delay
         await new Promise(resolve => setTimeout(resolve, 800));
@@ -3088,6 +3123,7 @@ Agora vou coletar seus dados pessoais. Por favor, informe:
         await this.wahaAPI.sendText(
           lead.whatsappPhone,
           'Confira os dados atualizados. Está tudo correto agora?',
+          instanceName,
           conversation.id
         );
 
@@ -3188,7 +3224,7 @@ Responda APENAS com "CONFIRMAR" ou "ALTERAR".`;
         
         if (updatedState) {
           console.log('[ChatbotService] 🚀 Chamando handler do novo estado: fluxo_auto_dados_veiculo');
-          await this.handleFluxoAutoDadosVeiculo(lead, conversation, updatedState, messageContent);
+          await this.handleFluxoAutoDadosVeiculo(lead, conversation, updatedState, messageContent, instanceName);
         }
         
         return;
@@ -3254,6 +3290,7 @@ Mensagem do usuário: ${messageContent}`;
           await this.wahaAPI.sendText(
             lead.whatsappPhone,
             'Desculpe, não consegui entender qual dado você quer alterar. Qual informação você gostaria de atualizar?',
+            instanceName,
             conversation.id
           );
           return;
@@ -3265,6 +3302,7 @@ Mensagem do usuário: ${messageContent}`;
           await this.wahaAPI.sendText(
             lead.whatsappPhone,
             'Qual informação você gostaria de alterar? Por exemplo: CPF, nome, email, endereço, etc.',
+            instanceName,
             conversation.id
           );
           return;
@@ -3293,6 +3331,7 @@ Mensagem do usuário: ${messageContent}`;
           await this.wahaAPI.sendText(
             lead.whatsappPhone,
             `Qual é o novo ${fieldLabel}?`,
+            instanceName,
             conversation.id
           );
           
@@ -3400,7 +3439,7 @@ Mensagem do usuário: ${messageContent}`;
         const newSummary = this.generatePersonalDataSummary(updatedLead);
         
         // Enviar novo resumo
-        await this.wahaAPI.sendText(lead.whatsappPhone, newSummary, conversation.id);
+        await this.wahaAPI.sendText(lead.whatsappPhone, newSummary, instanceName, conversation.id);
         
         // Delay
         await new Promise(resolve => setTimeout(resolve, 800));
@@ -3409,6 +3448,7 @@ Mensagem do usuário: ${messageContent}`;
         await this.wahaAPI.sendText(
           lead.whatsappPhone,
           'Confira os dados atualizados. Está tudo correto agora?',
+          instanceName,
           conversation.id
         );
 
@@ -4743,7 +4783,7 @@ Agradecemos por escolher a Portilho Corretora! 💚`;
     }
   }
 
-  private async handleHumanHandoff(lead: Lead, conversation: Conversation, reason: string, customMessage?: string) {
+  private async handleHumanHandoff(lead: Lead, conversation: Conversation, reason: string, instanceName: string, customMessage?: string) {
     // CRITICAL: Mark in memory FIRST to prevent race conditions
     this.markPermanentHandoff(conversation.id, lead.whatsappPhone);
     
@@ -4800,12 +4840,14 @@ Agradecemos por escolher a Portilho Corretora! 💚`;
       await this.wahaAPI.sendText(
         lead.whatsappPhone,
         customMessage,
+        instanceName,
         conversation.id
       );
     } else {
       await this.wahaAPI.sendText(
         lead.whatsappPhone,
         'Vou te transferir agora para um atendente humano, que dará continuidade ao seu atendimento e vai te ajudar da melhor forma possível. Só um momento, por favor. 💚',
+        instanceName,
         conversation.id
       );
     }
@@ -5287,13 +5329,13 @@ Retorne APENAS uma palavra: "sim", "não" ou "unclear".`;
   }
 
   // Send message with retry logic
-  private async sendMessageWithRetry(phone: string, text: string, conversationId?: string, maxRetries: number = 3): Promise<any> {
+  private async sendMessageWithRetry(phone: string, text: string, instanceName: string, conversationId?: string, maxRetries: number = 3): Promise<any> {
     let lastError: any;
     
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        console.log(`[ChatbotService] 📤 Tentativa ${attempt}/${maxRetries} de enviar mensagem para ${phone}`);
-        const result = await this.wahaAPI.sendText(phone, text, conversationId);
+        console.log(`[ChatbotService] 📤 Tentativa ${attempt}/${maxRetries} de enviar mensagem para ${phone} na instância ${instanceName}`);
+        const result = await this.wahaAPI.sendText(phone, text, instanceName, conversationId);
         console.log(`[ChatbotService] ✅ Mensagem enviada com sucesso na tentativa ${attempt}`);
         
         // Save bot message to database and broadcast (only if conversationId is provided)

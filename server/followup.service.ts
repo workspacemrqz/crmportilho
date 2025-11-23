@@ -96,6 +96,7 @@ export class FollowupService {
           id: conversations.id,
           leadId: conversations.leadId,
           protocol: conversations.protocol,
+          instanceName: conversations.instanceName,
           lastActivity: conversations.lastActivity,
           leadPhone: leads.whatsappPhone,
           leadName: leads.whatsappName,
@@ -130,6 +131,7 @@ export class FollowupService {
       id: string;
       leadId: string;
       protocol: string;
+      instanceName: string;
       lastActivity: Date | null;
       leadPhone: string | null;
       leadName: string | null;
@@ -306,6 +308,7 @@ export class FollowupService {
       id: string;
       leadId: string;
       protocol: string;
+      instanceName: string;
       leadPhone: string | null;
       leadName: string | null;
     },
@@ -347,6 +350,7 @@ export class FollowupService {
         await this.wahaService.sendText(
           conversation.leadPhone,
           messageWithPlaceholders,
+          conversation.instanceName,
           conversation.id
         );
       } else if (this.evolutionService) {

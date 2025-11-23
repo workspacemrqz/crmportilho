@@ -26,7 +26,6 @@ export async function validateWebhookAuth(req: AuthenticatedRequest, res: Respon
   try {
     // Check for WAHA API credentials (primary)
     const wahaApiKey = process.env.WAHA_API_KEY;
-    const wahaInstance = process.env.WAHA_INSTANCIA;
     
     // Check for Evolution API credentials (backward compatibility)
     const evolutionKey = process.env.EVOLUTION_KEY;

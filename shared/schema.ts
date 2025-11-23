@@ -122,6 +122,7 @@ export const conversations = pgTable("conversations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   leadId: varchar("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
   protocol: varchar("protocol").notNull(),
+  instanceName: varchar("instance_name").notNull().default('default'),
   status: conversationStatusEnum("status").notNull().default("active"),
   currentMenu: text("current_menu"),
   currentStep: text("current_step"),

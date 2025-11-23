@@ -319,6 +319,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 conversation = await storage.createConversation({
                   leadId: lead.id,
                   protocol: lead.protocol,
+                  instanceName: instanceName,
                   status: 'active',
                   currentMenu: 'initial',
                   currentStep: 'welcome'
@@ -415,6 +416,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 conversation = await storage.createConversation({
                   leadId: lead.id,
                   protocol: lead.protocol,
+                  instanceName: instanceName,
                   status: 'active',
                   currentMenu: 'initial',
                   currentStep: 'welcome'
@@ -622,11 +624,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
           source: 'waha-api'
         });
 
-        // Process message through chatbot
+        // Check if chatbot is enabled for this instance
+        const instance = await storage.getInstance(instanceName);
+        if (!instance) {
+          console.error(`[WAHA-WEBHOOK] ❌ Instance '${instanceName}' not found in database`);
+          return res.status(404).json({ 
+            error: 'Instance not found',
+            message: `Instance '${instanceName}' not found in database`
+          });
+        }
+
+        if (!instance.chatbotEnabled) {
+          console.log(`[WAHA-WEBHOOK] ⚠️ Chatbot disabled for instance '${instanceName}' - logging message only`);
+          logSecurityEvent('WEBHOOK_CHATBOT_DISABLED', {
+            ip: req.ip,
+            instanceName,
+            phone: phone.substring(0, 6) + '***',
+            messageType: parsedMessage.type,
+            message: 'Chatbot is disabled for this instance - message not processed'
+          });
+          
+          return res.status(200).json({ 
+            status: 'ignored',
+            reason: 'chatbot-disabled',
+            instanceName,
+            timestamp: new Date().toISOString()
+          });
+        }
+
+        console.log(`[WAHA-WEBHOOK] ✅ Chatbot enabled for instance '${instanceName}' - processing message`);
+
+        // Process message through chatbot with instance name
         await chatbotService.processIncomingMessage(
           phone,
           messageContent || parsedMessage.message,
-          parsedMessage
+          parsedMessage,
+          instanceName
         );
 
         res.status(200).json({ 
@@ -2531,67 +2564,10 @@ Retorne APENAS o JSON array, sem texto adicional.`;
     }
   });
 
-  // WhatsApp/WAHA Session Management endpoints (deprecated - use instance-specific endpoints instead)
-  app.get('/api/whatsapp/status', requireAuth, async (req: Request, res: Response) => {
-    try {
-      const defaultInstance = process.env.WAHA_INSTANCIA || 'default';
-      const status = await wahaAPI.getSessionStatus(defaultInstance);
-      if (!status) {
-        return res.status(500).json({ error: 'Failed to get WhatsApp session status' });
-      }
-      res.json(status);
-    } catch (error) {
-      console.error('Error fetching WhatsApp status:', error);
-      res.status(500).json({ error: 'Failed to fetch WhatsApp status' });
-    }
-  });
-
-  app.post('/api/whatsapp/start', requireAuth, async (req: Request, res: Response) => {
-    try {
-      const defaultInstance = process.env.WAHA_INSTANCIA || 'default';
-      const success = await wahaAPI.startSession(defaultInstance);
-      if (!success) {
-        return res.status(500).json({ error: 'Failed to start WhatsApp session' });
-      }
-      res.json({ success: true, message: 'Session started successfully' });
-    } catch (error) {
-      console.error('Error starting WhatsApp session:', error);
-      res.status(500).json({ error: 'Failed to start WhatsApp session' });
-    }
-  });
-
-  app.post('/api/whatsapp/stop', requireAuth, async (req: Request, res: Response) => {
-    try {
-      const defaultInstance = process.env.WAHA_INSTANCIA || 'default';
-      const success = await wahaAPI.stopSession(defaultInstance);
-      if (!success) {
-        return res.status(500).json({ error: 'Failed to stop WhatsApp session' });
-      }
-      res.json({ success: true, message: 'Session stopped successfully' });
-    } catch (error) {
-      console.error('Error stopping WhatsApp session:', error);
-      res.status(500).json({ error: 'Failed to stop WhatsApp session' });
-    }
-  });
-
-  app.post('/api/whatsapp/logout', requireAuth, async (req: Request, res: Response) => {
-    try {
-      const defaultInstance = process.env.WAHA_INSTANCIA || 'default';
-      const success = await wahaAPI.logoutSession(defaultInstance);
-      if (!success) {
-        return res.status(500).json({ error: 'Failed to logout WhatsApp session' });
-      }
-      res.json({ success: true, message: 'Session logged out successfully' });
-    } catch (error) {
-      console.error('Error logging out WhatsApp session:', error);
-      res.status(500).json({ error: 'Failed to logout WhatsApp session' });
-    }
-  });
-
   // Chatbot test endpoint - simulates incoming messages
   app.post('/api/chatbot/test-message', async (req: Request, res: Response) => {
     try {
-      const { phone, message } = req.body;
+      const { phone, message, instanceName } = req.body;
       
       if (!phone || !message) {
         return res.status(400).json({ 
@@ -2600,7 +2576,9 @@ Retorne APENAS o JSON array, sem texto adicional.`;
         });
       }
 
-      console.log(`[TEST-CHATBOT] Simulating message from ${phone}: ${message}`);
+      // Use default instance if not provided
+      const instance = instanceName || 'default';
+      console.log(`[TEST-CHATBOT] Simulating message from ${phone} on instance ${instance}: ${message}`);
       
       // Process the message through the chatbot service
       await chatbotService.processIncomingMessage(
@@ -2610,7 +2588,8 @@ Retorne APENAS o JSON array, sem texto adicional.`;
           test: true,
           timestamp: new Date().toISOString(),
           source: 'test-interface'
-        }
+        },
+        instance
       );
       
       // Give the chatbot a moment to process and respond
