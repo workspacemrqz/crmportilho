@@ -29,13 +29,21 @@ export function WahaConfigDialog({
   initialWebhooks = [],
 }: WahaConfigDialogProps) {
   const { toast } = useToast();
-  const [webhooks, setWebhooks] = useState<string[]>(initialWebhooks.length > 0 ? initialWebhooks : [""]);
+  const defaultWebhook = `${window.location.origin}/api/webhook/waha`;
+  const [webhooks, setWebhooks] = useState<string[]>(
+    initialWebhooks.length > 0 ? initialWebhooks : [defaultWebhook]
+  );
   const [isSaving, setIsSaving] = useState(false);
 
   // Reset state when dialog opens or props change
   useEffect(() => {
     if (open) {
-      setWebhooks(initialWebhooks.length > 0 ? initialWebhooks : [""]);
+      if (initialWebhooks.length > 0) {
+        setWebhooks(initialWebhooks);
+      } else {
+        const defaultWebhook = `${window.location.origin}/api/webhook/waha`;
+        setWebhooks([defaultWebhook]);
+      }
     }
   }, [open, initialWebhooks]);
 
