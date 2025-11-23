@@ -2350,6 +2350,7 @@ Lembre-se: Use EXATAMENTE os stepIds disponíveis listados acima. Se não for ne
         await this.sendMessageWithRetry(
           lead.whatsappPhone,
           'Olá! 👋 Estamos com um problema técnico temporário. Por favor, aguarde um momento ou digite "humano" para falar com um atendente.',
+          instanceName,
           conversation.id
         );
       } catch (sendError) {
