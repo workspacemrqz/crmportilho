@@ -10,6 +10,16 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Changes
 
+## November 23, 2025 - Enhanced Tag Replacement System
+- Added two new functional tags for chatbot and follow-up messages:
+  - `[DD/MM/AAAA]`: Automatically replaced with current date in São Paulo timezone (DD/MM/YYYY format)
+  - `[NÚMERO_DO_PROTOCOLO]`: Automatically replaced with client's protocol number (auto-generates in YYYY-NNN format if missing)
+- Modified `replacePlaceholders` method in ChatbotService and FollowupService to support new tags
+- All tag replacement operations are now async to support protocol generation via database queries
+- Updated UI documentation in NodeEditPanel (fluxo page) and followup page to list all available tags
+- Existing `{nome}` tag functionality preserved and working
+- Note: Protocol generation uses sequential numbering per year; consider adding locking mechanism for high-concurrency scenarios
+
 ## November 23, 2025 - WhatsApp Instance Management
 - Added new "Instâncias" page for managing WhatsApp connections via WAHA API
 - Implemented database schema for tracking instances (UUID-based with status and timestamps)
