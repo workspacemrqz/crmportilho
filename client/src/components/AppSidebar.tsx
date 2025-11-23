@@ -10,8 +10,9 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { LayoutDashboard, Users, MessageSquare, FileText, Workflow, Clock, Smartphone } from "lucide-react";
+import { LayoutDashboard, MessageSquare, FileText, Workflow, Clock, Smartphone } from "lucide-react";
 import logo from "@/assets/Logo Seguro IA.png";
+import clientesIcon from "@/assets/Icones/Clientes.svg";
 import { Badge } from "@/components/ui/badge";
 
 const menuItems = [
@@ -23,7 +24,8 @@ const menuItems = [
   {
     title: "Clientes",
     url: "/clientes",
-    icon: Users,
+    icon: clientesIcon,
+    isImage: true,
   },
   {
     title: "Conversas",
@@ -69,7 +71,11 @@ export function AppSidebar() {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <a href={item.url} data-testid={`link-${item.title.toLowerCase().replace(/\s+/g, '-')}`}>
-                      <item.icon className="h-4 w-4" />
+                      {item.isImage ? (
+                        <img src={item.icon} alt={item.title} className="h-4 w-4" />
+                      ) : (
+                        <item.icon className="h-4 w-4" />
+                      )}
                       <span>{item.title}</span>
                     </a>
                   </SidebarMenuButton>
