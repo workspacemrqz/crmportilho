@@ -166,6 +166,7 @@ export interface IStorage {
   getInstance(name: string): Promise<Instance | undefined>;
   createInstance(data: InsertInstance): Promise<Instance>;
   updateInstanceStatus(name: string, status: string): Promise<Instance | undefined>;
+  updateInstanceToggles(name: string, chatbotEnabled?: boolean, followupEnabled?: boolean): Promise<Instance | undefined>;
   deleteInstance(name: string): Promise<void>;
 
   // Dashboard stats
@@ -850,6 +851,25 @@ export class PgStorage implements IStorage {
     const [result] = await db
       .update(instances)
       .set({ status, updatedAt: new Date() })
+      .where(eq(instances.name, name))
+      .returning();
+    return result;
+  }
+
+  async updateInstanceToggles(name: string, chatbotEnabled?: boolean, followupEnabled?: boolean): Promise<Instance | undefined> {
+    const updates: any = { updatedAt: new Date() };
+    
+    if (chatbotEnabled !== undefined) {
+      updates.chatbotEnabled = chatbotEnabled;
+    }
+    
+    if (followupEnabled !== undefined) {
+      updates.followupEnabled = followupEnabled;
+    }
+    
+    const [result] = await db
+      .update(instances)
+      .set(updates)
       .where(eq(instances.name, name))
       .returning();
     return result;

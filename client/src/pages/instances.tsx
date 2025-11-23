@@ -6,8 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Plus, RefreshCw, Smartphone, Trash2 } from "lucide-react";
+import { Loader2, Plus, RefreshCw, Smartphone, Trash2, MessageSquare, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -185,6 +186,58 @@ export default function Instances() {
     }
   };
 
+  const handleToggleChatbot = async (instanceName: string, enabled: boolean) => {
+    try {
+      const response = await apiRequest('PATCH', `/api/instancias/${instanceName}/toggles`, {
+        chatbotEnabled: enabled
+      });
+      
+      if (!response) {
+        throw new Error('Falha ao atualizar chatbot');
+      }
+      
+      toast({
+        title: enabled ? "Chatbot ativado" : "Chatbot desativado",
+        description: `O chatbot foi ${enabled ? 'ativado' : 'desativado'} para esta instância.`,
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ['/api/instancias'] });
+    } catch (error) {
+      console.error('Error toggling chatbot:', error);
+      toast({
+        title: "Erro ao atualizar chatbot",
+        description: "Não foi possível atualizar o chatbot. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleToggleFollowup = async (instanceName: string, enabled: boolean) => {
+    try {
+      const response = await apiRequest('PATCH', `/api/instancias/${instanceName}/toggles`, {
+        followupEnabled: enabled
+      });
+      
+      if (!response) {
+        throw new Error('Falha ao atualizar follow-up');
+      }
+      
+      toast({
+        title: enabled ? "Follow-up ativado" : "Follow-up desativado",
+        description: `O follow-up foi ${enabled ? 'ativado' : 'desativado'} para esta instância.`,
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ['/api/instancias'] });
+    } catch (error) {
+      console.error('Error toggling followup:', error);
+      toast({
+        title: "Erro ao atualizar follow-up",
+        description: "Não foi possível atualizar o follow-up. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleCreate = () => {
     if (!newInstanceName.trim()) {
       toast({
@@ -352,30 +405,63 @@ export default function Instances() {
                   Criado em {new Date(instance.createdAt).toLocaleDateString('pt-BR')}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-2">
-                {instance.status === 'STOPPED' && (
-                  <Button
-                    data-testid={`button-start-${instance.name}`}
-                    variant="default"
-                    className="w-full"
-                    onClick={() => startInstance(instance.name)}
-                  >
-                    <Smartphone className="w-4 h-4 mr-2" />
-                    Iniciar Instância
-                  </Button>
-                )}
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <MessageSquare className="w-4 h-4 text-muted-foreground" />
+                      <Label htmlFor={`chatbot-${instance.name}`} className="text-sm font-medium">
+                        Chatbot
+                      </Label>
+                    </div>
+                    <Switch
+                      id={`chatbot-${instance.name}`}
+                      data-testid={`switch-chatbot-${instance.name}`}
+                      checked={instance.chatbotEnabled}
+                      onCheckedChange={(checked) => handleToggleChatbot(instance.name, checked)}
+                    />
+                  </div>
+                  
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-muted-foreground" />
+                      <Label htmlFor={`followup-${instance.name}`} className="text-sm font-medium">
+                        Follow-up
+                      </Label>
+                    </div>
+                    <Switch
+                      id={`followup-${instance.name}`}
+                      data-testid={`switch-followup-${instance.name}`}
+                      checked={instance.followupEnabled}
+                      onCheckedChange={(checked) => handleToggleFollowup(instance.name, checked)}
+                    />
+                  </div>
+                </div>
 
-                {instance.status === 'FAILED' && (
-                  <Button
-                    data-testid={`button-restart-${instance.name}`}
-                    variant="default"
-                    className="w-full"
-                    onClick={() => restartInstance(instance.name)}
-                  >
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Tentar Novamente
-                  </Button>
-                )}
+                <div className="space-y-2">
+                  {instance.status === 'STOPPED' && (
+                    <Button
+                      data-testid={`button-start-${instance.name}`}
+                      variant="default"
+                      className="w-full"
+                      onClick={() => startInstance(instance.name)}
+                    >
+                      <Smartphone className="w-4 h-4 mr-2" />
+                      Iniciar Instância
+                    </Button>
+                  )}
+
+                  {instance.status === 'FAILED' && (
+                    <Button
+                      data-testid={`button-restart-${instance.name}`}
+                      variant="default"
+                      className="w-full"
+                      onClick={() => restartInstance(instance.name)}
+                    >
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Tentar Novamente
+                    </Button>
+                  )}
                 
                 {(instance.status === 'SCAN_QR_CODE' || instance.status === 'SCAN_QR' || instance.status === 'STARTING') && (
                   <Button
@@ -389,15 +475,16 @@ export default function Instances() {
                   </Button>
                 )}
 
-                <Button
-                  data-testid={`button-delete-${instance.name}`}
-                  variant="destructive"
-                  className="w-full"
-                  onClick={() => handleDeleteClick(instance.name)}
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Excluir Instância
-                </Button>
+                  <Button
+                    data-testid={`button-delete-${instance.name}`}
+                    variant="destructive"
+                    className="w-full"
+                    onClick={() => handleDeleteClick(instance.name)}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Excluir Instância
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}

@@ -10,6 +10,18 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Changes
 
+## November 23, 2025 - Per-Instance Chatbot and Follow-up Toggle Control
+- Extended instances schema with two new boolean fields:
+  - `chatbotEnabled` (default: false) - Controls whether chatbot responds to messages on this instance
+  - `followupEnabled` (default: false) - Controls whether follow-up messages are sent from this instance
+- Added PATCH /api/instancias/:name/toggles endpoint to update toggle states independently
+- Implemented toggle switches in instances UI with real-time updates:
+  - Chatbot toggle with MessageSquare icon
+  - Follow-up toggle with Clock icon
+  - Instant feedback via toast notifications
+- Updated storage interface with `updateInstanceToggles` method for selective field updates
+- Allows running multiple instances with different chatbot/follow-up configurations simultaneously
+
 ## November 23, 2025 - Enhanced Tag Replacement System
 - Added two new functional tags for chatbot and follow-up messages:
   - `[DD/MM/AAAA]`: Automatically replaced with current date in São Paulo timezone (DD/MM/YYYY format)

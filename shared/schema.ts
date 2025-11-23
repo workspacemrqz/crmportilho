@@ -597,6 +597,8 @@ export const instances = pgTable("instances", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: varchar("name", { length: 100 }).notNull().unique(),
   status: varchar("status", { length: 50 }).notNull(),
+  chatbotEnabled: boolean("chatbot_enabled").notNull().default(false),
+  followupEnabled: boolean("followup_enabled").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
 }, (table) => ({

@@ -2845,6 +2845,27 @@ Retorne APENAS o JSON array, sem texto adicional.`;
     }
   });
 
+  app.patch('/api/instancias/:name/toggles', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { name } = req.params;
+      const { chatbotEnabled, followupEnabled } = req.body;
+
+      // Check if instance exists in database
+      const instance = await storage.getInstance(name);
+      if (!instance) {
+        return res.status(404).json({ error: 'Instância não encontrada' });
+      }
+
+      // Update toggles
+      const updated = await storage.updateInstanceToggles(name, chatbotEnabled, followupEnabled);
+
+      res.json(updated);
+    } catch (error) {
+      console.error('Error updating instance toggles:', error);
+      res.status(500).json({ error: 'Falha ao atualizar configurações da instância' });
+    }
+  });
+
   app.delete('/api/instancias/:name', requireAuth, async (req: Request, res: Response) => {
     try {
       const { name } = req.params;
