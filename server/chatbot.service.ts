@@ -328,8 +328,8 @@ export class ChatbotService {
       this.settingsCacheTime = Date.now();
       console.log(`[ChatbotService] Buffer timeout set to ${settings.bufferTimeoutSeconds} seconds`);
     } catch (error) {
-      console.error('[ChatbotService] Error loading settings, using default 30s:', error);
-      this.bufferTimeoutMs = 30000;
+      console.error('[ChatbotService] Error loading settings, using default 10s:', error);
+      this.bufferTimeoutMs = 10000;
     }
   }
 
