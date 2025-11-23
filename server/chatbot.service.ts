@@ -2102,271 +2102,50 @@ Lembre-se: Use EXATAMENTE os stepIds disponíveis listados acima. Se não for ne
     instanceName: string
   ) {
     const state = chatbotState.currentState;
-
-    switch(state) {
-      case 'initial':
-        await this.handleInitialState(lead, conversation, chatbotState, instanceName);
-        break;
-      
-      case 'menu_selection':
-        await this.handleMenuSelection(lead, conversation, chatbotState, messageContent, instanceName);
-        break;
-      
-      case 'menu1_como_conheceu':
-        await this.handleMenu1ComoConheceu(lead, conversation, chatbotState, messageContent, instanceName);
-        break;
-      
-      case 'menu1_seguros_novos':
-        await this.handleMenu1SegurosNovos(lead, conversation, chatbotState, messageContent, instanceName);
-        break;
-      
-      case 'menu1_tipo_seguro':
-        await this.handleMenu1TipoSeguro(lead, conversation, chatbotState, messageContent, instanceName);
-        break;
-      
-      case 'menu2_autorio_status':
-        await this.handleMenu2AutorioStatus(lead, conversation, chatbotState, messageContent, instanceName);
-        break;
-      
-      case 'menu2_autorio_quando_pega':
-        await this.handleMenu2AutorioQuandoPega(lead, conversation, chatbotState, messageContent, instanceName);
-        break;
-      
-      case 'fluxo_auto_status':
-        await this.handleFluxoAutoStatus(lead, conversation, chatbotState, messageContent, instanceName);
-        break;
-      
-      case 'fluxo_auto_dados_pessoais':
-        await this.handleFluxoAutoDadosPessoais(lead, conversation, chatbotState, messageContent, instanceName);
-        break;
-      
-      case 'fluxo_auto_dados_pessoais_confirmacao':
-        await this.handleFluxoAutoDadosPessoaisConfirmacao(lead, conversation, chatbotState, messageContent, instanceName);
-        break;
-      
-      case 'fluxo_auto_dados_veiculo':
-        await this.handleFluxoAutoDadosVeiculo(lead, conversation, chatbotState, messageContent, instanceName);
-        break;
-      
-      case 'dados_veiculo_estacionamento':
-        await this.handleDadosVeiculoEstacionamento(lead, conversation, chatbotState, messageContent, instanceName);
-        break;
-      
-      case 'dados_veiculo_portao':
-        await this.handleDadosVeiculoPortao(lead, conversation, chatbotState, messageContent, instanceName);
-        break;
-      
-      case 'dados_veiculo_trabalho_estudo':
-        await this.handleDadosVeiculoTrabalhoEstudo(lead, conversation, chatbotState, messageContent, instanceName);
-        break;
-      
-      case 'dados_veiculo_moradia':
-        await this.handleDadosVeiculoMoradia(lead, conversation, chatbotState, messageContent, instanceName);
-        break;
-      
-      case 'dados_veiculo_carro_reserva':
-        await this.handleDadosVeiculoCarroReserva(lead, conversation, chatbotState, messageContent, instanceName);
-        break;
-      
-      case 'dados_veiculo_reboque':
-        await this.handleDadosVeiculoReboque(lead, conversation, chatbotState, messageContent, instanceName);
-        break;
-      
-      case 'dados_veiculo_condutor_menor_25':
-        await this.handleDadosVeiculoCondutorMenor25(lead, conversation, chatbotState, messageContent, instanceName);
-        break;
-      
-      case 'dados_veiculo_tipo_uso':
-        await this.handleDadosVeiculoTipoUso(lead, conversation, chatbotState, messageContent, instanceName);
-        break;
-
-      case 'menu3_renovacao':
-        await this.handleMenu3Renovacao(lead, conversation, chatbotState, messageContent, instanceName);
-        break;
-
-      case 'menu4_endosso':
-        await this.handleMenu4Endosso(lead, conversation, chatbotState, messageContent, instanceName);
-        break;
-
-      case 'menu5_parcelas':
-        await this.handleMenu5Parcelas(lead, conversation, chatbotState, messageContent, instanceName);
-        break;
-
-      case 'menu6_sinistros':
-        await this.handleMenu6Sinistros(lead, conversation, chatbotState, messageContent, instanceName);
-        break;
-      
-      case 'aguardando_apolice':
-        await this.handleAguardandoApolice(lead, conversation, chatbotState, messageContent, instanceName);
-        break;
-      
-      case 'fluxo_auto_quando_pega':
-        await this.handleFluxoAutoQuandoPega(lead, conversation, chatbotState, messageContent, instanceName);
-        break;
-      
-      case 'aguardando_identificador':
-        await this.handleAguardandoIdentificador(lead, conversation, chatbotState, messageContent, instanceName);
-        break;
-      
-      case 'aguardando_identificador_parcelas':
-        await this.handleAguardandoIdentificadorParcelas(lead, conversation, chatbotState, messageContent, instanceName);
-        break;
-      
-      case 'aguardando_identificador_sinistros':
-        await this.handleAguardandoIdentificadorSinistros(lead, conversation, chatbotState, messageContent, instanceName);
-        break;
-      
-      case 'endosso_item':
-        await this.handleEndossoItem(lead, conversation, chatbotState, messageContent, instanceName);
-        break;
-      
-      case 'aguardando_documentos':
-        await this.handleAguardandoDocumentos(lead, conversation, chatbotState, messageContent, instanceName);
-        break;
-      
-      case 'conversa_finalizada':
-        // Don't respond to finalized conversations
-        console.log(`[ChatbotService] 🏁 Conversa finalizada - não responder automaticamente | Lead: ${lead.protocol}`);
-        const context = chatbotState.context as any;
-        console.log('[ChatbotService] 📊 Motivo da finalização:', context?.finalReason || 'não especificado');
-        // Simply return without sending any message
-        return;
-      
-      default:
-        console.log(`[ChatbotService] ⚠️ Estado desconhecido: ${state}`);
-        console.log('[ChatbotService] 📊 Transferindo para atendimento humano ao invés de resetar.');
-        
-        await this.wahaAPI.sendText(
-          lead.whatsappPhone,
-          'Encontrei um problema técnico. Vou transferir você para um atendente humano. Aguarde um momento, por favor.',
-          instanceName,
-          conversation.id
-        );
-        
-        // SEMPRE transferir para humano, NUNCA resetar
-        await this.handleHumanHandoff(lead, conversation, 'Estado desconhecido', instanceName);
+    
+    console.log(`[ChatbotService] 📍 processStateMachine - Estado atual: ${state}`);
+    console.log('[ChatbotService] 🚫 DESABILITADO: Todo sistema hardcoded de estados foi removido');
+    console.log('[ChatbotService] 📌 Configure um fluxo em /fluxo para habilitar respostas automáticas');
+    console.log('[ChatbotService] ℹ️ Sistema funciona EXCLUSIVAMENTE com fluxos configuráveis');
+    
+    // COMPLETELY DISABLED: Old hardcoded state machine logic has been removed
+    // All conversation flows MUST be configured via the /fluxo page
+    // This function now does NOTHING except log that it's disabled
+    
+    // Only handle finalized conversations (to prevent bot from responding)
+    if (state === 'conversa_finalizada') {
+      console.log(`[ChatbotService] 🏁 Conversa finalizada - não responder automaticamente | Lead: ${lead.protocol}`);
+      const context = chatbotState.context as any;
+      console.log('[ChatbotService] 📊 Motivo da finalização:', context?.finalReason || 'não especificado');
+      return;
     }
+    
+    // For all other states: do nothing
+    // The configurable flow system (processWithConfigurableFlow) handles everything
+    console.log(`[ChatbotService] ⏸️ Estado "${state}" - processStateMachine não faz nada, fluxo configurável deve gerenciar`);
   }
 
   private async handleInitialState(lead: Lead, conversation: Conversation, chatbotState: ChatbotState, instanceName: string) {
     try {
       console.log(`[ChatbotService] 📍 Estado: INICIAL | Lead: ${lead.protocol}`);
-      console.log(`[ChatbotService] 🔍 Verificando se é primeira vez...`);
-      console.log('[ChatbotService] 📊 Dados coletados no estado:', JSON.stringify(chatbotState.collectedData));
+      console.log('[ChatbotService] 🎯 Inicializando estado sem enviar mensagens hardcoded');
       
-      // PROTEÇÃO CRÍTICA: Se há dados coletados, NUNCA enviar mensagem inicial
-      const collectedData = chatbotState.collectedData as ChatbotCollectedData;
-      if (collectedData && Object.keys(collectedData).length > 0) {
-        console.log('[ChatbotService] ⚠️ ALERTA CRÍTICO: Estado "initial" mas já há dados coletados!');
-        console.log('[ChatbotService] 🛡️ PROTEÇÃO ATIVADA: Não enviar boas-vindas, determinar estado apropriado');
-        console.log('[ChatbotService] 📊 Dados encontrados:', Object.keys(collectedData));
-        
-        // Determinar o estado apropriado baseado nos dados
-        let appropriateState = 'menu_selection';
-        let message = 'Desculpe pela interrupção. Vamos continuar de onde paramos.\n\n';
-        
-        if (collectedData.dadosPessoais && collectedData.dadosVeiculo) {
-          appropriateState = 'aguardando_documentos';
-          message += 'Você já forneceu seus dados pessoais e do veículo. Por favor, envie os documentos solicitados.';
-        } else if (collectedData.dadosPessoais) {
-          appropriateState = 'fluxo_auto_dados_pessoais_confirmacao';
-          message += 'Você já forneceu seus dados pessoais. Os dados estão corretos ou deseja alterar algo?';
-        } else if (collectedData.veiculoComCliente !== undefined) {
-          appropriateState = 'fluxo_auto_dados_pessoais';
-          message += 'Vamos continuar coletando seus dados pessoais. Por favor, informe os dados solicitados.';
-        } else if (collectedData.tipoSeguro) {
-          appropriateState = 'fluxo_auto_status';
-          message += 'Você escolheu seguro Auto. O veículo já está com você ou quando você irá pegá-lo?';
-        } else if (collectedData.escolha) {
-          appropriateState = 'menu1_tipo_seguro';
-          message += 'Qual tipo de seguro você deseja fazer?';
-        } else {
-          message += await this.getMessageTemplate('MENSAGEM2');
-        }
-        
-        console.log(`[ChatbotService] 🔧 Corrigindo estado de "initial" para "${appropriateState}"`);
-        
-        // Enviar mensagem apropriada
-        await this.wahaAPI.sendText(lead.whatsappPhone, message, instanceName, conversation.id);
-        
-        // Atualizar estado
-        await this.updateChatbotState(chatbotState.id, {
-          currentState: appropriateState,
-          context: { ...(chatbotState.context || {}), recoveredFromInitial: true }
-        });
-        
-        console.log('[ChatbotService] ✅ Estado recuperado com sucesso, continuando fluxo');
-        return;
-      }
-      
-      // Check if welcome was already sent (to avoid sending multiple times)
-      const context = chatbotState.context as ChatbotContext;
-      if (context?.welcomeSent) {
-        console.log('[ChatbotService] ⚠️ Mensagem de boas-vindas já foi enviada. Redirecionando para menu_selection.');
-        await this.updateChatbotState(chatbotState.id, {
-          currentState: 'menu_selection',
-          context: context
-        });
-        return;
-      }
-      
-      console.log('[ChatbotService] ✨ PRIMEIRA MENSAGEM DO CLIENTE! Enviando MENSAGEM1 e MENSAGEM2...');
-      
-      // Prepare both messages with state indicator
-      const message1 = await this.fillTemplate('MENSAGEM1', {
-        '[NOME_DA_IA]': 'Serena',
-        '[NÚMERO_DO_PROTOCOLO]': lead.protocol,
-        '[DD/MM/AAAA]': new Date().toLocaleDateString('pt-BR')
-      });
-      
-      const message2 = await this.getMessageTemplate('MENSAGEM2');
-      
-      console.log('[ChatbotService] 📤 Enviando MENSAGEM1 para', lead.whatsappPhone);
-      await this.sendMessageWithRetry(lead.whatsappPhone, message1, instanceName, conversation.id);
-      console.log('[ChatbotService] ✅ MENSAGEM1 enviada com sucesso');
-      
-      // Small delay to ensure proper ordering
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      console.log('[ChatbotService] 📤 Enviando MENSAGEM2 para', lead.whatsappPhone);
-      await this.sendMessageWithRetry(lead.whatsappPhone, message2, instanceName, conversation.id);
-      console.log('[ChatbotService] ✅ MENSAGEM2 enviada com sucesso');
-      
-      // Store that both messages were sent
-      await db.insert(messages).values([
-        {
-          conversationId: conversation.id,
-          content: '[SISTEMA] Fluxo Inicial - MENSAGEM1 e MENSAGEM2 enviadas | Estado: initial → menu_selection',
-          isBot: true,
-          messageType: 'system'
-        }
-      ]);
-
-      // Update state to wait for menu selection
+      // NEVER send hardcoded messages - flow configuration must handle everything
+      // Just initialize minimal state
       await this.updateChatbotState(chatbotState.id, {
-        currentState: 'menu_selection',
         context: { 
           welcomeSent: true,
           welcomeSentAt: Date.now(),
-          lastMessageTime: Date.now()
+          lastMessageTime: Date.now(),
+          initialized: true
         }
       });
       
-      console.log('[ChatbotService] ✅ Transição completada: initial → menu_selection');
-      console.log('[ChatbotService] 📍 Aguardando escolha do cliente no Menu Principal');
+      console.log('[ChatbotService] ✅ Estado inicializado - sistema de fluxo configurável tomará controle');
+      console.log('[ChatbotService] ℹ️ NENHUMA mensagem hardcoded enviada - apenas fluxos configurados em /fluxo podem enviar mensagens');
     } catch (error) {
       console.error('[ChatbotService] ❌ Erro em handleInitialState:', error);
-      // Try to inform the user about the error
-      try {
-        await this.sendMessageWithRetry(
-          lead.whatsappPhone,
-          'Olá! 👋 Estamos com um problema técnico temporário. Por favor, aguarde um momento ou digite "humano" para falar com um atendente.',
-          instanceName,
-          conversation.id
-        );
-      } catch (sendError) {
-        console.error('[ChatbotService] ❌ Não foi possível enviar mensagem de erro:', sendError);
-      }
+      // Don't send any hardcoded error messages - let the system handle it
       throw error;
     }
   }
@@ -2387,16 +2166,9 @@ Lembre-se: Use EXATAMENTE os stepIds disponíveis listados acima. Se não for ne
       
       switch(userIntent) {
         case '1':
-          // Send ONLY "Como conheceu a Portilho?" question (as per instruções.txt)
-          const menu1Message = `Perfeito! 😄 Antes de começarmos, como você conheceu a Portilho?
-💚 Será um prazer ajudar você a garantir tranquilidade e segurança.`;
-          
-          await this.sendMessageWithRetry(lead.whatsappPhone, menu1Message, instanceName, conversation.id);
-          await this.updateChatbotState(chatbotState.id, {
-            currentState: 'menu1_como_conheceu',
-            menuSelections: { mainMenu: '1' }
-          });
-          console.log(`[ChatbotService] ✅ Transição para: menu1_como_conheceu`);
+          // REMOVED: Old hardcoded Portilho pre-qualification flow
+          // All menu handling should now be done through flow configuration
+          console.log(`[ChatbotService] ⚠️ Menu option 1 selected but hardcoded flow disabled - use flow configuration instead`);
           break;
         
         case '2':
@@ -2478,81 +2250,11 @@ O veículo já está com você ou quando você irá pegá-lo?`;
     messageContent: string,
     instanceName: string
   ) {
-    try {
-      console.log(`[ChatbotService] 📍 Estado: menu1_como_conheceu | Lead: ${lead.protocol}`);
-      
-      // Save how the customer found out about Portilho
-      const comoConheceu = messageContent;
-      console.log(`[ChatbotService] 💚 Cliente conheceu via: ${comoConheceu}`);
-      
-      // Save to collectedData
-      await this.updateChatbotState(chatbotState.id, {
-        collectedData: { 
-          ...(chatbotState.collectedData as ChatbotCollectedData || {}), 
-          comoConheceu 
-        }
-      });
-      
-      // Use AI to understand if user wants "seguro novo" or "cotação de outra"
-      const userIntent = await this.understandMenu1Intent(messageContent);
-      console.log(`[ChatbotService] 🤖 IA entendeu intenção em Como Conheceu: ${userIntent}`);
-
-      if (userIntent === 'seguro_novo') {
-        // Ask about insurance type
-        const tipoSeguroMessage = `Agora me diga, qual tipo de seguro você deseja fazer?
-Trabalhamos com:
-🚗 Auto
-🚙 Frota
-🏠 Residencial
-🏢 Empresarial
-❤️ Vida
-✈️ Viagem
-💼 RC Profissional
-🔑 Seguro Fiança
-⚙️ Equipamentos / Máquinas Agrícolas`;
-
-        await this.sendMessageWithRetry(lead.whatsappPhone, tipoSeguroMessage, instanceName, conversation.id);
-        await this.updateChatbotState(chatbotState.id, {
-          currentState: 'menu1_tipo_seguro',
-          collectedData: { ...(chatbotState.collectedData as ChatbotCollectedData || {}), escolha: 'seguro_novo' }
-        });
-        console.log(`[ChatbotService] ✅ Transição para: menu1_tipo_seguro`);
-        
-      } else if (userIntent === 'cotacao_outra') {
-        // For quote from another broker
-        const cotacaoMessage = `Entendi! 😊 Para que possamos analisar e oferecer a melhor proposta, poderia, por favor, enviar a apólice atual, caso tenha?
-
-📌 Observação: Se você não tiver a apólice, ainda podemos ajudá-lo, mas com menos detalhes iniciais.
-
-Para agilizar, você deseja manter todos os dados da ficha cadastral do item segurado e das coberturas exatamente como estão na apólice enviada?
-🔘 Sim, manter os dados
-🔘 Não, desejo revisar ou atualizar alguns dados`;
-
-        await this.sendMessageWithRetry(lead.whatsappPhone, cotacaoMessage, instanceName, conversation.id);
-        await this.updateChatbotState(chatbotState.id, {
-          currentState: 'aguardando_apolice',
-          collectedData: { ...(chatbotState.collectedData as ChatbotCollectedData || {}), escolha: 'cotacao_outra' }
-        });
-        console.log(`[ChatbotService] ✅ Transição para: aguardando_apolice`);
-        
-      } else {
-        // If not understood, re-ask
-        const resendMessage = `Por favor, me informe se você deseja:
-🔘 Fazer um seguro novo
-🔘 Fazer cotação de um seguro de outra seguradora`;
-        
-        await this.sendMessageWithRetry(lead.whatsappPhone, resendMessage, instanceName, conversation.id);
-        console.log(`[ChatbotService] ⚠️ Intenção não clara, reenviando opções`);
-      }
-    } catch (error) {
-      console.error('[ChatbotService] ❌ Erro em handleMenu1ComoConheceu:', error);
-      await this.sendMessageWithRetry(
-        lead.whatsappPhone, 
-        'Desculpe, houve um erro ao processar sua resposta. Por favor, tente novamente ou digite "humano" para falar com um atendente.',
-        instanceName,
-        conversation.id
-      );
-    }
+    // REMOVED: Old hardcoded Portilho pre-qualification flow
+    // This state handler is disabled - all flows should be managed through flow configuration
+    console.log(`[ChatbotService] ⚠️ Estado menu1_como_conheceu alcançado mas está desabilitado`);
+    console.log(`[ChatbotService] 📌 Use o sistema de configuração de /fluxo ao invés de fluxos hardcoded`);
+    // Do nothing - let flow configuration handle this
   }
 
   private async handleMenu1SegurosNovos(
@@ -3941,9 +3643,7 @@ Mensagem do usuário: ${messageContent}`;
 - Nota fiscal ou chassi ou CRLV do veículo
 (Se enviar chassi ou placa, confirmar modelo e ano)
 
-Por favor, envie os documentos quando possível. Nossa equipe está analisando sua cotação e entraremos em contato em breve.
-
-Obrigado por escolher a Portilho Corretora! 💚`;
+Por favor, envie os documentos quando possível. Nossa equipe está analisando sua cotação e entraremos em contato em breve.`;
 
       await this.sendMessageWithRetry(lead.whatsappPhone, documentsMessage, instanceName, conversation.id);
       
@@ -4352,9 +4052,7 @@ RESPOSTA:`;
       
       if (lowercaseMessage.includes('sim') || lowercaseMessage.includes('manter')) {
         const confirmMessage = `Perfeito! Vou processar sua cotação mantendo os dados atuais da apólice.
-Nossa equipe irá analisar e entrar em contato em breve com as melhores opções. 💚
-
-Obrigado por escolher a Portilho Corretora!`;
+Nossa equipe irá analisar e entrar em contato em breve com as melhores opções.`;
         
         await this.sendMessageWithRetry(lead.whatsappPhone, confirmMessage, instanceName, conversation.id);
         await this.handleHumanHandoff(lead, conversation, 'Cotação de apólice - mantém dados atuais', instanceName);
@@ -4748,9 +4446,7 @@ Documento: Recebido`;
         const thankYouMessage = `Obrigado por enviar os documentos! 📄
 Nossa equipe irá analisar e entrar em contato em breve com sua cotação.
 
-Fique à vontade para enviar mais informações ou documentos se desejar.
-
-Agradecemos por escolher a Portilho Corretora! 💚`;
+Fique à vontade para enviar mais informações ou documentos se desejar.`;
         
         await this.sendMessageWithRetry(lead.whatsappPhone, thankYouMessage, instanceName, conversation.id);
         
@@ -4816,8 +4512,8 @@ Agradecemos por escolher a Portilho Corretora! 💚`;
     try {
       console.log('[ChatbotService] Generating AI response for context:', context);
       
-      const systemPrompt = `Você é Serena, assistente virtual da Portilho Corretora de Seguros.
-      Seja sempre amigável, profissional e use emojis moderadamente (💚 é o emoji da empresa).
+      const systemPrompt = `Você é uma assistente virtual de seguros.
+      Seja sempre amigável, profissional e use emojis moderadamente.
       Mantenha as respostas curtas e diretas, sempre em português brasileiro.
       Contexto: ${context}`;
 
@@ -5054,7 +4750,7 @@ Agradecemos por escolher a Portilho Corretora! 💚`;
     confidence: string;
   }> {
     try {
-      const systemPrompt = `Você é Serena, assistente virtual especializada em seguros da Portilho Corretora.
+      const systemPrompt = `Você é uma assistente virtual especializada em seguros.
 Sua tarefa é analisar a conversa e determinar o próximo passo correto no workflow de atendimento.
 
 WORKFLOW COMPLETO:
@@ -5068,7 +4764,6 @@ WORKFLOW COMPLETO:
    - Opção 6: Sinistros/Assistências (vai para MENU6_SINISTROS)
 
 3. MENU1_SEGUROS_NOVOS → Perguntar:
-   - "Como conheceu a Portilho?"
    - "Deseja fazer seguro novo ou cotação de outra seguradora?"
    
 4. MENU1_TIPO_SEGURO → Cliente escolhe tipo:
@@ -5449,7 +5144,7 @@ Retorne APENAS uma palavra: "sim", "não" ou "unclear".`;
   // Generate AI-powered contextual messages
   private async generateAIMessage(context: string, userMessage: string, instructions?: string): Promise<string> {
     try {
-      const systemPrompt = `Você é Serena, assistente virtual da Portilho Corretora de Seguros. 
+      const systemPrompt = `Você é uma assistente virtual de seguros. 
 Você é amigável, profissional e sempre usa emojis apropriados.
 Contexto atual: ${context}
 ${instructions ? `Instruções específicas: ${instructions}` : ''}
@@ -5473,16 +5168,9 @@ Responda de forma natural e humanizada, sempre mantendo o tom profissional.`;
     }
   }
 
-  // Generate AI response for Menu 1 (Seguros Novos)
-  private async generateMenu1Response(messageContent: string): Promise<string> {
-    const instructions = `O cliente está interessado em seguros novos. 
-Pergunte primeiro como conheceu a Portilho, depois se deseja:
-1. Fazer um seguro novo
-2. Fazer cotação de um seguro de outra seguradora
-Use emojis e seja acolhedora.`;
-    
-    return this.generateAIMessage('Menu de Seguros Novos', messageContent, instructions);
-  }
+  // COMPLETELY REMOVED: generateMenu1Response
+  // Old hardcoded Portilho pre-qualification flow has been removed
+  // All flows are now configured via /fluxo page
 
   private isHumanHandoffRequest(message: string): boolean {
     const lowercaseMessage = message.toLowerCase();
