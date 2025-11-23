@@ -163,11 +163,11 @@ export default function Instances() {
     setWahaConfigDialogOpen(true);
   };
 
-  const handleDeleteConfirm = async () => {
-    if (!instanceToDelete) return;
+  const handleDeleteConfirm = async (instanceName: string) => {
+    if (!instanceName) return;
 
     try {
-      const response = await fetch(`/api/instancias/${instanceToDelete}`, {
+      const response = await fetch(`/api/instancias/${instanceName}`, {
         method: 'DELETE'
       });
       
@@ -524,10 +524,7 @@ export default function Instances() {
                                   Cancelar
                                 </AlertDialogCancel>
                                 <AlertDialogAction
-                                  onClick={() => {
-                                    setInstanceToDelete(instance.name);
-                                    handleDeleteConfirm();
-                                  }}
+                                  onClick={() => handleDeleteConfirm(instance.name)}
                                   data-testid={`button-confirm-delete-${instance.name}`}
                                 >
                                   Excluir
