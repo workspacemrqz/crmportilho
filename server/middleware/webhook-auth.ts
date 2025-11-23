@@ -1,10 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
 import { log } from '../vite';
+import { storage } from '../storage';
 
 interface AuthenticatedRequest extends Request {
   isAuthenticated?: boolean;
   webhookSource?: string;
+  instanceName?: string;
 }
 
 // Security audit log function
@@ -46,26 +48,43 @@ export function validateWebhookAuth(req: AuthenticatedRequest, res: Response, ne
     
     // Method 1: Check WAHA API key (priority)
     if (wahaApiKey && apiKeyHeader === wahaApiKey) {
-      // Validate WAHA session/instance name if present in payload
-      if (wahaInstance && req.body?.session && req.body.session !== wahaInstance) {
-        logSecurityEvent('WEBHOOK_INVALID_SESSION', {
+      // Extract instance name from webhook payload
+      const instanceName = req.body?.session;
+      
+      if (!instanceName) {
+        logSecurityEvent('WEBHOOK_MISSING_INSTANCE', {
           ip: req.ip,
-          expected: wahaInstance,
-          received: req.body.session,
-          source: 'waha-api'
+          source: 'waha-api',
+          error: 'Missing instance/session name in webhook payload'
         });
-        return res.status(401).json({ 
-          error: 'Unauthorized',
-          message: 'Invalid session/instance name'
+        return res.status(400).json({ 
+          error: 'Bad Request',
+          message: 'Missing instance/session name in webhook payload'
+        });
+      }
+      
+      // Validate instance exists in database
+      const instance = await storage.getInstance(instanceName);
+      if (!instance) {
+        logSecurityEvent('WEBHOOK_UNKNOWN_INSTANCE', {
+          ip: req.ip,
+          instanceName,
+          source: 'waha-api',
+          error: 'Instance not found in database'
+        });
+        return res.status(404).json({ 
+          error: 'Not Found',
+          message: `Instance '${instanceName}' not found in database`
         });
       }
       
       req.isAuthenticated = true;
       req.webhookSource = 'waha-api';
+      req.instanceName = instanceName;
       logSecurityEvent('WEBHOOK_AUTH_SUCCESS', {
         ip: req.ip,
         source: 'waha-api',
-        session: req.body?.session
+        instanceName
       });
       return next();
     }
@@ -73,7 +92,7 @@ export function validateWebhookAuth(req: AuthenticatedRequest, res: Response, ne
     // Method 1b: DEVELOPMENT MODE ONLY - session-based weak authentication
     // ⚠️ SECURITY WARNING: This is insecure and should ONLY be used in development!
     // Configure WAHA to send x-api-key header in production instead.
-    if (wahaInstance && req.body?.session === wahaInstance) {
+    if (req.body?.session) {
       const isProduction = process.env.NODE_ENV === 'production';
       const allowWeakAuth = process.env.ALLOW_WEAK_WEBHOOK_AUTH === 'true';
       
@@ -93,15 +112,33 @@ export function validateWebhookAuth(req: AuthenticatedRequest, res: Response, ne
       
       // Allow weak auth ONLY in development if explicitly enabled
       if (allowWeakAuth) {
+        const instanceName = req.body.session;
+        
+        // Validate instance exists in database
+        const instance = await storage.getInstance(instanceName);
+        if (!instance) {
+          logSecurityEvent('WEBHOOK_UNKNOWN_INSTANCE', {
+            ip: req.ip,
+            instanceName,
+            source: 'waha-session-weak',
+            error: 'Instance not found in database'
+          });
+          return res.status(404).json({ 
+            error: 'Not Found',
+            message: `Instance '${instanceName}' not found in database`
+          });
+        }
+        
         console.warn('🚨 SECURITY WARNING: Using weak webhook authentication! This is INSECURE!');
         console.warn('   Configure WAHA to send x-api-key header for production use.');
         
         req.isAuthenticated = true;
         req.webhookSource = 'waha-session-weak';
+        req.instanceName = instanceName;
         logSecurityEvent('WEBHOOK_AUTH_SUCCESS', {
           ip: req.ip,
           source: 'waha-session-weak',
-          session: req.body.session,
+          instanceName,
           environment: 'development',
           warning: '🚨 INSECURE: Weak auth enabled! Configure x-api-key header for production'
         });

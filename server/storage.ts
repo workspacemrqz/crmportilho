@@ -164,6 +164,8 @@ export interface IStorage {
   // Instance methods
   getInstances(): Promise<Instance[]>;
   getInstance(name: string): Promise<Instance | undefined>;
+  getInstancesWithChatbotEnabled(): Promise<Instance[]>;
+  getInstancesWithFollowupEnabled(): Promise<Instance[]>;
   createInstance(data: InsertInstance): Promise<Instance>;
   updateInstanceStatus(name: string, status: string): Promise<Instance | undefined>;
   updateInstanceToggles(name: string, chatbotEnabled?: boolean, followupEnabled?: boolean): Promise<Instance | undefined>;
@@ -839,6 +841,22 @@ export class PgStorage implements IStorage {
 
   async getInstance(name: string): Promise<Instance | undefined> {
     const [result] = await db.select().from(instances).where(eq(instances.name, name));
+    return result;
+  }
+
+  async getInstancesWithChatbotEnabled(): Promise<Instance[]> {
+    const result = await db.select()
+      .from(instances)
+      .where(eq(instances.chatbotEnabled, true))
+      .orderBy(desc(instances.createdAt));
+    return result;
+  }
+
+  async getInstancesWithFollowupEnabled(): Promise<Instance[]> {
+    const result = await db.select()
+      .from(instances)
+      .where(eq(instances.followupEnabled, true))
+      .orderBy(desc(instances.createdAt));
     return result;
   }
 

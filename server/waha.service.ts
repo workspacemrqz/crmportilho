@@ -5,15 +5,13 @@ import { messages } from '@shared/schema';
 export class WAHAService {
   private baseUrl: string;
   private apiKey: string;
-  private session: string;
 
   constructor() {
     this.baseUrl = process.env.WAHA_API || '';
     this.apiKey = process.env.WAHA_API_KEY || '';
-    this.session = process.env.WAHA_INSTANCIA || '';
 
-    if (!this.baseUrl || !this.apiKey || !this.session) {
-      console.error('WAHA API configuration incomplete. Check WAHA_API, WAHA_API_KEY, and WAHA_INSTANCIA environment variables.');
+    if (!this.baseUrl || !this.apiKey) {
+      console.error('WAHA API configuration incomplete. Check WAHA_API and WAHA_API_KEY environment variables.');
     }
   }
 
@@ -24,14 +22,14 @@ export class WAHAService {
     };
   }
 
-  async sendText(phone: string, text: string, conversationId?: string) {
+  async sendText(phone: string, text: string, instanceName: string, conversationId?: string) {
     try {
       const chatId = this.formatPhone(phone);
       const url = `${this.baseUrl}/api/sendText`;  // Endpoint correto sem {session} na URL
       
       console.log(`[WAHA] Sending text to ${chatId} via ${url}`);
       console.log(`[WAHA] Message content:`, text);
-      console.log(`[WAHA] Session:`, this.session);
+      console.log(`[WAHA] Instance:`, instanceName);
       
       const response = await fetch(url, {
         method: 'POST',
@@ -39,7 +37,7 @@ export class WAHAService {
         body: JSON.stringify({
           chatId,
           text,
-          session: this.session  // Session vai no body, não na URL
+          session: instanceName  // Session vai no body, não na URL
         })
       });
 
@@ -74,7 +72,7 @@ export class WAHAService {
     }
   }
 
-  async sendButtons(phone: string, text: string, buttons: Array<{id: string, text: string}>, conversationId?: string) {
+  async sendButtons(phone: string, text: string, buttons: Array<{id: string, text: string}>, instanceName: string, conversationId?: string) {
     // WAHA may not support buttons in the same way as Evolution
     // Fallback to sending text with numbered options
     try {
@@ -83,14 +81,14 @@ export class WAHAService {
       const buttonText = buttons.map((btn, idx) => `${idx + 1}. ${btn.text}`).join('\n');
       const fullText = `${text}\n\n${buttonText}`;
       
-      return await this.sendText(phone, fullText, conversationId);
+      return await this.sendText(phone, fullText, instanceName, conversationId);
     } catch (error) {
       console.error('[WAHA] Error sending buttons message:', error);
       throw error;
     }
   }
 
-  async sendList(phone: string, title: string, buttonText: string, sections: Array<any>, conversationId?: string) {
+  async sendList(phone: string, title: string, buttonText: string, sections: Array<any>, instanceName: string, conversationId?: string) {
     // WAHA may not support lists in the same way as Evolution
     // Fallback to sending text with formatted sections
     try {
@@ -112,14 +110,14 @@ export class WAHAService {
         }
       });
       
-      return await this.sendText(phone, formattedText, conversationId);
+      return await this.sendText(phone, formattedText, instanceName, conversationId);
     } catch (error) {
       console.error('[WAHA] Error sending list message:', error);
       throw error;
     }
   }
 
-  async downloadMedia(messageId: string, mediaUrl?: string): Promise<Buffer | null> {
+  async downloadMedia(messageId: string, instanceName: string, mediaUrl?: string): Promise<Buffer | null> {
     try {
       // If direct URL provided (from webhook), use it directly
       if (mediaUrl) {
@@ -137,7 +135,7 @@ export class WAHAService {
       }
       
       // Fallback: Try WAHA API endpoint
-      const url = `${this.baseUrl}/api/${this.session}/files/${messageId}`;
+      const url = `${this.baseUrl}/api/${instanceName}/files/${messageId}`;
       console.log(`[WAHA] Downloading media from WAHA API: ${url}...`);
       
       const response = await fetch(url, {
@@ -204,7 +202,7 @@ export class WAHAService {
     }
   }
 
-  async sendImage(phone: string, imageUrl: string, caption: string, filename?: string, mimeType?: string, conversationId?: string) {
+  async sendImage(phone: string, imageUrl: string, caption: string, instanceName: string, filename?: string, mimeType?: string, conversationId?: string) {
     try {
       const chatId = this.formatPhone(phone);
       // IMPORTANT: WAHA /api/sendImage ONLY accepts mimetype "image/jpeg"
@@ -223,7 +221,7 @@ export class WAHAService {
           url: imageUrl,
           filename: filename || 'image.jpg'
         },
-        session: this.session
+        session: instanceName
       };
       
       // Only add caption if it's not empty
@@ -254,7 +252,7 @@ export class WAHAService {
     }
   }
 
-  async sendDocument(phone: string, documentUrl: string, caption: string, filename?: string, mimeType?: string, conversationId?: string) {
+  async sendDocument(phone: string, documentUrl: string, caption: string, instanceName: string, filename?: string, mimeType?: string, conversationId?: string) {
     try {
       const chatId = this.formatPhone(phone);
       const url = `${this.baseUrl}/api/sendFile`;
@@ -280,7 +278,7 @@ export class WAHAService {
         body: JSON.stringify({
           chatId,
           file: fileObject,
-          session: this.session
+          session: instanceName
         })
       });
 
@@ -303,10 +301,10 @@ export class WAHAService {
     }
   }
 
-  async getContactInfo(phone: string): Promise<{ name: string; pushname: string } | null> {
+  async getContactInfo(phone: string, instanceName: string): Promise<{ name: string; pushname: string } | null> {
     try {
       const contactId = phone.replace(/\D/g, '');
-      const url = `${this.baseUrl}/api/contacts/about?contactId=${contactId}&session=${this.session}`;
+      const url = `${this.baseUrl}/api/contacts/about?contactId=${contactId}&session=${instanceName}`;
       
       console.log(`[WAHA] Fetching contact info for ${contactId}`);
       
@@ -497,9 +495,9 @@ export class WAHAService {
     return 'text';
   }
 
-  async getSessionStatus(): Promise<{ status: string; qr?: string } | null> {
+  async getSessionStatus(instanceName: string): Promise<{ status: string; qr?: string } | null> {
     try {
-      const url = `${this.baseUrl}/api/sessions/${this.session}`;
+      const url = `${this.baseUrl}/api/sessions/${instanceName}`;
       console.log(`[WAHA] Fetching session status from ${url}`);
       
       const response = await fetch(url, {
@@ -519,7 +517,7 @@ export class WAHAService {
       
       // Se a sessão está esperando QR code, buscar o QR atualizado
       if (data.status === 'SCAN_QR_CODE') {
-        const qrData = await this.getQRCode();
+        const qrData = await this.getQRCode(instanceName);
         if (qrData) {
           qr = qrData;
         }
@@ -535,9 +533,9 @@ export class WAHAService {
     }
   }
 
-  async getQRCode(): Promise<string | null> {
+  async getQRCode(instanceName: string): Promise<string | null> {
     try {
-      const url = `${this.baseUrl}/api/${this.session}/auth/qr`;
+      const url = `${this.baseUrl}/api/${instanceName}/auth/qr`;
       console.log(`[WAHA] Fetching QR code from ${url}`);
       
       const response = await fetch(url, {
@@ -561,9 +559,9 @@ export class WAHAService {
     }
   }
 
-  async startSession(): Promise<boolean> {
+  async startSession(instanceName: string): Promise<boolean> {
     try {
-      const url = `${this.baseUrl}/api/sessions/${this.session}/start`;
+      const url = `${this.baseUrl}/api/sessions/${instanceName}/start`;
       console.log(`[WAHA] Starting session at ${url}`);
       
       const response = await fetch(url, {
@@ -586,9 +584,9 @@ export class WAHAService {
     }
   }
 
-  async stopSession(): Promise<boolean> {
+  async stopSession(instanceName: string): Promise<boolean> {
     try {
-      const url = `${this.baseUrl}/api/sessions/${this.session}/stop`;
+      const url = `${this.baseUrl}/api/sessions/${instanceName}/stop`;
       console.log(`[WAHA] Stopping session at ${url}`);
       
       const response = await fetch(url, {
@@ -611,9 +609,9 @@ export class WAHAService {
     }
   }
 
-  async logoutSession(): Promise<boolean> {
+  async logoutSession(instanceName: string): Promise<boolean> {
     try {
-      const url = `${this.baseUrl}/api/sessions/${this.session}/logout`;
+      const url = `${this.baseUrl}/api/sessions/${instanceName}/logout`;
       console.log(`[WAHA] Logging out session at ${url}`);
       
       const response = await fetch(url, {
