@@ -579,6 +579,7 @@ export class ChatbotService {
         conversation = await storage.createConversation({
           leadId: lead.id,
           protocol: lead.protocol,
+          instanceName: 'default',
           status: 'active',
           currentMenu: 'initial',
           currentStep: 'welcome'
