@@ -1,220 +1,60 @@
 # Overview
 
-This is a WhatsApp-based CRM and intelligent customer service system called "Seguro IA" (Insurance AI). The application manages customer interactions through WhatsApp, providing automated chatbot responses, lead management, conversation tracking, and follow-up automation for an insurance business.
-
-The system uses a full-stack TypeScript architecture with React + Vite on the frontend and Express.js on the backend, with PostgreSQL as the primary database and WebSocket support for real-time updates.
+Seguro IA is a WhatsApp-based CRM and intelligent customer service system designed for the insurance industry. It automates customer interactions, manages leads, tracks conversations, and automates follow-ups directly through WhatsApp. The system aims to streamline customer relationship management and enhance customer service efficiency.
 
 # User Preferences
 
 Preferred communication style: Simple, everyday language.
 
-# Recent Changes
-
-## November 23, 2025 - Fixed WAHA Configuration Update Bug
-- **Critical Bug Fix**: Corrected the WAHA API integration that was preventing webhook configurations from being applied
-- **Root Cause**: The `updateSessionConfig` method in waha.service.ts was using incorrect HTTP method (PATCH) and wrong payload format
-- **Changes Made**:
-  - Changed HTTP method from `PATCH` to `PUT` (as required by WAHA API)
-  - Updated payload format to include `name` field at root level: `{name, config: {webhooks}}`
-  - Fixed customHeaders format: now sends as array of `{name, value}` objects within each webhook
-  - Added detailed logging of request body for debugging
-- **Previous Behavior**: Configurations were saved to database but never sent to WAHA API (404 error)
-- **Fixed Behavior**: All webhook, events, and customHeaders configurations now successfully propagate to WAHA
-- **Validation**: Confirmed by logs showing `[WAHA] Session config updated successfully` and incoming webhooks with correct X-Api-Key header
-
-## November 23, 2025 - WAHA Custom Headers Auto-Configuration
-- **Removed Custom Headers Section from Frontend**: Simplified the WAHA configuration dialog by removing the custom headers interface
-- **Backend-Enforced Headers**: The system now automatically configures authentication headers on the backend:
-  - Automatically adds `X-Api-Key` header with `WAHA_API_KEY` environment variable value when defined
-  - If `WAHA_API_KEY` is not defined, sends empty customHeaders object to prevent authentication errors
-- **Configuration Changes**:
-  - Frontend (WahaConfigDialog): Removed all custom headers state, UI components, and related props
-  - Frontend (instances.tsx): Removed `initialCustomHeaders` prop from WahaConfigDialog
-  - Backend (PATCH /api/instancias/:name/waha-config): Now automatically injects X-Api-Key header based on environment variable
-  - Validation ensures no empty header values are sent to WAHA API
-- **Benefits**: Prevents misconfiguration of authentication headers, ensures secure API key management via environment variables, and simplifies user interface
-- **Impact**: All instances automatically use the correct authentication header when WAHA_API_KEY is configured; configuration updates work correctly even when API key is not set
-- **Security**: API keys managed exclusively through environment variables; no user-supplied headers accepted from frontend
-
-## November 23, 2025 - WAHA Events Configuration Simplified
-- **Removed Events Section from Frontend**: Simplified the WAHA configuration dialog by removing the events selection interface
-- **Backend-Enforced Events**: The system now automatically configures two mandatory events on the backend:
-  - `message` - Required for receiving incoming WhatsApp messages
-  - `session.status` - Required for tracking WhatsApp session state changes
-- **Configuration Changes**:
-  - Frontend (WahaConfigDialog): Removed all event-related state, UI components, and props
-  - Backend (PATCH /api/instancias/:name/waha-config): Now enforces `events = ["message", "session.status"]` regardless of client input
-  - Removed unused Checkbox component import
-- **Benefits**: Prevents configuration errors, ensures consistent WAHA webhook behavior across all instances, and simplifies user interface
-- **Impact**: All instances now automatically receive only essential events, reducing noise and improving system reliability
-
-## November 23, 2025 - Complete Multi-Instance Migration
-- **MAJOR ARCHITECTURE CHANGE**: Migrated entire system from single WAHA_INSTANCIA environment variable to full multi-instance architecture
-- **ChatbotService**: Updated all 32+ handler methods to accept and propagate `instanceName` parameter throughout the entire call chain
-- **Conversations Schema**: Added `instanceName` field to track which instance manages each conversation
-- **Webhook Handler**: Now validates incoming webhooks against instance database and only processes messages if `chatbotEnabled=true` for that instance
-- **FollowupService**: Updated to send follow-up messages through the correct instance based on conversation origin (uses stored `instanceName` from conversation)
-- **WAHA Integration**: All `wahaAPI.send*` calls now require `instanceName` as the 3rd parameter
-- **Removed Legacy Code**: 
-  - Deleted deprecated single-instance WhatsApp API routes (/api/whatsapp/status, start, stop, logout)
-  - Removed unused WAHA_INSTANCIA references from middleware
-- **Result**: System now fully supports running multiple WhatsApp instances simultaneously with independent chatbot and follow-up configurations per instance
-
-## November 23, 2025 - Per-Instance Chatbot and Follow-up Toggle Control
-- Extended instances schema with two new boolean fields:
-  - `chatbotEnabled` (default: false) - Controls whether chatbot responds to messages on this instance
-  - `followupEnabled` (default: false) - Controls whether follow-up messages are sent from this instance
-- Added PATCH /api/instancias/:name/toggles endpoint to update toggle states independently
-- Implemented toggle switches in instances UI with real-time updates:
-  - Chatbot toggle with MessageSquare icon
-  - Follow-up toggle with Clock icon
-  - Instant feedback via toast notifications
-- Updated storage interface with `updateInstanceToggles` method for selective field updates
-- Allows running multiple instances with different chatbot/follow-up configurations simultaneously
-
-## November 23, 2025 - Enhanced Tag Replacement System
-- Added two new functional tags for chatbot and follow-up messages:
-  - `[DD/MM/AAAA]`: Automatically replaced with current date in São Paulo timezone (DD/MM/YYYY format)
-  - `[NÚMERO_DO_PROTOCOLO]`: Automatically replaced with client's protocol number (auto-generates in YYYY-NNN format if missing)
-- Modified `replacePlaceholders` method in ChatbotService and FollowupService to support new tags
-- All tag replacement operations are now async to support protocol generation via database queries
-- Updated UI documentation in NodeEditPanel (fluxo page) and followup page to list all available tags
-- Existing `{nome}` tag functionality preserved and working
-- Note: Protocol generation uses sequential numbering per year; consider adding locking mechanism for high-concurrency scenarios
-
-## November 23, 2025 - WhatsApp Instance Management & QR Code Connection
-- Added new "Instâncias" page for managing WhatsApp connections via WAHA API
-- Implemented database schema for tracking instances (UUID-based with status and timestamps)
-- Created REST API endpoints for instance management:
-  - POST /api/instancias - Create new instance
-  - GET /api/instancias - List all instances
-  - GET /api/instancias/:name/qr - Get QR code in base64 format
-  - GET /api/instancias/:name/status - Get instance status
-  - POST /api/instancias/:name/start - Start stopped instance
-  - POST /api/instancias/:name/restart - Restart failed instance
-  - DELETE /api/instancias/:name - Delete instance (removes from WAHA and database)
-- Built frontend interface with:
-  - QR code modal with auto-refresh every 5 seconds and auto-close on successful connection
-  - Status-based action buttons (Start, Restart, Connect, Delete)
-  - "Tentar Novamente" button for failed connections
-  - "Excluir Instância" button with confirmation dialog to prevent accidental deletion
-  - Real-time status updates and success notifications
-- Status mapping: WORKING (Conectado), SCAN_QR_CODE/SCAN_QR (Aguardando QR), STARTING (Iniciando), STOPPED (Parado), FAILED (Falha)
-- All endpoints protected with session-based authentication
-
 # System Architecture
 
 ## Frontend Architecture
 
-**Framework & Build System:**
-- React 18 with TypeScript for type safety
-- Vite as the build tool and development server
-- Wouter for lightweight client-side routing
-- TanStack Query (React Query) for server state management and caching
-
-**UI Component Library:**
-- Shadcn/ui components based on Radix UI primitives
-- Tailwind CSS for styling with a dark-themed design system
-- Custom HSL-based color system with support for semantic color tokens
-- Responsive design with mobile-first breakpoints
-
-**State Management Pattern:**
-- Server state handled through React Query with 5-minute cache stale time
-- WebSocket integration for real-time updates (conversations, messages)
-- Context API for authentication state
-- Local component state for UI interactions
-
-**Key Design Decisions:**
-- Modular component architecture with separation of concerns
-- Form validation using React Hook Form + Zod schemas
-- Real-time synchronization through WebSocket with automatic reconnection
-- Proxy configuration routes API requests to backend during development
+The frontend uses React 18 with TypeScript, Vite for building, Wouter for routing, and TanStack Query for server state management. UI is built with Shadcn/ui components (Radix UI primitives) and styled with Tailwind CSS, featuring a dark-themed, responsive design and a custom HSL-based color system. State management is handled via React Query for server state, WebSocket for real-time updates, and Context API for authentication.
 
 ## Backend Architecture
 
-**Server Framework:**
-- Express.js with TypeScript for type-safe HTTP server
-- Session-based authentication using express-session with MemoryStore
-- WebSocket server for real-time bidirectional communication
-- Security middleware including helmet, rate limiting, and custom webhook authentication
+The backend is built with Express.js and TypeScript. It features session-based authentication, a WebSocket server for real-time communication, and security middleware (helmet, rate limiting). PostgreSQL is the primary database, accessed via Drizzle ORM for type-safe operations. Key data models include Leads, Conversations, Messages, ChatbotStates, FlowConfigs, FollowupMessages, WorkflowTemplates, and Instances. The service layer includes ChatbotService, WAHAService, EvolutionAPIService, FollowupService, FlowAIService, and LocalStorageService. Security is enforced through environment-based credentials, secure cookies, webhook authentication, and rate limiting.
 
-**Database Layer:**
-- PostgreSQL as the primary relational database
-- Drizzle ORM for type-safe database operations
-- Schema-first design with shared TypeScript types between client and server
-- Connection pooling (max 20 connections) for production scalability
+## UI/UX Decisions
 
-**Data Models:**
-- **Leads**: Customer records with status (novo, em_atendimento, aguardando_documentos, etc.) and priority levels
-- **Conversations**: Active chat sessions linked to leads with state tracking
-- **Messages**: Individual messages with support for text, images, documents, and metadata
-- **ChatbotStates**: State machine for tracking conversation flow and collected data
-- **FlowConfigs**: Configurable chatbot flows with AI-powered routing
-- **FollowupMessages**: Automated follow-up scheduling based on conversation inactivity
-- **WorkflowTemplates**: Reusable message templates with versioning
-- **Instances**: WhatsApp instance management with status tracking and QR code authentication
+The system features a dark-themed design system using Tailwind CSS and Shadcn/ui components, ensuring responsiveness. The UI includes a QR code modal for WhatsApp connection with auto-refresh, status-based action buttons, and toggle switches for per-instance chatbot and follow-up control.
 
-**Service Layer Pattern:**
-- **ChatbotService**: Core conversation logic with state machine implementation
-- **WAHAService**: WhatsApp HTTP API integration (primary)
-- **EvolutionAPIService**: Alternative WhatsApp API (backward compatibility)
-- **FollowupService**: Automated follow-up scheduling with configurable intervals
-- **FlowAIService**: OpenAI integration for intelligent conversation routing
-- **LocalStorageService**: File upload/download with security validations
+## Technical Implementations
 
-**Authentication & Security:**
-- Environment-based login credentials (LOGIN/SENHA variables)
-- Session-based authentication with secure cookie handling
-- Webhook authentication supporting multiple API providers (WAHA, Evolution)
-- Rate limiting on webhook endpoints (30 req/min standard, 10 req/15min for suspicious)
-- Security headers via helmet middleware
-- Raw body parsing for webhook signature verification
-- IP tracking and security event logging
+- **Multi-Instance Architecture**: Supports multiple WhatsApp instances concurrently, each with independent chatbot and follow-up configurations.
+- **Per-Instance Control**: Allows toggling chatbot and follow-up functionalities for individual WhatsApp instances.
+- **Tag Replacement System**: Implements dynamic tag replacement in messages for current date (`[DD/MM/AAAA]`) and client protocol numbers (`[NÚMERO_DO_PROTOCOLO]`).
+- **WhatsApp Instance Management**: Provides a dedicated interface for managing WhatsApp connections, including QR code scanning, status monitoring, and instance lifecycle operations (start, stop, delete).
+- **Automated WAHA Configuration**: Automatically configures essential webhook events (`message`, `session.status`) and injects `X-Api-Key` headers for WAHA integration, simplifying user setup and preventing misconfigurations.
 
-## External Dependencies
+# External Dependencies
 
-**WhatsApp Integration:**
-- Primary: WAHA (WhatsApp HTTP API) - configurable via WAHA_API, WAHA_API_KEY, WAHA_INSTANCIA
-- Fallback: Evolution API - configurable via EVOLUTION_URL, EVOLUTION_KEY, INSTANCIA
-- Webhook-based message reception with signature validation
-- Support for text, image, document, and media messages
-- Real-time message status tracking (sent, delivered, read)
+## WhatsApp Integration
 
-**AI Services:**
-- OpenAI GPT integration for intelligent conversation routing and response generation
-- Configurable via OPENAI_API_KEY environment variable
-- Used for flow step preview, automated routing decisions, and natural language understanding
-- Fallback to manual flows when AI is unavailable
+- **Primary**: WAHA (WhatsApp HTTP API) for sending/receiving messages and managing instances. Configurable via `WAHA_API`, `WAHA_API_KEY`.
+- **Fallback/Alternative**: Evolution API, configurable via `EVOLUTION_URL`, `EVOLUTION_KEY`.
+- Uses webhook-based message reception with signature validation.
 
-**Database:**
-- PostgreSQL (Neon serverless compatible via @neondatabase/serverless)
-- Connection via DATABASE_URL environment variable
-- Drizzle Kit for schema migrations (stored in ./migrations)
-- Schema defined in shared/schema.ts for type safety across client/server
+## AI Services
 
-**File Storage:**
-- Local filesystem storage in /uploads directory
-- Security: Strict path validation to prevent directory traversal
-- Support for lead-specific subdirectories
-- File type validation and size limits
-- Files served via Express static middleware with security headers
+- OpenAI GPT integration for intelligent conversation routing, response generation, and flow step previews. Configurable via `OPENAI_API_KEY`.
 
-**Real-time Communication:**
-- WebSocket server mounted on Express HTTP server
-- Session-based authentication for WebSocket connections
-- Heartbeat mechanism (25-second intervals) for connection health
-- Automatic reconnection with exponential backoff (max 30 seconds)
-- Broadcast patterns for new messages, conversation updates, and lead changes
+## Database
 
-**Environment Configuration:**
-- Required: DATABASE_URL, LOGIN, SENHA, SESSION_SECRET
-- Optional WhatsApp: WAHA_API, WAHA_API_KEY, WAHA_INSTANCIA (or Evolution equivalents)
-- Optional AI: OPENAI_API_KEY
-- Optional: FOLLOWUP_CHECK_INTERVAL_MINUTES (default: 5)
-- Validation on startup ensures critical variables are present
+- PostgreSQL, compatible with serverless solutions like Neon. Connected via `DATABASE_URL`.
+- Drizzle ORM for database interactions and Drizzle Kit for migrations.
 
-**Development Tools:**
-- TSX for TypeScript execution in development
-- Vite HMR with WebSocket proxying to backend
-- Concurrently for running frontend and backend in parallel
-- ESBuild for production server bundling
+## File Storage
+
+- Local filesystem storage in the `/uploads` directory for media and documents. Includes security validations for path and file types.
+
+## Real-time Communication
+
+- WebSocket server for real-time updates on conversations, messages, and lead changes, with session-based authentication and automatic reconnection.
+
+## Environment Configuration
+
+- **Required**: `DATABASE_URL`, `LOGIN`, `SENHA`, `SESSION_SECRET`.
+- **WhatsApp**: `WAHA_API`, `WAHA_API_KEY` (for WAHA), or `EVOLUTION_URL`, `EVOLUTION_KEY` (for Evolution).
+- **AI**: `OPENAI_API_KEY`.
