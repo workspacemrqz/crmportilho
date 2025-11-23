@@ -243,7 +243,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('[WAHA-WEBHOOK] Validated data:', JSON.stringify(validatedData, null, 2));
         
         // Extract instance name from webhook payload or use configured instance
-        const instanceName: string = (validatedData?.session as string) || wahaAPI.getInstanceName();
+        let instanceName: string;
+        try {
+          instanceName = (validatedData?.session as string) || wahaAPI.getInstanceName();
+        } catch (error) {
+          console.error('[WAHA-WEBHOOK] Instance name not configured:', error);
+          return res.status(500).json({ 
+            error: 'Configuration error',
+            message: 'WAHA instance name (INSTANCIA) is not configured. Please contact support.' 
+          });
+        }
         console.log('[WAHA-WEBHOOK] Instance name:', instanceName);
         
         // Extract and validate phone number from WAHA payload
@@ -2577,7 +2586,15 @@ Retorne APENAS o JSON array, sem texto adicional.`;
       }
 
       // Use configured instance if not provided
-      const instance = instanceName || wahaAPI.getInstanceName();
+      let instance: string;
+      try {
+        instance = instanceName || wahaAPI.getInstanceName();
+      } catch (error) {
+        return res.status(500).json({ 
+          error: 'Configuration error',
+          message: 'WAHA instance name (INSTANCIA) is not configured. Please set the INSTANCIA environment variable.' 
+        });
+      }
       console.log(`[TEST-CHATBOT] Simulating message from ${phone} on instance ${instance}: ${message}`);
       
       // Process the message through the chatbot service

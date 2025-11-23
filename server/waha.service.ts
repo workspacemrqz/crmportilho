@@ -21,7 +21,14 @@ export class WAHAService {
   }
 
   getInstanceName(): string {
+    if (!this.instanceName) {
+      throw new Error('WAHA instance name (INSTANCIA) is not configured. Please set the INSTANCIA environment variable with your WAHA session name.');
+    }
     return this.instanceName;
+  }
+
+  isConfigured(): boolean {
+    return !!(this.baseUrl && this.apiKey && this.instanceName);
   }
 
   private getHeaders() {
