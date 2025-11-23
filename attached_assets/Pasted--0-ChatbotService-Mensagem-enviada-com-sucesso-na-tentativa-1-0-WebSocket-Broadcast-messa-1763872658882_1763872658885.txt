@@ -1,0 +1,32 @@
+[0] [ChatbotService] ✅ Mensagem enviada com sucesso na tentativa 1
+[0] [WebSocket] Broadcast "message:new" sent to 0 clients
+[0] [ChatbotService] 📡 Broadcast: bot message sent for conversation f6f34c60-e509-41dc-b4b9-33ae8cb2cdbf
+[0] [ChatbotService] ✅ MENSAGEM1 enviada com sucesso
+[0] [ChatbotService] 📤 Enviando MENSAGEM2 para 5512974041539
+[0] [ChatbotService] 📤 Tentativa 1/3 de enviar mensagem para 5512974041539 na instância f6f34c60-e509-41dc-b4b9-33ae8cb2cdbf
+[0] [WAHA] Sending text to 5512974041539@c.us via https://waha.evolutiaoficial.com/api/sendText
+[0] [WAHA] Message content: Oi, Gabriel! Tudo ótimo por aqui, e com você? Sou o IAGO, assistente do Daniel na Prevline Seguros. Você já é cliente da Prevline ou deseja fazer uma nova cotação?
+[0] [WAHA] Instance: f6f34c60-e509-41dc-b4b9-33ae8cb2cdbf
+[0] [WAHA] Response status: 422 Unprocessable Entity
+[0] [WAHA] API Error Response: {"error":"Session \"f6f34c60-e509-41dc-b4b9-33ae8cb2cdbf\" does not exist","session":"f6f34c60-e509-41dc-b4b9-33ae8cb2cdbf"}
+[0] [WAHA] ✗ Error sending text message: Error: WAHA API error: 422 - {"error":"Session \"f6f34c60-e509-41dc-b4b9-33ae8cb2cdbf\" does not exist","session":"f6f34c60-e509-41dc-b4b9-33ae8cb2cdbf"}
+[0]     at WAHAService.sendText (/home/runner/workspace/server/waha.service.ts:49:15)
+[0]     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+[0]     at async ChatbotService.sendMessageWithRetry (/home/runner/workspace/server/chatbot.service.ts:5338:24)
+[0]     at async ChatbotService.handleInitialState (/home/runner/workspace/server/chatbot.service.ts:2320:7)
+[0]     at async ChatbotService.processStateMachine (/home/runner/workspace/server/chatbot.service.ts:2096:9)
+[0]     at async ChatbotService.processWithConfigurableFlow (/home/runner/workspace/server/chatbot.service.ts:1375:14)
+[0]     at async ChatbotService.flushBuffer (/home/runner/workspace/server/chatbot.service.ts:932:7)
+[0] [ChatbotService] ❌ Erro na tentativa 1: Error: WAHA API error: 422 - {"error":"Session \"f6f34c60-e509-41dc-b4b9-33ae8cb2cdbf\" does not exist","session":"f6f34c60-e509-41dc-b4b9-33ae8cb2cdbf"}
+[0]     at WAHAService.sendText (/home/runner/workspace/server/waha.service.ts:49:15)
+[0]     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+[0]     at async ChatbotService.sendMessageWithRetry (/home/runner/workspace/server/chatbot.service.ts:5338:24)
+[0]     at async ChatbotService.handleInitialState (/home/runner/workspace/server/chatbot.service.ts:2320:7)
+[0]     at async ChatbotService.processStateMachine (/home/runner/workspace/server/chatbot.service.ts:2096:9)
+[0]     at async ChatbotService.processWithConfigurableFlow (/home/runner/workspace/server/chatbot.service.ts:1375:14)
+[0]     at async ChatbotService.flushBuffer (/home/runner/workspace/server/chatbot.service.ts:932:7)
+[0] [ChatbotService] ⏳ Aguardando 1000ms antes de tentar novamente...
+[0] [ChatbotService] 📤 Tentativa 2/3 de enviar mensagem para 5512974041539 na instância f6f34c60-e509-41dc-b4b9-33ae8cb2cdbf
+[0] [WAHA] Sending text to 5512974041539@c.us via https://waha.evolutiaoficial.com/api/sendText
+[0] [WAHA] Message content: Oi, Gabriel! Tudo ótimo por aqui, e com você? Sou o IAGO, assistente do Daniel na Prevline Seguros. Você já é cliente da Prevline ou deseja fazer uma nova cotação?
+[0] [WAHA] Instance: f6f34c60-e509-41dc-b4b9-33ae8cb2cdbf

@@ -1617,13 +1617,13 @@ export class ChatbotService {
         // Single message: send and await (replace placeholders)
         console.log(`[ChatbotService] 📤 Sending single message`);
         const messageWithPlaceholders = await this.replacePlaceholders(messages[0], lead);
-        await this.sendMessageWithRetry(lead.whatsappPhone, messageWithPlaceholders, conversation.id);
+        await this.sendMessageWithRetry(lead.whatsappPhone, messageWithPlaceholders, instanceName, conversation.id);
         console.log(`[ChatbotService] ✅ Message sent successfully`);
       } else {
         // Multiple messages: await first, then await ALL remaining messages
         console.log(`[ChatbotService] 📤 Sending first of ${messages.length} messages`);
         const firstMessageWithPlaceholders = await this.replacePlaceholders(messages[0], lead);
-        await this.sendMessageWithRetry(lead.whatsappPhone, firstMessageWithPlaceholders, conversation.id);
+        await this.sendMessageWithRetry(lead.whatsappPhone, firstMessageWithPlaceholders, instanceName, conversation.id);
         console.log(`[ChatbotService] ✅ First message sent, now sending remaining ${messages.length - 1} messages`);
         
         // CRITICAL: AWAIT all remaining messages before advancing state
@@ -1833,6 +1833,7 @@ export class ChatbotService {
           await this.sendMessageWithRetry(
             lead.whatsappPhone,
             'Desculpe, houve um erro ao processar sua escolha. Por favor, tente novamente.',
+            conversation.instanceName,
             conversation.id
           );
           return false;
@@ -1844,7 +1845,7 @@ export class ChatbotService {
         const optionsList = transitions.map((t, i) => `${i + 1}. ${t.label}`).join('\n');
         const retryMessage = `Desculpe, não entendi sua escolha. Por favor, selecione uma das opções:\n\n${optionsList}`;
         
-        await this.sendMessageWithRetry(lead.whatsappPhone, retryMessage, conversation.id);
+        await this.sendMessageWithRetry(lead.whatsappPhone, retryMessage, conversation.instanceName, conversation.id);
         console.log(`[ChatbotService] 📤 Sent retry message with available options`);
         return false;
       }
@@ -2317,7 +2318,7 @@ Lembre-se: Use EXATAMENTE os stepIds disponíveis listados acima. Se não for ne
       await new Promise(resolve => setTimeout(resolve, 800));
       
       console.log('[ChatbotService] 📤 Enviando MENSAGEM2 para', lead.whatsappPhone);
-      await this.sendMessageWithRetry(lead.whatsappPhone, message2, conversation.id);
+      await this.sendMessageWithRetry(lead.whatsappPhone, message2, instanceName, conversation.id);
       console.log('[ChatbotService] ✅ MENSAGEM2 enviada com sucesso');
       
       // Store that both messages were sent
@@ -3550,7 +3551,7 @@ Mensagem do usuário: ${messageContent}`;
       
       // Send first question directly without intro message
       const firstQuestion = await this.getMessageTemplate('AUTO_DADOS_VEICULO_ESTACIONAMENTO');
-      await this.sendMessageWithRetry(lead.whatsappPhone, firstQuestion, conversation.id);
+      await this.sendMessageWithRetry(lead.whatsappPhone, firstQuestion, conversation.instanceName, conversation.id);
       
       // Transition to first question state
       await this.updateChatbotState(chatbotState.id, {
@@ -3600,7 +3601,7 @@ Mensagem do usuário: ${messageContent}`;
       
       // Send next question
       const nextQuestion = await this.getMessageTemplate('AUTO_DADOS_VEICULO_PORTAO');
-      await this.sendMessageWithRetry(lead.whatsappPhone, nextQuestion, conversation.id);
+      await this.sendMessageWithRetry(lead.whatsappPhone, nextQuestion, conversation.instanceName, conversation.id);
       
       // Transition to next state
       await this.updateChatbotState(chatbotState.id, {
@@ -3613,6 +3614,7 @@ Mensagem do usuário: ${messageContent}`;
       await this.sendMessageWithRetry(
         lead.whatsappPhone,
         'Desculpe, não entendi. Onde o veículo fica estacionado? (Garagem, Estacionamento ou Rua)',
+        conversation.instanceName,
         conversation.id
       );
     }
@@ -3644,7 +3646,7 @@ Mensagem do usuário: ${messageContent}`;
       
       // Send next question
       const nextQuestion = await this.getMessageTemplate('AUTO_DADOS_VEICULO_TRABALHO_ESTUDO');
-      await this.sendMessageWithRetry(lead.whatsappPhone, nextQuestion, conversation.id);
+      await this.sendMessageWithRetry(lead.whatsappPhone, nextQuestion, conversation.instanceName, conversation.id);
       
       // Transition to next state
       await this.updateChatbotState(chatbotState.id, {
@@ -3657,6 +3659,7 @@ Mensagem do usuário: ${messageContent}`;
       await this.sendMessageWithRetry(
         lead.whatsappPhone,
         'Desculpe, não entendi. A garagem tem portão manual ou automático?',
+        conversation.instanceName,
         conversation.id
       );
     }
@@ -3688,7 +3691,7 @@ Mensagem do usuário: ${messageContent}`;
       
       // Send next question
       const nextQuestion = await this.getMessageTemplate('AUTO_DADOS_VEICULO_MORADIA');
-      await this.sendMessageWithRetry(lead.whatsappPhone, nextQuestion, conversation.id);
+      await this.sendMessageWithRetry(lead.whatsappPhone, nextQuestion, conversation.instanceName, conversation.id);
       
       // Transition to next state
       await this.updateChatbotState(chatbotState.id, {
@@ -3701,6 +3704,7 @@ Mensagem do usuário: ${messageContent}`;
       await this.sendMessageWithRetry(
         lead.whatsappPhone,
         'Desculpe, não entendi. Você usa o veículo para ir ao trabalho e/ou estudo? (Trabalho, Estudo, Ambos ou Nenhum)',
+        conversation.instanceName,
         conversation.id
       );
     }
@@ -3732,7 +3736,7 @@ Mensagem do usuário: ${messageContent}`;
       
       // Send next question
       const nextQuestion = await this.getMessageTemplate('AUTO_DADOS_VEICULO_CARRO_RESERVA');
-      await this.sendMessageWithRetry(lead.whatsappPhone, nextQuestion, conversation.id);
+      await this.sendMessageWithRetry(lead.whatsappPhone, nextQuestion, conversation.instanceName, conversation.id);
       
       // Transition to next state
       await this.updateChatbotState(chatbotState.id, {
@@ -3745,6 +3749,7 @@ Mensagem do usuário: ${messageContent}`;
       await this.sendMessageWithRetry(
         lead.whatsappPhone,
         'Desculpe, não entendi. Mora em casa ou apartamento?',
+        conversation.instanceName,
         conversation.id
       );
     }
@@ -3776,7 +3781,7 @@ Mensagem do usuário: ${messageContent}`;
       
       // Send next question
       const nextQuestion = await this.getMessageTemplate('AUTO_DADOS_VEICULO_REBOQUE');
-      await this.sendMessageWithRetry(lead.whatsappPhone, nextQuestion, conversation.id);
+      await this.sendMessageWithRetry(lead.whatsappPhone, nextQuestion, conversation.instanceName, conversation.id);
       
       // Transition to next state
       await this.updateChatbotState(chatbotState.id, {
@@ -3789,6 +3794,7 @@ Mensagem do usuário: ${messageContent}`;
       await this.sendMessageWithRetry(
         lead.whatsappPhone,
         'Desculpe, não entendi. Deseja carro reserva? Se sim, por quantos dias? (7, 15, 30 dias ou Não desejo)',
+        conversation.instanceName,
         conversation.id
       );
     }
@@ -3817,7 +3823,7 @@ Mensagem do usuário: ${messageContent}`;
       
       // Send next question
       const nextQuestion = await this.getMessageTemplate('AUTO_DADOS_VEICULO_CONDUTOR_MENOR_25');
-      await this.sendMessageWithRetry(lead.whatsappPhone, nextQuestion, conversation.id);
+      await this.sendMessageWithRetry(lead.whatsappPhone, nextQuestion, conversation.instanceName, conversation.id);
       
       // Transition to next state
       await this.updateChatbotState(chatbotState.id, {
@@ -3830,6 +3836,7 @@ Mensagem do usuário: ${messageContent}`;
       await this.sendMessageWithRetry(
         lead.whatsappPhone,
         'Desculpe, não entendi. Deseja reboque? (Sim ou Não)',
+        conversation.instanceName,
         conversation.id
       );
     }
@@ -3858,7 +3865,7 @@ Mensagem do usuário: ${messageContent}`;
       
       // Send next question
       const nextQuestion = await this.getMessageTemplate('AUTO_DADOS_VEICULO_TIPO_USO');
-      await this.sendMessageWithRetry(lead.whatsappPhone, nextQuestion, conversation.id);
+      await this.sendMessageWithRetry(lead.whatsappPhone, nextQuestion, conversation.instanceName, conversation.id);
       
       // Transition to next state
       await this.updateChatbotState(chatbotState.id, {
@@ -3871,6 +3878,7 @@ Mensagem do usuário: ${messageContent}`;
       await this.sendMessageWithRetry(
         lead.whatsappPhone,
         'Desculpe, não entendi. Tem algum condutor menor de 25 anos? (Sim ou Não)',
+        conversation.instanceName,
         conversation.id
       );
     }
@@ -3915,7 +3923,7 @@ Por favor, envie os documentos quando possível. Nossa equipe está analisando s
 
 Obrigado por escolher a Portilho Corretora! 💚`;
 
-      await this.sendMessageWithRetry(lead.whatsappPhone, documentsMessage, conversation.id);
+      await this.sendMessageWithRetry(lead.whatsappPhone, documentsMessage, conversation.instanceName, conversation.id);
       
       // Mark lead as completed and finalize conversation
       await db.update(leads)
@@ -3941,6 +3949,7 @@ Obrigado por escolher a Portilho Corretora! 💚`;
       await this.sendMessageWithRetry(
         lead.whatsappPhone,
         'Desculpe, houve um erro ao processar sua resposta. Por favor, digite "humano" para falar com um atendente.',
+        conversation.instanceName,
         conversation.id
       );
     }
@@ -4059,35 +4068,35 @@ RESPOSTA:`;
 
       // Identificar o tipo de seguro escolhido
       if (lowercaseMessage.includes('auto') || lowercaseMessage.includes('frota') || lowercaseMessage.includes('🚗')) {
-        await this.sendMessageWithRetry(lead.whatsappPhone, 'Qual é a placa do veículo?', conversation.id);
+        await this.sendMessageWithRetry(lead.whatsappPhone, 'Qual é a placa do veículo?', conversation.instanceName, conversation.id);
         tipoIdentificador = 'placa';
         tipoSeguro = 'Auto/Frota';
       } else if (lowercaseMessage.includes('empresarial') || lowercaseMessage.includes('🏢')) {
-        await this.sendMessageWithRetry(lead.whatsappPhone, 'Qual é o CNPJ da empresa?', conversation.id);
+        await this.sendMessageWithRetry(lead.whatsappPhone, 'Qual é o CNPJ da empresa?', conversation.instanceName, conversation.id);
         tipoIdentificador = 'cnpj';
         tipoSeguro = 'Empresarial';
       } else if (lowercaseMessage.includes('vida') || lowercaseMessage.includes('💚')) {
-        await this.sendMessageWithRetry(lead.whatsappPhone, 'Qual é o CPF do segurado?', conversation.id);
+        await this.sendMessageWithRetry(lead.whatsappPhone, 'Qual é o CPF do segurado?', conversation.instanceName, conversation.id);
         tipoIdentificador = 'cpf';
         tipoSeguro = 'Vida';
       } else if (lowercaseMessage.includes('residencial') || lowercaseMessage.includes('🏠')) {
-        await this.sendMessageWithRetry(lead.whatsappPhone, 'Qual é o CPF do segurado?', conversation.id);
+        await this.sendMessageWithRetry(lead.whatsappPhone, 'Qual é o CPF do segurado?', conversation.instanceName, conversation.id);
         tipoIdentificador = 'cpf';
         tipoSeguro = 'Residencial';
       } else if (lowercaseMessage.includes('viagem') || lowercaseMessage.includes('✈️')) {
-        await this.sendMessageWithRetry(lead.whatsappPhone, 'Qual é o CPF do segurado?', conversation.id);
+        await this.sendMessageWithRetry(lead.whatsappPhone, 'Qual é o CPF do segurado?', conversation.instanceName, conversation.id);
         tipoIdentificador = 'cpf';
         tipoSeguro = 'Viagem';
       } else if (lowercaseMessage.includes('equipamento') || lowercaseMessage.includes('máquina') || lowercaseMessage.includes('agrícola') || lowercaseMessage.includes('⚙️')) {
-        await this.sendMessageWithRetry(lead.whatsappPhone, 'Qual é o CPF ou CNPJ do segurado?', conversation.id);
+        await this.sendMessageWithRetry(lead.whatsappPhone, 'Qual é o CPF ou CNPJ do segurado?', conversation.instanceName, conversation.id);
         tipoIdentificador = 'cpf_cnpj';
         tipoSeguro = 'Equipamentos/Máquinas Agrícolas';
       } else if (lowercaseMessage.includes('rc profissional') || lowercaseMessage.includes('profissional') || lowercaseMessage.includes('💼')) {
-        await this.sendMessageWithRetry(lead.whatsappPhone, 'Qual é o CPF ou CNPJ do segurado?', conversation.id);
+        await this.sendMessageWithRetry(lead.whatsappPhone, 'Qual é o CPF ou CNPJ do segurado?', conversation.instanceName, conversation.id);
         tipoIdentificador = 'cpf_cnpj';
         tipoSeguro = 'RC Profissional';
       } else if (lowercaseMessage.includes('fiança') || lowercaseMessage.includes('🏘️')) {
-        await this.sendMessageWithRetry(lead.whatsappPhone, 'Qual é o CPF do segurado?', conversation.id);
+        await this.sendMessageWithRetry(lead.whatsappPhone, 'Qual é o CPF do segurado?', conversation.instanceName, conversation.id);
         tipoIdentificador = 'cpf';
         tipoSeguro = 'Seguro Fiança';
       } else {
@@ -4202,21 +4211,21 @@ RESPOSTA:`;
 
       // Identificar o tipo de seguro escolhido (similar ao Menu 3)
       if (lowercaseMessage.includes('auto') || lowercaseMessage.includes('frota') || lowercaseMessage.includes('🚗')) {
-        await this.sendMessageWithRetry(lead.whatsappPhone, 'Qual é a placa do veículo?', conversation.id);
+        await this.sendMessageWithRetry(lead.whatsappPhone, 'Qual é a placa do veículo?', conversation.instanceName, conversation.id);
         tipoIdentificador = 'placa';
         tipoSeguro = 'Auto/Frota';
       } else if (lowercaseMessage.includes('empresarial') || lowercaseMessage.includes('🏢')) {
-        await this.sendMessageWithRetry(lead.whatsappPhone, 'Qual é o CNPJ da empresa?', conversation.id);
+        await this.sendMessageWithRetry(lead.whatsappPhone, 'Qual é o CNPJ da empresa?', conversation.instanceName, conversation.id);
         tipoIdentificador = 'cnpj';
         tipoSeguro = 'Empresarial';
       } else if (lowercaseMessage.includes('vida') || lowercaseMessage.includes('💚') || 
                  lowercaseMessage.includes('residencial') || lowercaseMessage.includes('🏠')) {
-        await this.sendMessageWithRetry(lead.whatsappPhone, 'Qual é o CPF do segurado?', conversation.id);
+        await this.sendMessageWithRetry(lead.whatsappPhone, 'Qual é o CPF do segurado?', conversation.instanceName, conversation.id);
         tipoIdentificador = 'cpf';
         tipoSeguro = lowercaseMessage.includes('vida') ? 'Vida' : 'Residencial';
       } else {
         // Para outros tipos, pedir CPF
-        await this.sendMessageWithRetry(lead.whatsappPhone, 'Qual é o CPF do segurado?', conversation.id);
+        await this.sendMessageWithRetry(lead.whatsappPhone, 'Qual é o CPF do segurado?', conversation.instanceName, conversation.id);
         tipoIdentificador = 'cpf';
         tipoSeguro = messageContent;
       }
@@ -4236,6 +4245,7 @@ RESPOSTA:`;
       await this.sendMessageWithRetry(
         lead.whatsappPhone, 
         'Desculpe, houve um erro. Por favor, tente novamente.',
+        conversation.instanceName,
         conversation.id
       );
     }
@@ -4255,21 +4265,21 @@ RESPOSTA:`;
 
       // Identificar o tipo de seguro escolhido (similar ao Menu 3)
       if (lowercaseMessage.includes('auto') || lowercaseMessage.includes('frota') || lowercaseMessage.includes('🚗')) {
-        await this.sendMessageWithRetry(lead.whatsappPhone, 'Qual é a placa do veículo?', conversation.id);
+        await this.sendMessageWithRetry(lead.whatsappPhone, 'Qual é a placa do veículo?', conversation.instanceName, conversation.id);
         tipoIdentificador = 'placa';
         tipoSeguro = 'Auto/Frota';
       } else if (lowercaseMessage.includes('empresarial') || lowercaseMessage.includes('🏢')) {
-        await this.sendMessageWithRetry(lead.whatsappPhone, 'Qual é o CNPJ da empresa?', conversation.id);
+        await this.sendMessageWithRetry(lead.whatsappPhone, 'Qual é o CNPJ da empresa?', conversation.instanceName, conversation.id);
         tipoIdentificador = 'cnpj';
         tipoSeguro = 'Empresarial';
       } else if (lowercaseMessage.includes('vida') || lowercaseMessage.includes('💚') || 
                  lowercaseMessage.includes('residencial') || lowercaseMessage.includes('🏠')) {
-        await this.sendMessageWithRetry(lead.whatsappPhone, 'Qual é o CPF do segurado?', conversation.id);
+        await this.sendMessageWithRetry(lead.whatsappPhone, 'Qual é o CPF do segurado?', conversation.instanceName, conversation.id);
         tipoIdentificador = 'cpf';
         tipoSeguro = lowercaseMessage.includes('vida') ? 'Vida' : 'Residencial';
       } else {
         // Para outros tipos, pedir CPF
-        await this.sendMessageWithRetry(lead.whatsappPhone, 'Qual é o CPF do segurado?', conversation.id);
+        await this.sendMessageWithRetry(lead.whatsappPhone, 'Qual é o CPF do segurado?', conversation.instanceName, conversation.id);
         tipoIdentificador = 'cpf';
         tipoSeguro = messageContent;
       }
@@ -4289,6 +4299,7 @@ RESPOSTA:`;
       await this.sendMessageWithRetry(
         lead.whatsappPhone, 
         'Desculpe, houve um erro. Por favor, tente novamente.',
+        conversation.instanceName,
         conversation.id
       );
     }
@@ -4312,18 +4323,18 @@ Nossa equipe irá analisar e entrar em contato em breve com as melhores opções
 
 Obrigado por escolher a Portilho Corretora!`;
         
-        await this.sendMessageWithRetry(lead.whatsappPhone, confirmMessage, conversation.id);
+        await this.sendMessageWithRetry(lead.whatsappPhone, confirmMessage, conversation.instanceName, conversation.id);
         await this.handleHumanHandoff(lead, conversation, 'Cotação de apólice - mantém dados atuais');
       } else if (lowercaseMessage.includes('não') || lowercaseMessage.includes('revisar') || lowercaseMessage.includes('atualizar')) {
         const reviewMessage = `Entendi! Para revisar os dados, vou transferir você para um especialista que poderá ajudá-lo com todas as alterações necessárias. 💚`;
         
-        await this.sendMessageWithRetry(lead.whatsappPhone, reviewMessage, conversation.id);
+        await this.sendMessageWithRetry(lead.whatsappPhone, reviewMessage, conversation.instanceName, conversation.id);
         await this.handleHumanHandoff(lead, conversation, 'Cotação de apólice - deseja revisar dados');
       } else {
         // Client sent something else - could be the policy document
         const receivedMessage = `Recebi seu envio! Nossa equipe irá analisar e entrar em contato em breve com a melhor proposta. 💚`;
         
-        await this.sendMessageWithRetry(lead.whatsappPhone, receivedMessage, conversation.id);
+        await this.sendMessageWithRetry(lead.whatsappPhone, receivedMessage, conversation.instanceName, conversation.id);
         await this.handleHumanHandoff(lead, conversation, 'Apólice recebida para análise');
       }
     } catch (error) {
@@ -4331,6 +4342,7 @@ Obrigado por escolher a Portilho Corretora!`;
       await this.sendMessageWithRetry(
         lead.whatsappPhone, 
         'Desculpe, houve um erro. Um especialista entrará em contato em breve.',
+        conversation.instanceName,
         conversation.id
       );
     }
@@ -4363,7 +4375,7 @@ Agora preciso coletar alguns dados pessoais. Você pode enviar tudo de uma vez o
 
 Nome completo, CPF, data de nascimento, estado civil, endereço completo com CEP, telefone, e-mail, profissão e se você é o principal condutor do veículo.`;
 
-      await this.sendMessageWithRetry(lead.whatsappPhone, confirmMessage, conversation.id);
+      await this.sendMessageWithRetry(lead.whatsappPhone, confirmMessage, conversation.instanceName, conversation.id);
       await this.updateChatbotState(chatbotState.id, {
         currentState: 'fluxo_auto_dados_pessoais',
         collectedData: { 
@@ -4377,6 +4389,7 @@ Nome completo, CPF, data de nascimento, estado civil, endereço completo com CEP
       await this.sendMessageWithRetry(
         lead.whatsappPhone, 
         'Desculpe, houve um erro. Por favor, tente novamente.',
+        conversation.instanceName,
         conversation.id
       );
     }
@@ -4433,7 +4446,7 @@ Nome completo, CPF, data de nascimento, estado civil, endereço completo com CEP
 
 Vou encaminhar seu atendimento para o setor responsável. Em breve entrarão em contato. 💚`;
         
-        await this.sendMessageWithRetry(lead.whatsappPhone, successMessage, conversation.id);
+        await this.sendMessageWithRetry(lead.whatsappPhone, successMessage, conversation.instanceName, conversation.id);
         
         // Transferir para humano com informações completas
         const handoffInfo = `Renovação de Seguro
@@ -4446,13 +4459,14 @@ ${tipoIdentificadorDescricao}: ${identificador}`;
         const errorMessage = `Desculpe, o ${tipoIdentificador} informado parece estar incorreto.
 Por favor, verifique e envie novamente.`;
         
-        await this.sendMessageWithRetry(lead.whatsappPhone, errorMessage, conversation.id);
+        await this.sendMessageWithRetry(lead.whatsappPhone, errorMessage, conversation.instanceName, conversation.id);
       }
     } catch (error) {
       console.error('[ChatbotService] ❌ Erro em handleAguardandoIdentificador:', error);
       await this.sendMessageWithRetry(
         lead.whatsappPhone, 
         'Desculpe, houve um erro. Por favor, tente novamente.',
+        conversation.instanceName,
         conversation.id
       );
     }
@@ -4504,7 +4518,7 @@ Por favor, verifique e envie novamente.`;
 
 Vou verificar suas parcelas e boletos. Um especialista entrará em contato em breve. 💚`;
       
-      await this.sendMessageWithRetry(lead.whatsappPhone, successMessage, conversation.id);
+      await this.sendMessageWithRetry(lead.whatsappPhone, successMessage, conversation.instanceName, conversation.id);
       
       // Transferir para humano com informações completas
       const handoffInfo = `Parcelas/Boletos
@@ -4518,6 +4532,7 @@ ${tipoIdentificadorDescricao}: ${identificador}`;
       await this.sendMessageWithRetry(
         lead.whatsappPhone, 
         'Desculpe, houve um erro. Por favor, tente novamente.',
+        conversation.instanceName,
         conversation.id
       );
     }
@@ -4569,7 +4584,7 @@ ${tipoIdentificadorDescricao}: ${identificador}`;
 
 🚨 SINISTRO/ASSISTÊNCIA - Vou transferir você imediatamente para nossa equipe especializada. Em instantes será atendido. 💚`;
       
-      await this.sendMessageWithRetry(lead.whatsappPhone, successMessage, conversation.id);
+      await this.sendMessageWithRetry(lead.whatsappPhone, successMessage, conversation.instanceName, conversation.id);
       
       // Transferir para humano com informações completas - PRIORIDADE ALTA
       const handoffInfo = `🚨 SINISTRO/ASSISTÊNCIA - PRIORIDADE ALTA
@@ -4583,6 +4598,7 @@ ${tipoIdentificadorDescricao}: ${identificador}`;
       await this.sendMessageWithRetry(
         lead.whatsappPhone, 
         'Desculpe, houve um erro. Por favor, tente novamente.',
+        conversation.instanceName,
         conversation.id
       );
     }
@@ -4603,7 +4619,7 @@ ${tipoIdentificadorDescricao}: ${identificador}`;
         // Veículo selecionado - solicitar CRLV ou nota fiscal
         const veiculoMessage = `Para prosseguir, envie o documento necessário para a alteração do veículo: CRLV ou nota fiscal.`;
         
-        await this.sendMessageWithRetry(lead.whatsappPhone, veiculoMessage, conversation.id);
+        await this.sendMessageWithRetry(lead.whatsappPhone, veiculoMessage, conversation.instanceName, conversation.id);
         
         // Atualizar estado para aguardar documento
         await this.updateChatbotState(chatbotState.id, {
@@ -4620,7 +4636,7 @@ ${tipoIdentificadorDescricao}: ${identificador}`;
         // Outros itens - solicitar nota fiscal ou documento equivalente
         const outrosMessage = `Para prosseguir, envie a nota fiscal ou documento equivalente do item.`;
         
-        await this.sendMessageWithRetry(lead.whatsappPhone, outrosMessage, conversation.id);
+        await this.sendMessageWithRetry(lead.whatsappPhone, outrosMessage, conversation.instanceName, conversation.id);
         
         // Atualizar estado para aguardar documento
         await this.updateChatbotState(chatbotState.id, {
@@ -4640,6 +4656,7 @@ ${tipoIdentificadorDescricao}: ${identificador}`;
           `Por favor, me informe qual item deseja alterar:
 🔘 Veículo
 🔘 Outros`, 
+          conversation.instanceName,
           conversation.id
         );
         console.log(`[ChatbotService] ⚠️ Item não identificado, solicitando novamente`);
@@ -4649,6 +4666,7 @@ ${tipoIdentificadorDescricao}: ${identificador}`;
       await this.sendMessageWithRetry(
         lead.whatsappPhone, 
         'Desculpe, houve um erro. Por favor, tente novamente.',
+        conversation.instanceName,
         conversation.id
       );
     }
@@ -4676,7 +4694,7 @@ ${tipoIdentificadorDescricao}: ${identificador}`;
         
 Vou encaminhar seu atendimento para o setor responsável. Em breve entrarão em contato. 💚`;
         
-        await this.sendMessageWithRetry(lead.whatsappPhone, thankYouMessage, conversation.id);
+        await this.sendMessageWithRetry(lead.whatsappPhone, thankYouMessage, conversation.instanceName, conversation.id);
         
         // Transferir para humano com informações detalhadas
         const handoffInfo = `Endosso - Alteração no Item Segurado
@@ -4695,7 +4713,7 @@ Fique à vontade para enviar mais informações ou documentos se desejar.
 
 Agradecemos por escolher a Portilho Corretora! 💚`;
         
-        await this.sendMessageWithRetry(lead.whatsappPhone, thankYouMessage, conversation.id);
+        await this.sendMessageWithRetry(lead.whatsappPhone, thankYouMessage, conversation.instanceName, conversation.id);
         
         // Update lead to indicate documents were received and mark as completed
         await db.update(leads)
