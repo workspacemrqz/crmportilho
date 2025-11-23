@@ -8,6 +8,19 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Changes
 
+## November 23, 2025 - Fixed AI Node Messages Not Being Sent During Transitions
+- **Critical Bug Fix**: Resolved issue where AI-generated messages were not being sent to users when the AI detected a state transition
+- **Root Cause**: The `processAIStep` method was skipping message delivery when `proximaEtapaId` (next step) was different from the current step, causing silent transitions without user feedback
+- **User Impact**: Users would send messages (e.g., "para vida" after being asked about insurance type) and receive no response, creating a broken conversation flow
+- **Changes Made**:
+  1. **Modified processAIStep Logic**: Refactored to ALWAYS send the AI-generated message BEFORE processing any state transition
+  2. **Message-First Approach**: Moved `sendMessageWithRetry` call to execute before transition logic (lines 1898-1908)
+  3. **Preserved Transition Logic**: Maintained all existing transition behavior after ensuring message delivery
+  4. **Fixed Missing Parameter**: Added missing `instanceName` parameter to `handleFluxoAutoDadosVeiculo` call (line 3228)
+- **Code Location**: `server/chatbot.service.ts`, method `processAIStep` (lines 1864-1950)
+- **Result**: Users now receive AI responses in ALL scenarios (with or without transitions), ensuring continuous conversation flow
+- **Architect Review**: Approved - confirmed fix resolves the issue without introducing regressions
+
 ## November 23, 2025 - Fixed "Session Default Does Not Exist" Error
 - **Critical Bug Fix**: Resolved error where chatbot was trying to send messages to a non-existent WAHA session named "default"
 - **Root Cause**: Code was using `conversation.instanceName` from database (outdated/default value) instead of the `instanceName` parameter from webhooks (current/correct value)
