@@ -2,6 +2,20 @@
 
 Seguro IA is a CRM and chatbot system designed for the insurance industry to streamline customer interactions, primarily via WhatsApp. It manages leads, tracks conversations, facilitates document uploads, and provides AI-driven chatbot responses for insurance inquiries. The system aims to enhance customer engagement and operational efficiency through a full-stack TypeScript application with real-time capabilities, featuring configurable, visual flow-based conversation systems and an automatic follow-up system for lead re-engagement.
 
+# Recent Updates
+
+**November 23, 2025 - Flow Editor: Removed Auto-Repositioning**
+- Fixed issue where nodes were being automatically repositioned after saving
+- Nodes now maintain their EXACT position as placed by the user
+- Only brand new nodes without saved positions use the default grid layout
+- Implementation: Enhanced position preservation logic in FlowEditor.tsx to strictly respect saved coordinates from database
+
+**November 23, 2025 - Node Execution Deduplication**
+- Implemented `executedSteps` tracking to prevent nodes from executing multiple times per conversation
+- Each chatbot flow node now executes exactly once per conversation
+- Prevents duplicate messages when leads send multiple responses to the last node in a workflow
+- Status/priority changes and message sending only happen on first node execution
+
 # User Preferences
 
 Preferred communication style: Simple, everyday language.

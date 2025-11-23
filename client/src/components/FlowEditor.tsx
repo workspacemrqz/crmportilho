@@ -529,6 +529,7 @@ function FlowEditorInnerComponent(
   // Main reconciliation effect - usa structuralHash ao invés de steps!
   // Roda APENAS quando estrutura muda (add/remove steps, change names/prompts)
   // NÃO roda quando apenas transitions mudam
+  // IMPORTANTE: Preserva as posições salvas - NÃO reposiciona nodes após salvar
   useEffect(() => {
     const changes: NodeChange[] = [];
     const currentSteps = stepsRef.current;
@@ -552,9 +553,21 @@ function FlowEditorInnerComponent(
         const existingNode = currentNodes.find(n => n.id === step.stepId);
         
         if (!existingNode) {
-          const position = positionsRef.current[step.stepId] 
-            ?? (step.position?.x !== undefined ? step.position : null)
-            ?? { x: 100 + (index % 3) * 300, y: 100 + Math.floor(index / 3) * 200 };
+          // CRÍTICO: Preserve a posição exata salva no banco, sem recálculo automático
+          // Prioridade: 1) positionsRef (sessão atual), 2) step.position (banco), 3) posição padrão fixa
+          let position: { x: number; y: number };
+          
+          if (positionsRef.current[step.stepId]) {
+            // Usar posição da sessão atual (memória)
+            position = positionsRef.current[step.stepId];
+          } else if (step.position?.x !== undefined && step.position?.y !== undefined) {
+            // Usar posição salva no banco - EXATAMENTE como foi salva
+            position = { x: step.position.x, y: step.position.y };
+          } else {
+            // Apenas para nodes completamente novos sem posição salva
+            // Usar grid fixo inicial (será movido pelo usuário)
+            position = { x: 100 + (index % 3) * 300, y: 100 + Math.floor(index / 3) * 200 };
+          }
           
           const newNode: Node = {
             id: step.stepId,
