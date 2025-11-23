@@ -175,26 +175,29 @@ export default function FluxoPage() {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      // CRÍTICO: Usa stepsRef.current para garantir acesso ao valor mais atual
-      // Isso previne race condition onde setSteps ainda não foi aplicado
-      const currentSteps = stepsRef.current;
-      console.log('[FluxoPage] saveMutation - salvando com steps:', currentSteps.length, currentSteps.map(s => s.stepId));
-      console.log('[FluxoPage] saveMutation - usando stepsRef.current para evitar race condition');
+      // CRITICAL: Sincroniza posições do FlowEditor ANTES de salvar
+      // positionsRef é a fonte da verdade para posições de nodes
+      const stepsWithCurrentPositions = flowEditorRef.current?.syncPositionsToSteps() || stepsRef.current;
+      
+      console.log('[FluxoPage] saveMutation - SINCRONIZOU POSIÇÕES:', stepsWithCurrentPositions.map(s => ({
+        stepId: s.stepId,
+        position: s.position
+      })));
       
       if (config.id) {
         const payload = {
           ...config,
           keywords: keywords.map((k, index) => ({ ...k, isActive: true })),
-          steps: currentSteps.map((s, index) => ({ ...s, order: index, isActive: true }))
+          steps: stepsWithCurrentPositions.map((s, index) => ({ ...s, order: index, isActive: true }))
         };
-        console.log('[FluxoPage] saveMutation - enviando PUT com payload:', payload);
+        console.log('[FluxoPage] saveMutation - enviando PUT com payload (com posições sincronizadas)');
         return apiRequest("PUT", `/api/flows/${config.id}`, payload);
       } else {
         const newFlow: any = await apiRequest("POST", "/api/flows", {
           ...config,
           isActive: true,
           keywords: keywords.map((k) => ({ ...k, isActive: true })),
-          steps: currentSteps.map((s, index) => ({ ...s, order: index, isActive: true }))
+          steps: stepsWithCurrentPositions.map((s, index) => ({ ...s, order: index, isActive: true }))
         });
         
         if (newFlow.id) {

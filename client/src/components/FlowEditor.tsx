@@ -59,6 +59,7 @@ type FlowEditorProps = {
 
 export type FlowEditorRef = {
   applyStepIdRename: (mapping: { oldId: string; newId: string }, updatedSteps: FlowStep[]) => void;
+  syncPositionsToSteps: () => FlowStep[];
 };
 
 // Função para gerar ID slug a partir do nome da etapa
@@ -459,6 +460,15 @@ function FlowEditorInnerComponent(
       });
       
       setEdges(newEdges);
+    },
+    
+    syncPositionsToSteps: () => {
+      // CRITICAL: Retorna steps com posições atualizadas do positionsRef
+      // Essa é a FONTE DA VERDADE para posições de nodes
+      return stepsRef.current.map(step => ({
+        ...step,
+        position: positionsRef.current[step.stepId] || step.position || { x: 100, y: 100 }
+      }));
     }
   }), [setNodes, setEdges]);
   
