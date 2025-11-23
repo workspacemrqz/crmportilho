@@ -1,21 +1,28 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Plus, RefreshCw, Smartphone, Trash2, MessageSquare, Clock, Settings } from "lucide-react";
+import { Loader2, Plus, RefreshCw, Smartphone, Trash2, MessageSquare, Clock, Settings, Edit } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -26,6 +33,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import type { Instance } from "@shared/schema";
 import { WahaConfigDialog } from "@/components/waha-config-dialog";
@@ -83,15 +91,6 @@ export default function Instances() {
         description: "Não foi possível obter o QR code. Tente novamente.",
         variant: "destructive",
       });
-    }
-  };
-
-  const refreshStatus = async (instanceName: string) => {
-    try {
-      await fetch(`/api/instancias/${instanceName}/status`);
-      queryClient.invalidateQueries({ queryKey: ['/api/instancias'] });
-    } catch (error) {
-      console.error('Error refreshing status:', error);
     }
   };
 
@@ -277,19 +276,16 @@ export default function Instances() {
     let statusCheckId: NodeJS.Timeout;
     
     if (qrDialogOpen && selectedInstance) {
-      // Set up interval to refresh QR code every 5 seconds
       intervalId = setInterval(async () => {
         await fetchQrCode(selectedInstance);
       }, 5000);
 
-      // Check instance status every 3 seconds to detect when connected
       statusCheckId = setInterval(async () => {
         try {
           const response = await fetch(`/api/instancias/${selectedInstance}/status`);
           if (response.ok) {
             const data = await response.json();
             
-            // If status is WORKING (connected), close modal and show success
             if (data.status === 'WORKING') {
               setQrDialogOpen(false);
               toast({
@@ -315,14 +311,6 @@ export default function Instances() {
     };
   }, [qrDialogOpen, selectedInstance]);
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
   return (
     <div className="flex flex-col h-full">
       <div className="flex-none p-4 sm:p-6 border-b space-y-4">
@@ -342,131 +330,221 @@ export default function Instances() {
 
       <div className="flex-1 overflow-y-auto">
         <div className="p-4 sm:p-6">
-          {!instances || instances.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <Smartphone className="w-16 h-16 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Nenhuma instância criada</h3>
-                <p className="text-muted-foreground text-center mb-4">
-                  Crie sua primeira instância WhatsApp para começar
-                </p>
-                <Button
-                  data-testid="button-create-first-instance"
-                  onClick={() => setDialogOpen(true)}
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Criar Primeira Instância
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {instances.map((instance) => (
-                <Card key={instance.id} data-testid={`card-instance-${instance.name}`}>
-                  <CardHeader>
-                    <div className="flex items-center justify-between gap-2">
-                      <CardTitle className="text-lg">{instance.name}</CardTitle>
-                      {getStatusBadge(instance.status)}
-                    </div>
-                    <CardDescription>
-                      Criado em {new Date(instance.createdAt).toLocaleDateString('pt-BR')}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <MessageSquare className="w-4 h-4 text-muted-foreground" />
-                          <Label htmlFor={`chatbot-${instance.name}`} className="text-sm font-medium">
-                            Chatbot
-                          </Label>
-                        </div>
-                        <Switch
-                      id={`chatbot-${instance.name}`}
-                      data-testid={`switch-chatbot-${instance.name}`}
-                      checked={instance.chatbotEnabled}
-                      onCheckedChange={(checked) => handleToggleChatbot(instance.name, checked)}
-                    />
-                  </div>
-                  
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-muted-foreground" />
-                      <Label htmlFor={`followup-${instance.name}`} className="text-sm font-medium">
-                        Follow-up
-                      </Label>
-                    </div>
-                    <Switch
-                      id={`followup-${instance.name}`}
-                      data-testid={`switch-followup-${instance.name}`}
-                      checked={instance.followupEnabled}
-                      onCheckedChange={(checked) => handleToggleFollowup(instance.name, checked)}
-                    />
-                  </div>
-                </div>
-
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Criar Nova Instância</DialogTitle>
+                <DialogDescription>
+                  Insira um nome único para a nova instância WhatsApp
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 mt-4">
                 <div className="space-y-2">
-                  {instance.status === 'STOPPED' && (
-                    <Button
-                      data-testid={`button-start-${instance.name}`}
-                      variant="default"
-                      className="w-full"
-                      onClick={() => startInstance(instance.name)}
-                    >
-                      <Smartphone className="w-4 h-4 mr-2" />
-                      Iniciar Instância
-                    </Button>
-                  )}
-
-                  {instance.status === 'FAILED' && (
-                    <Button
-                      data-testid={`button-restart-${instance.name}`}
-                      variant="default"
-                      className="w-full"
-                      onClick={() => restartInstance(instance.name)}
-                    >
-                      <RefreshCw className="w-4 h-4 mr-2" />
-                      Tentar Novamente
-                    </Button>
-                  )}
-                
-                {(instance.status === 'SCAN_QR_CODE' || instance.status === 'SCAN_QR' || instance.status === 'STARTING') && (
-                  <Button
-                    data-testid={`button-show-qr-${instance.name}`}
-                    variant="default"
-                    className="w-full"
-                    onClick={() => handleShowQr(instance.name)}
-                  >
-                    <Smartphone className="w-4 h-4 mr-2" />
-                    Conectar WhatsApp
-                  </Button>
-                )}
-
-                  <Button
-                    data-testid={`button-config-${instance.name}`}
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => handleConfigClick(instance)}
-                  >
-                    <Settings className="w-4 h-4 mr-2" />
-                    Configurar WAHA
-                  </Button>
-
-                  <Button
-                    data-testid={`button-delete-${instance.name}`}
-                    variant="destructive"
-                    className="w-full"
-                    onClick={() => handleDeleteClick(instance.name)}
-                  >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Excluir Instância
-                  </Button>
+                  <Label htmlFor="instance-name">Nome da Instância</Label>
+                  <Input
+                    id="instance-name"
+                    data-testid="input-instance-name"
+                    placeholder="Ex: principal, suporte, vendas"
+                    value={newInstanceName}
+                    onChange={(e) => setNewInstanceName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleCreate();
+                      }
+                    }}
+                  />
                 </div>
-              </CardContent>
-            </Card>
-          ))}
+                <Button
+                  data-testid="button-confirm-create"
+                  onClick={handleCreate}
+                  disabled={createMutation.isPending}
+                  className="w-full"
+                >
+                  {createMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Criando...
+                    </>
+                  ) : (
+                    "Criar Instância"
+                  )}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {isLoading ? (
+            <div className="space-y-2">
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+            </div>
+          ) : !instances || instances.length === 0 ? (
+            <div className="text-center py-12 border-2 border-dashed rounded-lg">
+              <Smartphone className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Nenhuma instância criada</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Crie sua primeira instância WhatsApp para começar
+              </p>
+            </div>
+          ) : (
+            <div className="border rounded-lg">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[20%]">Nome</TableHead>
+                    <TableHead className="w-[15%]">Status</TableHead>
+                    <TableHead className="w-[15%]">Chatbot</TableHead>
+                    <TableHead className="w-[15%]">Follow-up</TableHead>
+                    <TableHead className="w-[15%]">Conexão</TableHead>
+                    <TableHead className="w-[20%] text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {instances.map((instance) => (
+                    <TableRow key={instance.id} data-testid={`row-instance-${instance.name}`}>
+                      <TableCell className="font-medium" data-testid={`text-instance-name-${instance.name}`}>
+                        <div className="flex flex-col">
+                          <span>{instance.name}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(instance.createdAt).toLocaleDateString('pt-BR')}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell data-testid={`status-${instance.name}`}>
+                        {getStatusBadge(instance.status)}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            id={`chatbot-${instance.name}`}
+                            data-testid={`switch-chatbot-${instance.name}`}
+                            checked={instance.chatbotEnabled}
+                            onCheckedChange={(checked) => handleToggleChatbot(instance.name, checked)}
+                          />
+                          <Badge
+                            variant={instance.chatbotEnabled ? "default" : "secondary"}
+                            data-testid={`badge-chatbot-${instance.name}`}
+                          >
+                            {instance.chatbotEnabled ? "Ativo" : "Inativo"}
+                          </Badge>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            id={`followup-${instance.name}`}
+                            data-testid={`switch-followup-${instance.name}`}
+                            checked={instance.followupEnabled}
+                            onCheckedChange={(checked) => handleToggleFollowup(instance.name, checked)}
+                          />
+                          <Badge
+                            variant={instance.followupEnabled ? "default" : "secondary"}
+                            data-testid={`badge-followup-${instance.name}`}
+                          >
+                            {instance.followupEnabled ? "Ativo" : "Inativo"}
+                          </Badge>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {instance.status === 'STOPPED' && (
+                          <Button
+                            data-testid={`button-start-${instance.name}`}
+                            variant="outline"
+                            size="sm"
+                            onClick={() => startInstance(instance.name)}
+                          >
+                            <Smartphone className="w-3 h-3 mr-1" />
+                            Iniciar
+                          </Button>
+                        )}
+
+                        {instance.status === 'FAILED' && (
+                          <Button
+                            data-testid={`button-restart-${instance.name}`}
+                            variant="outline"
+                            size="sm"
+                            onClick={() => restartInstance(instance.name)}
+                          >
+                            <RefreshCw className="w-3 h-3 mr-1" />
+                            Tentar Novamente
+                          </Button>
+                        )}
+                      
+                        {(instance.status === 'SCAN_QR_CODE' || instance.status === 'SCAN_QR' || instance.status === 'STARTING') && (
+                          <Button
+                            data-testid={`button-show-qr-${instance.name}`}
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleShowQr(instance.name)}
+                          >
+                            <Smartphone className="w-3 h-3 mr-1" />
+                            Conectar
+                          </Button>
+                        )}
+
+                        {instance.status === 'WORKING' && (
+                          <Badge variant="default">
+                            <Smartphone className="w-3 h-3 mr-1" />
+                            Conectado
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleConfigClick(instance)}
+                            data-testid={`button-config-${instance.name}`}
+                          >
+                            <Settings className="h-4 w-4" />
+                          </Button>
+
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                data-testid={`button-delete-${instance.name}`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Excluir instância?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Tem certeza que deseja excluir a instância "{instance.name}"?
+                                  Isso removerá permanentemente a sessão do WhatsApp. Esta ação não pode ser desfeita.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel data-testid="button-cancel-delete">
+                                  Cancelar
+                                </AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => {
+                                    setInstanceToDelete(instance.name);
+                                    handleDeleteConfirm();
+                                  }}
+                                  data-testid={`button-confirm-delete-${instance.name}`}
+                                >
+                                  Excluir
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
       <Dialog open={qrDialogOpen} onOpenChange={setQrDialogOpen}>
         <DialogContent className="sm:max-w-md">
@@ -515,73 +593,6 @@ export default function Instances() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Criar Nova Instância</DialogTitle>
-            <DialogDescription>
-              Insira um nome único para a nova instância WhatsApp
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 mt-4">
-            <div className="space-y-2">
-              <Label htmlFor="instance-name">Nome da Instância</Label>
-              <Input
-                id="instance-name"
-                data-testid="input-instance-name"
-                placeholder="Ex: principal, suporte, vendas"
-                value={newInstanceName}
-                onChange={(e) => setNewInstanceName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleCreate();
-                  }
-                }}
-              />
-            </div>
-            <Button
-              data-testid="button-confirm-create"
-              onClick={handleCreate}
-              disabled={createMutation.isPending}
-              className="w-full"
-            >
-              {createMutation.isPending ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Criando...
-                </>
-              ) : (
-                "Criar Instância"
-              )}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta ação não pode ser desfeita. Isso excluirá permanentemente a instância{" "}
-              <strong>{instanceToDelete}</strong> e removerá a sessão do WhatsApp.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel data-testid="button-cancel-delete">
-              Cancelar
-            </AlertDialogCancel>
-            <AlertDialogAction
-              data-testid="button-confirm-delete"
-              onClick={handleDeleteConfirm}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
       {instanceToConfig && (
         <WahaConfigDialog
           open={wahaConfigDialogOpen}
@@ -592,8 +603,6 @@ export default function Instances() {
           initialCustomHeaders={(instanceToConfig.customHeaders as Record<string, string> | null | undefined) ?? {}}
         />
       )}
-        </div>
-      </div>
     </div>
   );
 }
