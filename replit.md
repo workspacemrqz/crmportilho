@@ -10,6 +10,20 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Changes
 
+## November 23, 2025 - WAHA Custom Headers Auto-Configuration
+- **Removed Custom Headers Section from Frontend**: Simplified the WAHA configuration dialog by removing the custom headers interface
+- **Backend-Enforced Headers**: The system now automatically configures authentication headers on the backend:
+  - Automatically adds `X-Api-Key` header with `WAHA_API_KEY` environment variable value when defined
+  - If `WAHA_API_KEY` is not defined, sends empty customHeaders object to prevent authentication errors
+- **Configuration Changes**:
+  - Frontend (WahaConfigDialog): Removed all custom headers state, UI components, and related props
+  - Frontend (instances.tsx): Removed `initialCustomHeaders` prop from WahaConfigDialog
+  - Backend (PATCH /api/instancias/:name/waha-config): Now automatically injects X-Api-Key header based on environment variable
+  - Validation ensures no empty header values are sent to WAHA API
+- **Benefits**: Prevents misconfiguration of authentication headers, ensures secure API key management via environment variables, and simplifies user interface
+- **Impact**: All instances automatically use the correct authentication header when WAHA_API_KEY is configured; configuration updates work correctly even when API key is not set
+- **Security**: API keys managed exclusively through environment variables; no user-supplied headers accepted from frontend
+
 ## November 23, 2025 - WAHA Events Configuration Simplified
 - **Removed Events Section from Frontend**: Simplified the WAHA configuration dialog by removing the events selection interface
 - **Backend-Enforced Events**: The system now automatically configures two mandatory events on the backend:
