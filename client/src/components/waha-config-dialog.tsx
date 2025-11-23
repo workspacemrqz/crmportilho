@@ -26,12 +26,10 @@ interface WahaConfigDialogProps {
 
 const AVAILABLE_EVENTS = [
   { id: "message", label: "Mensagens" },
-  { id: "message.any", label: "Todas as Mensagens" },
-  { id: "state.change", label: "Mudança de Estado" },
-  { id: "status", label: "Status" },
-  { id: "qr", label: "QR Code" },
-  { id: "connection.update", label: "Atualização de Conexão" },
+  { id: "session.status", label: "Status da Sessão" },
 ];
+
+const DEFAULT_EVENTS = ["message", "session.status"];
 
 export function WahaConfigDialog({
   open,
@@ -53,7 +51,7 @@ export function WahaConfigDialog({
   useEffect(() => {
     if (open) {
       setWebhooks(initialWebhooks.length > 0 ? initialWebhooks : [""]);
-      setSelectedEvents(initialEvents);
+      setSelectedEvents(initialEvents.length > 0 ? initialEvents : DEFAULT_EVENTS);
       setCustomHeaders(
         Object.entries(initialCustomHeaders).map(([key, value]) => ({ key, value }))
       );
