@@ -10,9 +10,10 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { LayoutDashboard, MessageSquare, FileText, Workflow, Clock, Smartphone } from "lucide-react";
+import { LayoutDashboard, FileText, Workflow, Clock, Smartphone } from "lucide-react";
 import logo from "@/assets/Logo Seguro IA.png";
 import clientesIcon from "@/assets/Icones/Clientes.svg";
+import conversasIcon from "@/assets/Icones/Conversas.svg";
 import { Badge } from "@/components/ui/badge";
 
 const menuItems = [
@@ -30,7 +31,8 @@ const menuItems = [
   {
     title: "Conversas",
     url: "/conversas",
-    icon: MessageSquare,
+    icon: conversasIcon,
+    isImage: true,
   },
   {
     title: "Follow-up",
