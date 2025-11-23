@@ -1,20 +1,8 @@
 # Overview
 
-Seguro IA is a CRM and chatbot system designed for the insurance industry to streamline customer interactions, primarily via WhatsApp. It manages leads, tracks conversations, facilitates document uploads, and provides AI-driven chatbot responses for insurance inquiries. The system aims to enhance customer engagement and operational efficiency through a full-stack TypeScript application with real-time capabilities, featuring configurable, visual flow-based conversation systems and an automatic follow-up system for lead re-engagement.
+This is a WhatsApp-based CRM and intelligent customer service system called "Seguro IA" (Insurance AI). The application manages customer interactions through WhatsApp, providing automated chatbot responses, lead management, conversation tracking, and follow-up automation for an insurance business.
 
-# Recent Updates
-
-**November 23, 2025 - Flow Editor: Removed Auto-Repositioning**
-- Fixed issue where nodes were being automatically repositioned after saving
-- Nodes now maintain their EXACT position as placed by the user
-- Only brand new nodes without saved positions use the default grid layout
-- Implementation: Enhanced position preservation logic in FlowEditor.tsx to strictly respect saved coordinates from database
-
-**November 23, 2025 - Node Execution Deduplication**
-- Implemented `executedSteps` tracking to prevent nodes from executing multiple times per conversation
-- Each chatbot flow node now executes exactly once per conversation
-- Prevents duplicate messages when leads send multiple responses to the last node in a workflow
-- Status/priority changes and message sending only happen on first node execution
+The system uses a full-stack TypeScript architecture with React + Vite on the frontend and Express.js on the backend, with PostgreSQL as the primary database and WebSocket support for real-time updates.
 
 # User Preferences
 
@@ -24,41 +12,114 @@ Preferred communication style: Simple, everyday language.
 
 ## Frontend Architecture
 
-**Technology Stack:** React with TypeScript (Vite), Wouter for routing, TanStack Query for server state, Shadcn/ui components, and Tailwind CSS for styling.
+**Framework & Build System:**
+- React 18 with TypeScript for type safety
+- Vite as the build tool and development server
+- Wouter for lightweight client-side routing
+- TanStack Query (React Query) for server state management and caching
 
-**Design System:** Modern dark theme with a vibrant blue primary color, HSL-based color system, mobile-first responsive design, and a three-level text hierarchy.
+**UI Component Library:**
+- Shadcn/ui components based on Radix UI primitives
+- Tailwind CSS for styling with a dark-themed design system
+- Custom HSL-based color system with support for semantic color tokens
+- Responsive design with mobile-first breakpoints
 
-**State Management:** TanStack Query for server state, React Context API for authentication, and `useWebSocket` hook for real-time updates.
+**State Management Pattern:**
+- Server state handled through React Query with 5-minute cache stale time
+- WebSocket integration for real-time updates (conversations, messages)
+- Context API for authentication state
+- Local component state for UI interactions
 
-**Key Features:** Real-time chat interface, lead and conversation dashboards, document upload with previews, session-based authentication, and live updates via WebSockets.
+**Key Design Decisions:**
+- Modular component architecture with separation of concerns
+- Form validation using React Hook Form + Zod schemas
+- Real-time synchronization through WebSocket with automatic reconnection
+- Proxy configuration routes API requests to backend during development
 
 ## Backend Architecture
 
-**Technology Stack:** Node.js with Express, TypeScript (ESM modules), WebSocket server, `express-session` for session management, and Drizzle ORM for database interactions.
+**Server Framework:**
+- Express.js with TypeScript for type-safe HTTP server
+- Session-based authentication using express-session with MemoryStore
+- WebSocket server for real-time bidirectional communication
+- Security middleware including helmet, rate limiting, and custom webhook authentication
 
-**Database:** PostgreSQL (Neon hosting) managed with Drizzle ORM. Key tables include: users, leads, conversations, messages, documents, chatbotStates, vehicles, quotes, auditLogs, workflowTemplates, systemSettings, `flow_configs`, `keyword_rules`, `flow_steps`, `followup_messages`, and `followup_sent`.
+**Database Layer:**
+- PostgreSQL as the primary relational database
+- Drizzle ORM for type-safe database operations
+- Schema-first design with shared TypeScript types between client and server
+- Connection pooling (max 20 connections) for production scalability
 
-**API Structure:** RESTful endpoints (`/api`), session-based authentication middleware, webhook endpoints for WhatsApp (`/api/webhook/*`), file upload endpoints (Multer), and a WebSocket endpoint (`/ws`).
+**Data Models:**
+- **Leads**: Customer records with status (novo, em_atendimento, aguardando_documentos, etc.) and priority levels
+- **Conversations**: Active chat sessions linked to leads with state tracking
+- **Messages**: Individual messages with support for text, images, documents, and metadata
+- **ChatbotStates**: State machine for tracking conversation flow and collected data
+- **FlowConfigs**: Configurable chatbot flows with AI-powered routing
+- **FollowupMessages**: Automated follow-up scheduling based on conversation inactivity
+- **WorkflowTemplates**: Reusable message templates with versioning
 
-**Security Measures:** Helmet.js for security headers, rate limiting on webhook endpoints, webhook authentication via API keys, and session secret validation.
+**Service Layer Pattern:**
+- **ChatbotService**: Core conversation logic with state machine implementation
+- **WAHAService**: WhatsApp HTTP API integration (primary)
+- **EvolutionAPIService**: Alternative WhatsApp API (backward compatibility)
+- **FollowupService**: Automated follow-up scheduling with configurable intervals
+- **FlowAIService**: OpenAI integration for intelligent conversation routing
+- **LocalStorageService**: File upload/download with security validations
 
-**Chatbot Service:** Configurable, visual flow-based conversation system with OpenAI integration. It uses `globalPrompt`, `stepPrompt`, `objective`, and `routingInstructions`. Features message buffering, supports text, image, and document messages, and includes automatic lead creation, conversation tracking, and intelligent next-step determination using OpenAI with structured JSON output. Supports AI-powered and fixed message nodes. Includes logic to prevent duplicate node execution and allows automatic lead status and priority updates based on flow nodes.
+**Authentication & Security:**
+- Environment-based login credentials (LOGIN/SENHA variables)
+- Session-based authentication with secure cookie handling
+- Webhook authentication supporting multiple API providers (WAHA, Evolution)
+- Rate limiting on webhook endpoints (30 req/min standard, 10 req/15min for suspicious)
+- Security headers via helmet middleware
+- Raw body parsing for webhook signature verification
+- IP tracking and security event logging
 
-**Automatic Follow-up System:** Configurable automatic messages sent to re-engage leads based on delays. Prevents sending the same follow-up message multiple times to the same conversation. Supports `{nome}` placeholder for personalization.
+## External Dependencies
 
-**File Storage:** Local filesystem storage (`/uploads`) with UUID generation for filenames, path traversal protection, and input validation.
+**WhatsApp Integration:**
+- Primary: WAHA (WhatsApp HTTP API) - configurable via WAHA_API, WAHA_API_KEY, WAHA_INSTANCIA
+- Fallback: Evolution API - configurable via EVOLUTION_URL, EVOLUTION_KEY, INSTANCIA
+- Webhook-based message reception with signature validation
+- Support for text, image, document, and media messages
+- Real-time message status tracking (sent, delivered, read)
 
-**Visual Flow Editor:** Interactive node-based editor using `@xyflow/react`. Supports drag-and-drop, connection management, editable node properties, and visualizes transitions. Stores node `position` and `transitions` in `flow_steps`.
+**AI Services:**
+- OpenAI GPT integration for intelligent conversation routing and response generation
+- Configurable via OPENAI_API_KEY environment variable
+- Used for flow step preview, automated routing decisions, and natural language understanding
+- Fallback to manual flows when AI is unavailable
 
-# External Dependencies
+**Database:**
+- PostgreSQL (Neon serverless compatible via @neondatabase/serverless)
+- Connection via DATABASE_URL environment variable
+- Drizzle Kit for schema migrations (stored in ./migrations)
+- Schema defined in shared/schema.ts for type safety across client/server
 
-**WhatsApp Integration:** WAHA API (WhatsApp HTTP API) and Evolution API. Uses webhook-based message reception.
+**File Storage:**
+- Local filesystem storage in /uploads directory
+- Security: Strict path validation to prevent directory traversal
+- Support for lead-specific subdirectories
+- File type validation and size limits
+- Files served via Express static middleware with security headers
 
-**Environment Variables:** `DATABASE_URL`, `SESSION_SECRET`, `LOGIN`, `SENHA`, `OPENAI_API_KEY`, `WAHA_API`, `WAHA_API_KEY`, `WAHA_INSTANCIA`, `EVOLUTION_URL`, `EVOLUTION_KEY`, `INSTANCIA`.
+**Real-time Communication:**
+- WebSocket server mounted on Express HTTP server
+- Session-based authentication for WebSocket connections
+- Heartbeat mechanism (25-second intervals) for connection health
+- Automatic reconnection with exponential backoff (max 30 seconds)
+- Broadcast patterns for new messages, conversation updates, and lead changes
 
-**Third-Party Services:**
-- **Neon Database:** PostgreSQL hosting.
-- **OpenAI:** GPT-based chatbot responses.
-- **WAHA/Evolution API:** WhatsApp Business API integration.
+**Environment Configuration:**
+- Required: DATABASE_URL, LOGIN, SENHA, SESSION_SECRET
+- Optional WhatsApp: WAHA_API, WAHA_API_KEY, WAHA_INSTANCIA (or Evolution equivalents)
+- Optional AI: OPENAI_API_KEY
+- Optional: FOLLOWUP_CHECK_INTERVAL_MINUTES (default: 5)
+- Validation on startup ensures critical variables are present
 
-**Database Provider:** PostgreSQL via Drizzle ORM, configured for Neon Database, with connection pooling via `pg` library.
+**Development Tools:**
+- TSX for TypeScript execution in development
+- Vite HMR with WebSocket proxying to backend
+- Concurrently for running frontend and backend in parallel
+- ESBuild for production server bundling
