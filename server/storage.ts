@@ -166,6 +166,7 @@ export interface IStorage {
   getInstance(name: string): Promise<Instance | undefined>;
   createInstance(data: InsertInstance): Promise<Instance>;
   updateInstanceStatus(name: string, status: string): Promise<Instance | undefined>;
+  deleteInstance(name: string): Promise<void>;
 
   // Dashboard stats
   getDashboardStats(): Promise<DashboardStats>;
@@ -852,6 +853,10 @@ export class PgStorage implements IStorage {
       .where(eq(instances.name, name))
       .returning();
     return result;
+  }
+
+  async deleteInstance(name: string): Promise<void> {
+    await db.delete(instances).where(eq(instances.name, name));
   }
 
   async getDashboardStats(): Promise<DashboardStats> {

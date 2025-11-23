@@ -30,11 +30,13 @@ Preferred communication style: Simple, everyday language.
   - GET /api/instancias/:name/status - Get instance status
   - POST /api/instancias/:name/start - Start stopped instance
   - POST /api/instancias/:name/restart - Restart failed instance
+  - DELETE /api/instancias/:name - Delete instance (removes from WAHA and database)
 - Built frontend interface with:
-  - QR code modal with auto-refresh every 5 seconds
-  - Status-based action buttons (Start, Restart, Connect)
+  - QR code modal with auto-refresh every 5 seconds and auto-close on successful connection
+  - Status-based action buttons (Start, Restart, Connect, Delete)
   - "Tentar Novamente" button for failed connections
-  - Real-time status updates
+  - "Excluir Instância" button with confirmation dialog to prevent accidental deletion
+  - Real-time status updates and success notifications
 - Status mapping: WORKING (Conectado), SCAN_QR_CODE/SCAN_QR (Aguardando QR), STARTING (Iniciando), STOPPED (Parado), FAILED (Falha)
 - All endpoints protected with session-based authentication
 

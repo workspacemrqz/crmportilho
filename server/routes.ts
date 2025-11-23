@@ -2845,6 +2845,40 @@ Retorne APENAS o JSON array, sem texto adicional.`;
     }
   });
 
+  app.delete('/api/instancias/:name', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { name } = req.params;
+
+      // Check if instance exists in database
+      const instance = await storage.getInstance(name);
+      if (!instance) {
+        return res.status(404).json({ error: 'Instância não encontrada' });
+      }
+
+      // Delete session from WAHA
+      const wahaUrl = `${process.env.WAHA_API}/api/sessions/${name}`;
+      const wahaResponse = await fetch(wahaUrl, {
+        method: 'DELETE',
+        headers: {
+          'X-Api-Key': process.env.WAHA_API_KEY || ''
+        }
+      });
+
+      // Continue with database deletion even if WAHA deletion fails
+      if (!wahaResponse.ok) {
+        console.warn('[WAHA] Could not delete session from WAHA:', await wahaResponse.text());
+      }
+
+      // Delete from database
+      await storage.deleteInstance(name);
+
+      res.json({ success: true, message: 'Instância excluída com sucesso' });
+    } catch (error) {
+      console.error('Error deleting instance:', error);
+      res.status(500).json({ error: 'Falha ao excluir instância' });
+    }
+  });
+
   // Health check
   app.get('/api/health', (req: Request, res: Response) => {
     res.json({

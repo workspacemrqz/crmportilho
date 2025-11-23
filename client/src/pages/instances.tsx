@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Plus, RefreshCw, Smartphone } from "lucide-react";
+import { Loader2, Plus, RefreshCw, Smartphone, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -16,6 +16,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import type { Instance } from "@shared/schema";
 
 export default function Instances() {
@@ -25,6 +35,8 @@ export default function Instances() {
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
   const [selectedInstance, setSelectedInstance] = useState<string | null>(null);
   const [qrCode, setQrCode] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [instanceToDelete, setInstanceToDelete] = useState<string | null>(null);
 
   const { data: instances, isLoading } = useQuery<Instance[]>({
     queryKey: ['/api/instancias'],
@@ -136,6 +148,41 @@ export default function Instances() {
     setQrDialogOpen(true);
     setQrCode(null);
     await fetchQrCode(instanceName);
+  };
+
+  const handleDeleteClick = (instanceName: string) => {
+    setInstanceToDelete(instanceName);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!instanceToDelete) return;
+
+    try {
+      const response = await fetch(`/api/instancias/${instanceToDelete}`, {
+        method: 'DELETE'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Falha ao excluir instância');
+      }
+      
+      toast({
+        title: "Instância excluída",
+        description: "A instância foi excluída com sucesso.",
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ['/api/instancias'] });
+      setDeleteDialogOpen(false);
+      setInstanceToDelete(null);
+    } catch (error) {
+      console.error('Error deleting instance:', error);
+      toast({
+        title: "Erro ao excluir instância",
+        description: "Não foi possível excluir a instância. Tente novamente.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleCreate = () => {
@@ -351,6 +398,16 @@ export default function Instances() {
                   <RefreshCw className="w-4 h-4 mr-2" />
                   Atualizar Status
                 </Button>
+
+                <Button
+                  data-testid={`button-delete-${instance.name}`}
+                  variant="destructive"
+                  className="w-full"
+                  onClick={() => handleDeleteClick(instance.name)}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Excluir Instância
+                </Button>
               </CardContent>
             </Card>
           ))}
@@ -403,6 +460,30 @@ export default function Instances() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. Isso excluirá permanentemente a instância{" "}
+              <strong>{instanceToDelete}</strong> e removerá a sessão do WhatsApp.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete">
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              data-testid="button-confirm-delete"
+              onClick={handleDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
