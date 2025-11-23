@@ -5,14 +5,23 @@ import { messages } from '@shared/schema';
 export class WAHAService {
   private baseUrl: string;
   private apiKey: string;
+  private instanceName: string;
 
   constructor() {
     this.baseUrl = process.env.WAHA_API || '';
     this.apiKey = process.env.WAHA_API_KEY || '';
+    this.instanceName = process.env.INSTANCIA || '';
 
     if (!this.baseUrl || !this.apiKey) {
       console.error('WAHA API configuration incomplete. Check WAHA_API and WAHA_API_KEY environment variables.');
     }
+    if (!this.instanceName) {
+      console.error('WAHA instance name not configured. Check INSTANCIA environment variable.');
+    }
+  }
+
+  getInstanceName(): string {
+    return this.instanceName;
   }
 
   private getHeaders() {

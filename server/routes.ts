@@ -242,8 +242,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const validatedData = validation.data;
         console.log('[WAHA-WEBHOOK] Validated data:', JSON.stringify(validatedData, null, 2));
         
-        // Extract instance name from webhook payload
-        const instanceName: string = (validatedData?.session as string) || 'default';
+        // Extract instance name from webhook payload or use configured instance
+        const instanceName: string = (validatedData?.session as string) || wahaAPI.getInstanceName();
         console.log('[WAHA-WEBHOOK] Instance name:', instanceName);
         
         // Extract and validate phone number from WAHA payload
@@ -2576,8 +2576,8 @@ Retorne APENAS o JSON array, sem texto adicional.`;
         });
       }
 
-      // Use default instance if not provided
-      const instance = instanceName || 'default';
+      // Use configured instance if not provided
+      const instance = instanceName || wahaAPI.getInstanceName();
       console.log(`[TEST-CHATBOT] Simulating message from ${phone} on instance ${instance}: ${message}`);
       
       // Process the message through the chatbot service
