@@ -1100,6 +1100,18 @@ export class ChatbotService {
       
       console.log(`[ChatbotService] 📋 Flow "${flowConfig.id}" loaded with ${steps.length} steps`);
       
+      // CRITICAL: Clear executedSteps at the start of each NEW message processing cycle
+      // This allows steps to be executed again for new user messages
+      // The executedSteps tracking is only meant to prevent infinite loops WITHIN the same processing cycle
+      const context = chatbotState.context as any || {};
+      await this.updateChatbotState(chatbotState.id, {
+        context: {
+          ...context,
+          executedSteps: [] // Reset for new message
+        }
+      });
+      console.log(`[ChatbotService] 🔄 Cleared executedSteps for new message processing cycle`);
+      
       // Process steps in a loop to handle automatic transitions
       // Limit iterations to prevent infinite loops
       const MAX_AUTO_TRANSITIONS = 10;
