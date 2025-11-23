@@ -10,12 +10,13 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { LayoutDashboard, FileText, Smartphone } from "lucide-react";
+import { LayoutDashboard, FileText } from "lucide-react";
 import logo from "@/assets/Logo Seguro IA.png";
 import clientesIcon from "@/assets/Icones/Clientes.svg";
 import conversasIcon from "@/assets/Icones/Conversas.svg";
 import fluxoIcon from "@/assets/Icones/Fluxo.svg";
 import followupIcon from "@/assets/Icones/Follow-up.svg";
+import instanciasIcon from "@/assets/Icones/Instancias.svg";
 import { Badge } from "@/components/ui/badge";
 
 const menuItems = [
@@ -51,7 +52,8 @@ const menuItems = [
   {
     title: "Instâncias",
     url: "/instancias",
-    icon: Smartphone,
+    icon: instanciasIcon,
+    isImage: true,
   },
 ];
 
