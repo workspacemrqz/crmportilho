@@ -1904,24 +1904,14 @@ export class ChatbotService {
       console.log(`[ChatbotService] 🤖 AI Response: ${aiResponse.mensagemAgente.substring(0, 100)}...`);
       console.log(`[ChatbotService] ➡️ Next step suggested: ${aiResponse.proximaEtapaId || 'none'}`);
       
-      // CRITICAL FIX: ALWAYS send AI message first, then handle transition
-      // This ensures the user always receives a response before state changes
-      console.log(`[ChatbotService] 📤 Sending AI response to user`);
-      const aiMessageWithPlaceholders = await this.replacePlaceholders(aiResponse.mensagemAgente, lead);
-      await this.sendMessageWithRetry(
-        lead.whatsappPhone,
-        aiMessageWithPlaceholders,
-        instanceName,
-        conversation.id
-      );
-      console.log(`[ChatbotService] ✅ AI message sent successfully`);
-      
       // Check if AI determined a transition to ANOTHER step (different from current)
       // IMPORTANT: If AI returns the SAME stepId as current, it means "stay here and wait for next user message"
       if (aiResponse.proximaEtapaId && aiResponse.proximaEtapaId !== currentStep.stepId) {
+        // AI wants to TRANSITION to another step
         const nextStep = allSteps.find(s => s.stepId === aiResponse.proximaEtapaId);
         if (nextStep) {
           console.log(`[ChatbotService] 🔀 AI determined transition to DIFFERENT step: ${nextStep.stepName}`);
+          console.log(`[ChatbotService] ⚠️ NOT sending AI message - next step will send its own message`);
           
           // Update state to transition to next step
           // The loop in processWithConfigurableFlow will detect this and continue processing
@@ -1938,12 +1928,23 @@ export class ChatbotService {
           return { shouldContinue: false, transitioned: false }; // Stop loop, no transition
         }
       } else {
-        // AI is staying on current step (or no transition specified)
+        // AI is staying on current step (or no transition specified) - SEND MESSAGE
         if (aiResponse.proximaEtapaId === currentStep.stepId) {
           console.log(`[ChatbotService] ℹ️ AI returned SAME step - staying on: ${currentStep.stepName}`);
         } else {
           console.log(`[ChatbotService] ℹ️ No transition specified - staying on: ${currentStep.stepName}`);
         }
+        
+        console.log(`[ChatbotService] 📤 Sending AI response to user (staying on same step)`);
+        const aiMessageWithPlaceholders = await this.replacePlaceholders(aiResponse.mensagemAgente, lead);
+        await this.sendMessageWithRetry(
+          lead.whatsappPhone,
+          aiMessageWithPlaceholders,
+          instanceName,
+          conversation.id
+        );
+        console.log(`[ChatbotService] ✅ AI message sent successfully`);
+        
         console.log(`[ChatbotService] 🛑 Returning false - no transition, stopping loop`);
         return { shouldContinue: false, transitioned: false }; // Stop loop - no transition, staying on same step
       }

@@ -8,6 +8,19 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Changes
 
+## November 23, 2025 - Fixed AI Node Message Duplication on Transitions
+- **Critical Bug Fix**: Resolved issue where AI nodes sent TWO messages when transitioning to another step
+- **Root Cause**: AI nodes were sending their own message AND then the next step was also sending its message
+- **User Impact**: When AI detected transition (e.g., user says "de vida"), system sent both AI's message ("Perfeito, Gabriel...") AND next step's message ("VIDA")
+- **Expected Behavior**: When AI detects transition to another step, it should ONLY transition without sending message. The next step sends its own message.
+- **Changes Made**:
+  1. **Modified processAIStep Logic**: Reordered to check transition BEFORE sending message
+  2. **Transition Case**: When `proximaEtapaId !== currentStep.stepId`, do NOT send AI message, just transition
+  3. **Stay-on-Step Case**: When `proximaEtapaId === currentStep.stepId` or null, SEND AI message (waiting for more user input)
+  4. **Message Flow**: Next step in loop sends its own message after transition
+- **Code Location**: `server/chatbot.service.ts`, method `processAIStep` (lines 1910-1953)
+- **Result**: Users now receive only ONE message per interaction - either AI's message (when staying on step) OR next step's message (when transitioning)
+
 ## November 23, 2025 - Fixed AI Nodes Being Marked as Executed Prematurely
 - **Critical Bug Fix**: Resolved issue where AI nodes were marked as "executed" even when staying on the same step waiting for user response
 - **Root Cause**: `processFlowStep` was marking ALL steps as executed after processing, regardless of whether they transitioned to a different step
