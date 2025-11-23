@@ -10,6 +10,18 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Changes
 
+## November 23, 2025 - WAHA Events Configuration Simplified
+- **Removed Events Section from Frontend**: Simplified the WAHA configuration dialog by removing the events selection interface
+- **Backend-Enforced Events**: The system now automatically configures two mandatory events on the backend:
+  - `message` - Required for receiving incoming WhatsApp messages
+  - `session.status` - Required for tracking WhatsApp session state changes
+- **Configuration Changes**:
+  - Frontend (WahaConfigDialog): Removed all event-related state, UI components, and props
+  - Backend (PATCH /api/instancias/:name/waha-config): Now enforces `events = ["message", "session.status"]` regardless of client input
+  - Removed unused Checkbox component import
+- **Benefits**: Prevents configuration errors, ensures consistent WAHA webhook behavior across all instances, and simplifies user interface
+- **Impact**: All instances now automatically receive only essential events, reducing noise and improving system reliability
+
 ## November 23, 2025 - Complete Multi-Instance Migration
 - **MAJOR ARCHITECTURE CHANGE**: Migrated entire system from single WAHA_INSTANCIA environment variable to full multi-instance architecture
 - **ChatbotService**: Updated all 32+ handler methods to accept and propagate `instanceName` parameter throughout the entire call chain
