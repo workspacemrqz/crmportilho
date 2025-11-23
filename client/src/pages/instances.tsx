@@ -79,6 +79,32 @@ export default function Instances() {
     }
   };
 
+  const startInstance = async (instanceName: string) => {
+    try {
+      const response = await fetch(`/api/instancias/${instanceName}/start`, {
+        method: 'POST'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Falha ao iniciar instância');
+      }
+      
+      toast({
+        title: "Instância iniciada",
+        description: "A instância foi iniciada com sucesso.",
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ['/api/instancias'] });
+    } catch (error) {
+      console.error('Error starting instance:', error);
+      toast({
+        title: "Erro ao iniciar instância",
+        description: "Não foi possível iniciar a instância. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleShowQr = async (instanceName: string) => {
     setSelectedInstance(instanceName);
     setQrDialogOpen(true);
@@ -227,7 +253,19 @@ export default function Instances() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">
-                {instance.status === 'SCAN_QR' && (
+                {instance.status === 'STOPPED' && (
+                  <Button
+                    data-testid={`button-start-${instance.name}`}
+                    variant="default"
+                    className="w-full"
+                    onClick={() => startInstance(instance.name)}
+                  >
+                    <Smartphone className="w-4 h-4 mr-2" />
+                    Iniciar Instância
+                  </Button>
+                )}
+                
+                {(instance.status === 'SCAN_QR' || instance.status === 'STARTING') && (
                   <Button
                     data-testid={`button-show-qr-${instance.name}`}
                     variant="default"
@@ -235,7 +273,7 @@ export default function Instances() {
                     onClick={() => handleShowQr(instance.name)}
                   >
                     <Smartphone className="w-4 h-4 mr-2" />
-                    Exibir QR Code
+                    Conectar WhatsApp
                   </Button>
                 )}
                 
@@ -257,27 +295,46 @@ export default function Instances() {
       <Dialog open={qrDialogOpen} onOpenChange={setQrDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>QR Code - {selectedInstance}</DialogTitle>
+            <DialogTitle>Conectar WhatsApp</DialogTitle>
             <DialogDescription>
-              Escaneie o QR code com seu WhatsApp para conectar
+              Instância: {selectedInstance}
             </DialogDescription>
           </DialogHeader>
-          <div className="flex flex-col items-center justify-center p-6">
+          <div className="flex flex-col items-center justify-center p-6 space-y-4">
             {qrCode ? (
-              <img
-                src={qrCode}
-                alt="QR Code"
-                className="w-64 h-64 border rounded-md"
-                data-testid="img-qr-code"
-              />
+              <>
+                <div className="bg-white p-4 rounded-lg">
+                  <img
+                    src={qrCode}
+                    alt="QR Code WhatsApp"
+                    className="w-64 h-64"
+                    data-testid="img-qr-code"
+                  />
+                </div>
+                <div className="text-center space-y-2">
+                  <p className="text-sm font-medium">
+                    Como conectar:
+                  </p>
+                  <ol className="text-sm text-muted-foreground space-y-1 text-left">
+                    <li>1. Abra o WhatsApp no seu celular</li>
+                    <li>2. Toque em <strong>Mais opções</strong> ou <strong>Configurações</strong></li>
+                    <li>3. Toque em <strong>Aparelhos conectados</strong></li>
+                    <li>4. Toque em <strong>Conectar um aparelho</strong></li>
+                    <li>5. Aponte seu celular para esta tela para escanear o código</li>
+                  </ol>
+                  <p className="text-xs text-muted-foreground mt-4">
+                    O QR code é atualizado automaticamente a cada 5 segundos
+                  </p>
+                </div>
+              </>
             ) : (
-              <div className="w-64 h-64 border rounded-md flex items-center justify-center">
-                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+              <div className="w-64 h-64 border-2 border-dashed rounded-lg flex items-center justify-center bg-muted/50">
+                <div className="flex flex-col items-center gap-2">
+                  <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">Carregando QR Code...</p>
+                </div>
               </div>
             )}
-            <p className="text-sm text-muted-foreground mt-4 text-center">
-              O QR code será atualizado automaticamente
-            </p>
           </div>
         </DialogContent>
       </Dialog>
