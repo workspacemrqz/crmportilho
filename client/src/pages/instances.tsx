@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Plus, RefreshCw, Smartphone, Trash2, MessageSquare, Clock, Settings, Edit } from "lucide-react";
+import { Loader2, Plus, RefreshCw, Smartphone, Trash2, MessageSquare, Clock, Edit } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -36,7 +36,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import type { Instance } from "@shared/schema";
-import { WahaConfigDialog } from "@/components/waha-config-dialog";
 
 export default function Instances() {
   const { toast } = useToast();
@@ -47,8 +46,6 @@ export default function Instances() {
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [instanceToDelete, setInstanceToDelete] = useState<string | null>(null);
-  const [wahaConfigDialogOpen, setWahaConfigDialogOpen] = useState(false);
-  const [instanceToConfig, setInstanceToConfig] = useState<Instance | null>(null);
 
   const { data: instances, isLoading } = useQuery<Instance[]>({
     queryKey: ['/api/instancias'],
@@ -156,11 +153,6 @@ export default function Instances() {
   const handleDeleteClick = (instanceName: string) => {
     setInstanceToDelete(instanceName);
     setDeleteDialogOpen(true);
-  };
-
-  const handleConfigClick = (instance: Instance) => {
-    setInstanceToConfig(instance);
-    setWahaConfigDialogOpen(true);
   };
 
   const handleDeleteConfirm = async (instanceName: string) => {
@@ -492,15 +484,6 @@ export default function Instances() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleConfigClick(instance)}
-                            data-testid={`button-config-${instance.name}`}
-                          >
-                            <Settings className="h-4 w-4" />
-                          </Button>
-
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button
@@ -574,15 +557,6 @@ export default function Instances() {
           </div>
         </DialogContent>
       </Dialog>
-
-      {instanceToConfig && (
-        <WahaConfigDialog
-          open={wahaConfigDialogOpen}
-          onOpenChange={setWahaConfigDialogOpen}
-          instanceName={instanceToConfig.name}
-          initialWebhooks={instanceToConfig.webhooks || []}
-        />
-      )}
     </div>
   );
 }
