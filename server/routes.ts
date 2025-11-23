@@ -2669,14 +2669,122 @@ Retorne APENAS o JSON array, sem texto adicional.`;
 
       const wahaData = await wahaResponse.json();
       console.log('[WAHA] Session created:', wahaData);
+      
+      // Use the session name returned by WAHA (may be normalized/different from requested name)
+      const sessionName = wahaData.name;
 
       // Store instance in database
       const instance = await storage.createInstance({
-        name: wahaData.name,
+        name: sessionName,
         status: wahaData.status || 'STARTING'
       });
 
-      res.json(instance);
+      // Configure webhook, events and custom headers automatically
+      console.log('[INSTANCE-CREATE] Configuring webhook, events and custom headers automatically...');
+      
+      // Build webhook URL from request
+      const protocol = req.protocol;
+      const host = req.get('host');
+      const webhookUrl = `${protocol}://${host}/api/webhook/waha`;
+      const webhooks = [webhookUrl];
+      
+      // Set mandatory events
+      const events = ["message", "session.status"];
+      
+      // Set custom headers (X-Api-Key if available)
+      const customHeaders: Record<string, string> = {};
+      if (process.env.WAHA_API_KEY) {
+        customHeaders['X-Api-Key'] = process.env.WAHA_API_KEY;
+      }
+
+      console.log('[INSTANCE-CREATE] Webhook URL:', webhookUrl);
+      console.log('[INSTANCE-CREATE] Events:', events);
+      console.log('[INSTANCE-CREATE] Custom headers:', Object.keys(customHeaders));
+
+      // Configure session in WAHA API FIRST (before updating database)
+      const wahaConfig = {
+        webhooks: webhooks,
+        events: events,
+        customHeaders: customHeaders
+      };
+
+      const wahaConfigSuccess = await wahaAPI.updateSessionConfig(sessionName, wahaConfig);
+
+      if (!wahaConfigSuccess) {
+        console.error('[INSTANCE-CREATE] Failed to configure session in WAHA - rolling back...');
+        
+        // Rollback: Delete the session from WAHA
+        try {
+          const deleteUrl = `${process.env.WAHA_API}/api/sessions/${sessionName}`;
+          await fetch(deleteUrl, {
+            method: 'DELETE',
+            headers: {
+              'X-Api-Key': process.env.WAHA_API_KEY || ''
+            }
+          });
+          console.log('[INSTANCE-CREATE] Session deleted from WAHA');
+        } catch (deleteError) {
+          console.error('[INSTANCE-CREATE] Failed to delete session from WAHA:', deleteError);
+        }
+        
+        // Rollback: Delete the instance from database
+        try {
+          await storage.deleteInstance(sessionName);
+          console.log('[INSTANCE-CREATE] Instance deleted from database');
+        } catch (deleteError) {
+          console.error('[INSTANCE-CREATE] Failed to delete instance from database:', deleteError);
+        }
+        
+        return res.status(500).json({ 
+          error: 'Falha ao configurar webhook automaticamente',
+          message: 'Não foi possível configurar o webhook, events e custom headers automaticamente. A instância não foi criada. Tente novamente.'
+        });
+      }
+
+      console.log('[INSTANCE-CREATE] ✓ Session configured successfully in WAHA');
+
+      // Only update database after WAHA confirms success
+      const updatedInstance = await storage.updateInstanceWahaConfig(sessionName, webhooks, events, customHeaders);
+
+      if (!updatedInstance) {
+        console.error('[INSTANCE-CREATE] Failed to update instance config in database after WAHA success - rolling back...');
+        
+        // IMPROVED ROLLBACK: Delete entire WAHA session instead of just clearing webhooks
+        // This ensures ALL configuration fields are cleaned up, not just webhooks
+        try {
+          const deleteSuccess = await wahaAPI.deleteSession(sessionName);
+          if (deleteSuccess) {
+            console.log('[INSTANCE-CREATE] ✓ WAHA session completely deleted (full rollback)');
+          } else {
+            console.error('[INSTANCE-CREATE] ✗ Failed to delete WAHA session during rollback');
+          }
+        } catch (rollbackError) {
+          console.error('[INSTANCE-CREATE] ✗ Error during WAHA session deletion:', rollbackError);
+        }
+        
+        // Delete instance from database as well
+        try {
+          await storage.deleteInstance(sessionName);
+          console.log('[INSTANCE-CREATE] ✓ Instance deleted from database');
+        } catch (deleteError) {
+          console.error('[INSTANCE-CREATE] ✗ Failed to delete instance from database:', deleteError);
+        }
+        
+        return res.status(500).json({ 
+          error: 'Falha ao salvar configuração no banco de dados',
+          message: 'A instância não pôde ser criada. A sessão WAHA foi removida. Tente novamente.',
+          autoConfigured: false
+        });
+      }
+
+      console.log('[INSTANCE-CREATE] ✓ Instance configuration saved to database');
+      
+      // Return enhanced response with autoConfigured flag and success message
+      res.json({
+        instance: updatedInstance,
+        autoConfigured: true,
+        message: 'Instância criada e configurada automaticamente com sucesso'
+      });
     } catch (error) {
       console.error('Error creating instance:', error);
       res.status(500).json({ error: 'Falha ao criar instância' });

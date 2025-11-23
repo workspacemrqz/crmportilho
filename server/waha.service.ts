@@ -634,6 +634,30 @@ export class WAHAService {
     }
   }
 
+  async deleteSession(instanceName: string): Promise<boolean> {
+    try {
+      const url = `${this.baseUrl}/api/sessions/${instanceName}`;
+      console.log(`[WAHA] Deleting session at ${url}`);
+      
+      const response = await fetch(url, {
+        method: 'DELETE',
+        headers: this.getHeaders()
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[WAHA] Failed to delete session: ${response.status} - ${errorText}`);
+        return false;
+      }
+
+      console.log(`[WAHA] Session deleted successfully`);
+      return true;
+    } catch (error) {
+      console.error('[WAHA] Error deleting session:', error);
+      return false;
+    }
+  }
+
   async updateSessionConfig(
     instanceName: string,
     config: {
@@ -658,6 +682,7 @@ export class WAHAService {
           };
           
           // Add customHeaders to each webhook if provided
+          // IMPORTANT: WAHA expects customHeaders as array of {name, value} objects
           if (config.customHeaders && Object.keys(config.customHeaders).length > 0) {
             webhookConfig.customHeaders = Object.entries(config.customHeaders).map(([name, value]) => ({
               name,
