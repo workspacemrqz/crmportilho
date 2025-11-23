@@ -1,5 +1,5 @@
 import { db } from './db';
-import { conversations, messages, followupMessages, followupSent, leads, type Lead } from '@shared/schema';
+import { conversations, messages, followupMessages, followupSent, leads, instances, type Lead } from '@shared/schema';
 import { eq, and, sql, desc, isNull } from 'drizzle-orm';
 import { WAHAService } from './waha.service';
 import { EvolutionAPIService } from './evolution.service';
@@ -335,6 +335,23 @@ export class FollowupService {
 
       if (!lead) {
         console.error(`[Followup] Cannot send follow-up: lead ${conversation.leadId} not found`);
+        return;
+      }
+
+      // Buscar instância para verificar se followup está habilitado
+      const [instance] = await db
+        .select()
+        .from(instances)
+        .where(eq(instances.name, conversation.instanceName))
+        .limit(1);
+
+      if (!instance) {
+        console.log(`[Followup] Instance ${conversation.instanceName} not found, skipping follow-up`);
+        return;
+      }
+
+      if (!instance.followupEnabled) {
+        console.log(`[Followup] Instance ${conversation.instanceName} has followupEnabled=false, skipping follow-up`);
         return;
       }
 
