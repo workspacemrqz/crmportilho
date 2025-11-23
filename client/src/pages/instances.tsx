@@ -105,6 +105,32 @@ export default function Instances() {
     }
   };
 
+  const restartInstance = async (instanceName: string) => {
+    try {
+      const response = await fetch(`/api/instancias/${instanceName}/restart`, {
+        method: 'POST'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Falha ao reiniciar instância');
+      }
+      
+      toast({
+        title: "Instância reiniciada",
+        description: "A instância foi reiniciada com sucesso. Aguarde o QR code.",
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ['/api/instancias'] });
+    } catch (error) {
+      console.error('Error restarting instance:', error);
+      toast({
+        title: "Erro ao reiniciar instância",
+        description: "Não foi possível reiniciar a instância. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleShowQr = async (instanceName: string) => {
     setSelectedInstance(instanceName);
     setQrDialogOpen(true);
@@ -263,6 +289,18 @@ export default function Instances() {
                   >
                     <Smartphone className="w-4 h-4 mr-2" />
                     Iniciar Instância
+                  </Button>
+                )}
+
+                {instance.status === 'FAILED' && (
+                  <Button
+                    data-testid={`button-restart-${instance.name}`}
+                    variant="default"
+                    className="w-full"
+                    onClick={() => restartInstance(instance.name)}
+                  >
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Tentar Novamente
                   </Button>
                 )}
                 

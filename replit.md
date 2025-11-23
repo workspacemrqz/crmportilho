@@ -20,12 +20,22 @@ Preferred communication style: Simple, everyday language.
 - Existing `{nome}` tag functionality preserved and working
 - Note: Protocol generation uses sequential numbering per year; consider adding locking mechanism for high-concurrency scenarios
 
-## November 23, 2025 - WhatsApp Instance Management
+## November 23, 2025 - WhatsApp Instance Management & QR Code Connection
 - Added new "Instâncias" page for managing WhatsApp connections via WAHA API
 - Implemented database schema for tracking instances (UUID-based with status and timestamps)
-- Created REST API endpoints for instance management (create, list, get QR code, check status)
-- Built frontend interface with QR code display for WhatsApp authentication
-- Added menu item and route for instance management
+- Created REST API endpoints for instance management:
+  - POST /api/instancias - Create new instance
+  - GET /api/instancias - List all instances
+  - GET /api/instancias/:name/qr - Get QR code in base64 format
+  - GET /api/instancias/:name/status - Get instance status
+  - POST /api/instancias/:name/start - Start stopped instance
+  - POST /api/instancias/:name/restart - Restart failed instance
+- Built frontend interface with:
+  - QR code modal with auto-refresh every 5 seconds
+  - Status-based action buttons (Start, Restart, Connect)
+  - "Tentar Novamente" button for failed connections
+  - Real-time status updates
+- Status mapping: WORKING (Conectado), SCAN_QR_CODE/SCAN_QR (Aguardando QR), STARTING (Iniciando), STOPPED (Parado), FAILED (Falha)
 - All endpoints protected with session-based authentication
 
 # System Architecture

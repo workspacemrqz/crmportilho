@@ -2779,6 +2779,44 @@ Retorne APENAS o JSON array, sem texto adicional.`;
     }
   });
 
+  app.post('/api/instancias/:name/restart', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { name } = req.params;
+
+      // Check if instance exists in database
+      const instance = await storage.getInstance(name);
+      if (!instance) {
+        return res.status(404).json({ error: 'Instância não encontrada' });
+      }
+
+      // Restart session in WAHA
+      const wahaUrl = `${process.env.WAHA_API}/api/sessions/${name}/restart`;
+      const wahaResponse = await fetch(wahaUrl, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'X-Api-Key': process.env.WAHA_API_KEY || ''
+        }
+      });
+
+      if (!wahaResponse.ok) {
+        const errorText = await wahaResponse.text();
+        console.error('[WAHA] Error restarting session:', errorText);
+        return res.status(500).json({ error: 'Falha ao reiniciar sessão no WAHA' });
+      }
+
+      const sessionData = await wahaResponse.json();
+      
+      // Update status in database
+      await storage.updateInstanceStatus(name, sessionData.status || 'STARTING');
+
+      res.json({ name, status: sessionData.status });
+    } catch (error) {
+      console.error('Error restarting instance:', error);
+      res.status(500).json({ error: 'Falha ao reiniciar instância' });
+    }
+  });
+
   app.get('/api/instancias/:name/status', requireAuth, async (req: Request, res: Response) => {
     try {
       const { name } = req.params;
