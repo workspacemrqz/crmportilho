@@ -591,3 +591,24 @@ export type FlowStepNode = FlowStep & {
   position: NodePosition;
   transitions: StepTransition[];
 };
+
+// WhatsApp Instances Table
+export const instances = pgTable("instances", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name", { length: 100 }).notNull().unique(),
+  status: varchar("status", { length: 50 }).notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
+}, (table) => ({
+  nameIdx: index("instances_name_idx").on(table.name),
+  statusIdx: index("instances_status_idx").on(table.status)
+}));
+
+export const insertInstanceSchema = createInsertSchema(instances).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+
+export type Instance = typeof instances.$inferSelect;
+export type InsertInstance = z.infer<typeof insertInstanceSchema>;
