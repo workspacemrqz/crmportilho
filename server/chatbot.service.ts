@@ -1892,13 +1892,24 @@ export class ChatbotService {
       console.log(`[ChatbotService] 🤖 AI Response: ${aiResponse.mensagemAgente.substring(0, 100)}...`);
       console.log(`[ChatbotService] ➡️ Next step suggested: ${aiResponse.proximaEtapaId || 'none'}`);
       
+      // CRITICAL FIX: ALWAYS send AI message first, then handle transition
+      // This ensures the user always receives a response before state changes
+      console.log(`[ChatbotService] 📤 Sending AI response to user`);
+      const aiMessageWithPlaceholders = await this.replacePlaceholders(aiResponse.mensagemAgente, lead);
+      await this.sendMessageWithRetry(
+        lead.whatsappPhone,
+        aiMessageWithPlaceholders,
+        instanceName,
+        conversation.id
+      );
+      console.log(`[ChatbotService] ✅ AI message sent successfully`);
+      
       // Check if AI determined a transition to ANOTHER step (different from current)
-      // IMPORTANT: If AI returns the SAME stepId as current, it means "stay here and send message"
+      // IMPORTANT: If AI returns the SAME stepId as current, it means "stay here and wait for next user message"
       if (aiResponse.proximaEtapaId && aiResponse.proximaEtapaId !== currentStep.stepId) {
         const nextStep = allSteps.find(s => s.stepId === aiResponse.proximaEtapaId);
         if (nextStep) {
           console.log(`[ChatbotService] 🔀 AI determined transition to DIFFERENT step: ${nextStep.stepName}`);
-          console.log(`[ChatbotService] ⏭️ Skipping AI message - just updating state for transition`);
           
           // Update state to transition to next step
           // The loop in processWithConfigurableFlow will detect this and continue processing
@@ -1911,34 +1922,16 @@ export class ChatbotService {
           return true; // Allow loop to continue
         } else {
           console.log(`[ChatbotService] ⚠️ Next step ID not found: ${aiResponse.proximaEtapaId}`);
-          console.log(`[ChatbotService] 📤 Sending AI response as fallback`);
-          
-          // Fallback: send AI message
-          const aiMessageWithPlaceholders = await this.replacePlaceholders(aiResponse.mensagemAgente, lead);
-          await this.sendMessageWithRetry(
-            lead.whatsappPhone,
-            aiMessageWithPlaceholders,
-            instanceName,
-            conversation.id
-          );
+          console.log(`[ChatbotService] 🛑 Stopping loop - invalid next step`);
           return false; // Stop loop
         }
       } else {
-        // AI is staying on current step (or no transition specified) - send response
+        // AI is staying on current step (or no transition specified)
         if (aiResponse.proximaEtapaId === currentStep.stepId) {
           console.log(`[ChatbotService] ℹ️ AI returned SAME step - staying on: ${currentStep.stepName}`);
         } else {
           console.log(`[ChatbotService] ℹ️ No transition specified - staying on: ${currentStep.stepName}`);
         }
-        console.log(`[ChatbotService] 📤 Sending AI response to user`);
-        
-        const aiMessageWithPlaceholders = await this.replacePlaceholders(aiResponse.mensagemAgente, lead);
-        await this.sendMessageWithRetry(
-          lead.whatsappPhone,
-          aiMessageWithPlaceholders,
-          instanceName,
-          conversation.id
-        );
         console.log(`[ChatbotService] 🛑 Returning false - no transition, stopping loop`);
         return false; // Stop loop - no transition
       }
@@ -3229,7 +3222,7 @@ Responda APENAS com "CONFIRMAR" ou "ALTERAR".`;
         
         if (updatedState) {
           console.log('[ChatbotService] 🚀 Chamando handler do novo estado: fluxo_auto_dados_veiculo');
-          await this.handleFluxoAutoDadosVeiculo(lead, conversation, updatedState, messageContent);
+          await this.handleFluxoAutoDadosVeiculo(lead, conversation, updatedState, messageContent, instanceName);
         }
         
         return;
