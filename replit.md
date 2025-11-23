@@ -8,6 +8,19 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Changes
 
+## November 23, 2025 - Fixed AI Nodes Being Marked as Executed Prematurely
+- **Critical Bug Fix**: Resolved issue where AI nodes were marked as "executed" even when staying on the same step waiting for user response
+- **Root Cause**: `processFlowStep` was marking ALL steps as executed after processing, regardless of whether they transitioned to a different step
+- **User Impact**: After first AI response, subsequent user messages would be ignored with log "Step already executed - skipping"
+- **Example Scenario**: User says "nova" → AI asks "auto ou vida?" → marks step as executed → user says "de vida" → AI doesn't respond (step marked as executed)
+- **Changes Made**:
+  1. **Modified processAIStep Return Type**: Changed from `Promise<boolean>` to `Promise<{ shouldContinue: boolean; transitioned: boolean }>`
+  2. **Transitioned Flag Logic**: Returns `transitioned: true` only when `proximaEtapaId !== currentStep.stepId` (actual transition to different step)
+  3. **Transitioned Flag Logic**: Returns `transitioned: false` when `proximaEtapaId === currentStep.stepId` or `proximaEtapaId === null` (staying on same step)
+  4. **Updated processFlowStep**: Only marks step as executed when `transitioned === true`
+- **Code Location**: `server/chatbot.service.ts`, methods `processAIStep` (lines 1867-1955) and `processFlowStep` (lines 1492-1568)
+- **Result**: AI nodes that wait for user response are no longer marked as executed, allowing them to process subsequent user messages correctly
+
 ## November 23, 2025 - Fixed AI Node Messages Not Being Sent During Transitions
 - **Critical Bug Fix**: Resolved issue where AI-generated messages were not being sent to users when the AI detected a state transition
 - **Root Cause**: The `processAIStep` method was skipping message delivery when `proximaEtapaId` (next step) was different from the current step, causing silent transitions without user feedback

@@ -1519,31 +1519,43 @@ export class ChatbotService {
       
       // Process the step (AI or FIXED)
       let shouldContinue: boolean;
+      let transitioned: boolean = true; // Default to true for FIXED steps
+      
       if (currentStep.stepType === 'fixed') {
         console.log(`[ChatbotService] 📌 FIXED message node detected`);
         shouldContinue = await this.processFixedMessageStep(lead, conversation, chatbotState, currentStep, allSteps, messageContent, instanceName);
+        // FIXED steps always transition (they send message and move on)
+        transitioned = true;
       } else {
-        // AI node - existing logic
+        // AI node - returns object with shouldContinue and transitioned
         console.log(`[ChatbotService] 🤖 AI node detected - using OpenAI`);
-        shouldContinue = await this.processAIStep(lead, conversation, chatbotState, currentStep, allSteps, flowConfig, messageContent, instanceName);
+        const aiResult = await this.processAIStep(lead, conversation, chatbotState, currentStep, allSteps, flowConfig, messageContent, instanceName);
+        shouldContinue = aiResult.shouldContinue;
+        transitioned = aiResult.transitioned;
       }
       
-      // Mark as executed ONLY AFTER successful processing
-      executedSteps.add(currentStep.stepId);
-      const updatedContext = {
-        ...context,
-        executedSteps: Array.from(executedSteps)
-      };
-      
-      // Persist to database
-      await this.updateChatbotState(chatbotState.id, {
-        context: updatedContext
-      });
-      
-      // CRITICAL: Update in-memory chatbotState so subsequent iterations in same cycle see the executed flag
-      chatbotState.context = updatedContext as any;
-      
-      console.log(`[ChatbotService] ✅ Step "${currentStep.stepId}" executed and persisted successfully`);
+      // CRITICAL FIX: Only mark as executed if there was a transition to another step
+      // If step stayed on same step (waiting for more user input), DON'T mark as executed
+      if (transitioned) {
+        console.log(`[ChatbotService] ✅ Step transitioned - marking "${currentStep.stepId}" as executed`);
+        executedSteps.add(currentStep.stepId);
+        const updatedContext = {
+          ...context,
+          executedSteps: Array.from(executedSteps)
+        };
+        
+        // Persist to database
+        await this.updateChatbotState(chatbotState.id, {
+          context: updatedContext
+        });
+        
+        // CRITICAL: Update in-memory chatbotState so subsequent iterations in same cycle see the executed flag
+        chatbotState.context = updatedContext as any;
+        
+        console.log(`[ChatbotService] ✅ Step "${currentStep.stepId}" executed and persisted successfully`);
+      } else {
+        console.log(`[ChatbotService] ⏸️ Step did NOT transition - NOT marking as executed (will process again on next user message)`);
+      }
       
       return shouldContinue;
       
@@ -1859,7 +1871,7 @@ export class ChatbotService {
 
   /**
    * Process an AI step (existing logic)
-   * @returns true if loop should continue (AI transitions always allow continuation)
+   * @returns object with shouldContinue (if loop should continue) and transitioned (if moved to different step)
    */
   private async processAIStep(
     lead: Lead,
@@ -1870,7 +1882,7 @@ export class ChatbotService {
     flowConfig: FlowConfig,
     messageContent: string,
     instanceName: string
-  ): Promise<boolean> {
+  ): Promise<{ shouldContinue: boolean; transitioned: boolean }> {
     try {
       // Get conversation history
       const conversationHistory = await this.getConversationHistory(conversation.id, 10);
@@ -1886,7 +1898,7 @@ export class ChatbotService {
       
       if (!aiResponse) {
         console.error('[ChatbotService] ❌ Failed to generate AI response');
-        return false;
+        return { shouldContinue: false, transitioned: false };
       }
       
       console.log(`[ChatbotService] 🤖 AI Response: ${aiResponse.mensagemAgente.substring(0, 100)}...`);
@@ -1919,11 +1931,11 @@ export class ChatbotService {
           
           console.log(`[ChatbotService] ✅ State updated to: ${nextStep.stepName} (${nextStep.stepId})`);
           console.log(`[ChatbotService] 🔄 Returning true - loop will continue to process next step`);
-          return true; // Allow loop to continue
+          return { shouldContinue: true, transitioned: true }; // Allow loop to continue, transitioned
         } else {
           console.log(`[ChatbotService] ⚠️ Next step ID not found: ${aiResponse.proximaEtapaId}`);
           console.log(`[ChatbotService] 🛑 Stopping loop - invalid next step`);
-          return false; // Stop loop
+          return { shouldContinue: false, transitioned: false }; // Stop loop, no transition
         }
       } else {
         // AI is staying on current step (or no transition specified)
@@ -1933,7 +1945,7 @@ export class ChatbotService {
           console.log(`[ChatbotService] ℹ️ No transition specified - staying on: ${currentStep.stepName}`);
         }
         console.log(`[ChatbotService] 🛑 Returning false - no transition, stopping loop`);
-        return false; // Stop loop - no transition
+        return { shouldContinue: false, transitioned: false }; // Stop loop - no transition, staying on same step
       }
       
     } catch (error) {
