@@ -127,6 +127,7 @@ export default function Instances() {
   const getStatusBadge = (status: string) => {
     const statusMap: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
       WORKING: { label: "Conectado", variant: "default" },
+      SCAN_QR_CODE: { label: "Aguardando QR", variant: "secondary" },
       SCAN_QR: { label: "Aguardando QR", variant: "secondary" },
       STARTING: { label: "Iniciando", variant: "outline" },
       STOPPED: { label: "Parado", variant: "destructive" },
@@ -265,7 +266,7 @@ export default function Instances() {
                   </Button>
                 )}
                 
-                {(instance.status === 'SCAN_QR' || instance.status === 'STARTING') && (
+                {(instance.status === 'SCAN_QR_CODE' || instance.status === 'SCAN_QR' || instance.status === 'STARTING') && (
                   <Button
                     data-testid={`button-show-qr-${instance.name}`}
                     variant="default"
