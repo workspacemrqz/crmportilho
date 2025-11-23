@@ -565,21 +565,6 @@ export default function Instances() {
                     data-testid="img-qr-code"
                   />
                 </div>
-                <div className="text-center space-y-2">
-                  <p className="text-sm font-medium">
-                    Como conectar:
-                  </p>
-                  <ol className="text-sm text-muted-foreground space-y-1 text-left">
-                    <li>1. Abra o WhatsApp no seu celular</li>
-                    <li>2. Toque em <strong>Mais opções</strong> ou <strong>Configurações</strong></li>
-                    <li>3. Toque em <strong>Aparelhos conectados</strong></li>
-                    <li>4. Toque em <strong>Conectar um aparelho</strong></li>
-                    <li>5. Aponte seu celular para esta tela para escanear o código</li>
-                  </ol>
-                  <p className="text-xs text-muted-foreground mt-4">
-                    O QR code é atualizado automaticamente a cada 5 segundos
-                  </p>
-                </div>
               </>
             ) : (
               <div className="w-64 h-64 border-2 border-dashed rounded-lg flex items-center justify-center bg-muted/50">
