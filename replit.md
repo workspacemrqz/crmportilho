@@ -8,6 +8,17 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Changes
 
+## November 23, 2025 - Automatic WAHA Configuration on Instance Creation
+- **Feature Enhancement**: Instances now auto-configure webhook, events, and custom headers on creation
+- **Webhook URL**: Automatically constructed from request origin (`${protocol}://${host}/api/webhook/waha`)
+- **Events**: Fixed set `["message", "session.status"]` configured automatically
+- **Custom Headers**: `X-Api-Key` header injected automatically if `WAHA_API_KEY` is available
+- **Rollback Mechanism**: Complete rollback on failure (deletes WAHA session + DB instance) to prevent inconsistent state
+- **Frontend Feedback**: Response includes `autoConfigured: true/false` flag and descriptive messages
+- **New WAHAService Method**: `deleteSession()` for complete WAHA session removal during rollbacks
+- **Architecture Decision**: Configuration happens BEFORE database update; on failure, both WAHA and DB are cleaned up
+- **Result**: Users no longer need to manually configure webhook/events/headers for new instances
+
 ## November 23, 2025 - Fixed ChatbotService Instance Name Parameter Bug
 - **Critical Bug Fix**: Resolved 42+ function calls in ChatbotService that were passing incorrect parameters, causing "Session does not exist" errors
 - **Root Cause**: Functions were passing conversation UUIDs instead of instance names to WAHA API
