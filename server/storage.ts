@@ -169,6 +169,7 @@ export interface IStorage {
   createInstance(data: InsertInstance): Promise<Instance>;
   updateInstanceStatus(name: string, status: string): Promise<Instance | undefined>;
   updateInstanceToggles(name: string, chatbotEnabled?: boolean, followupEnabled?: boolean): Promise<Instance | undefined>;
+  updateInstanceWahaConfig(name: string, webhooks?: string[], events?: string[], customHeaders?: Record<string, string>): Promise<Instance | undefined>;
   deleteInstance(name: string): Promise<void>;
 
   // Dashboard stats
@@ -883,6 +884,34 @@ export class PgStorage implements IStorage {
     
     if (followupEnabled !== undefined) {
       updates.followupEnabled = followupEnabled;
+    }
+    
+    const [result] = await db
+      .update(instances)
+      .set(updates)
+      .where(eq(instances.name, name))
+      .returning();
+    return result;
+  }
+
+  async updateInstanceWahaConfig(
+    name: string, 
+    webhooks?: string[], 
+    events?: string[], 
+    customHeaders?: Record<string, string>
+  ): Promise<Instance | undefined> {
+    const updates: any = { updatedAt: new Date() };
+    
+    if (webhooks !== undefined) {
+      updates.webhooks = webhooks;
+    }
+    
+    if (events !== undefined) {
+      updates.events = events;
+    }
+    
+    if (customHeaders !== undefined) {
+      updates.customHeaders = customHeaders;
     }
     
     const [result] = await db

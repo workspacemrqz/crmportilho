@@ -242,6 +242,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const validatedData = validation.data;
         console.log('[WAHA-WEBHOOK] Validated data:', JSON.stringify(validatedData, null, 2));
         
+        // Extract instance name from webhook payload
+        const instanceName: string = (validatedData?.session as string) || 'default';
+        console.log('[WAHA-WEBHOOK] Instance name:', instanceName);
+        
         // Extract and validate phone number from WAHA payload
         console.log('[WAHA-WEBHOOK] About to extract phone number...');
         const phone = extractPhoneNumber(validatedData);
@@ -582,12 +586,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
               console.log('[WAHA-WEBHOOK] ✅ Audio transcribed successfully:', transcription.substring(0, 100) + '...');
             } else {
               console.error('[WAHA-WEBHOOK] ❌ Failed to transcribe audio');
-              await wahaAPI.sendText(phone, '🎤 Desculpe, não consegui entender o áudio. Por favor, envie um texto ou tente novamente.', undefined);
+              await wahaAPI.sendText(phone, '🎤 Desculpe, não consegui entender o áudio. Por favor, envie um texto ou tente novamente.', instanceName);
               return res.status(200).json({ status: 'processed', message: 'audio-transcription-failed' });
             }
           } else {
             console.error('[WAHA-WEBHOOK] ❌ Failed to download audio');
-            await wahaAPI.sendText(phone, '🎤 Desculpe, não consegui baixar o áudio. Por favor, envie um texto ou tente novamente.', undefined);
+            await wahaAPI.sendText(phone, '🎤 Desculpe, não consegui baixar o áudio. Por favor, envie um texto ou tente novamente.', instanceName);
             return res.status(200).json({ status: 'processed', message: 'audio-download-failed' });
           }
         }
@@ -601,7 +605,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Buscar informações do contato se a mensagem NÃO for do bot (fromMe: false)
         if (!parsedMessage.isFromMe) {
           console.log('[WAHA-WEBHOOK] Fetching contact info for incoming message...');
-          const contactInfo = await wahaAPI.getContactInfo(phone);
+          const contactInfo = await wahaAPI.getContactInfo(phone, instanceName);
           if (contactInfo && contactInfo.pushname) {
             console.log(`[WAHA-WEBHOOK] Contact name found: ${contactInfo.pushname}`);
             parsedMessage.pushName = contactInfo.pushname;
@@ -2527,10 +2531,11 @@ Retorne APENAS o JSON array, sem texto adicional.`;
     }
   });
 
-  // WhatsApp/WAHA Session Management endpoints
+  // WhatsApp/WAHA Session Management endpoints (deprecated - use instance-specific endpoints instead)
   app.get('/api/whatsapp/status', requireAuth, async (req: Request, res: Response) => {
     try {
-      const status = await wahaAPI.getSessionStatus();
+      const defaultInstance = process.env.WAHA_INSTANCIA || 'default';
+      const status = await wahaAPI.getSessionStatus(defaultInstance);
       if (!status) {
         return res.status(500).json({ error: 'Failed to get WhatsApp session status' });
       }
@@ -2543,7 +2548,8 @@ Retorne APENAS o JSON array, sem texto adicional.`;
 
   app.post('/api/whatsapp/start', requireAuth, async (req: Request, res: Response) => {
     try {
-      const success = await wahaAPI.startSession();
+      const defaultInstance = process.env.WAHA_INSTANCIA || 'default';
+      const success = await wahaAPI.startSession(defaultInstance);
       if (!success) {
         return res.status(500).json({ error: 'Failed to start WhatsApp session' });
       }
@@ -2556,7 +2562,8 @@ Retorne APENAS o JSON array, sem texto adicional.`;
 
   app.post('/api/whatsapp/stop', requireAuth, async (req: Request, res: Response) => {
     try {
-      const success = await wahaAPI.stopSession();
+      const defaultInstance = process.env.WAHA_INSTANCIA || 'default';
+      const success = await wahaAPI.stopSession(defaultInstance);
       if (!success) {
         return res.status(500).json({ error: 'Failed to stop WhatsApp session' });
       }
@@ -2569,7 +2576,8 @@ Retorne APENAS o JSON array, sem texto adicional.`;
 
   app.post('/api/whatsapp/logout', requireAuth, async (req: Request, res: Response) => {
     try {
-      const success = await wahaAPI.logoutSession();
+      const defaultInstance = process.env.WAHA_INSTANCIA || 'default';
+      const success = await wahaAPI.logoutSession(defaultInstance);
       if (!success) {
         return res.status(500).json({ error: 'Failed to logout WhatsApp session' });
       }
@@ -2863,6 +2871,46 @@ Retorne APENAS o JSON array, sem texto adicional.`;
     } catch (error) {
       console.error('Error updating instance toggles:', error);
       res.status(500).json({ error: 'Falha ao atualizar configurações da instância' });
+    }
+  });
+
+  app.patch('/api/instancias/:name/waha-config', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { name } = req.params;
+      const { webhooks, events, customHeaders } = req.body;
+
+      // Check if instance exists in database
+      const instance = await storage.getInstance(name);
+      if (!instance) {
+        return res.status(404).json({ error: 'Instância não encontrada' });
+      }
+
+      // Update WAHA configuration in database
+      const updated = await storage.updateInstanceWahaConfig(name, webhooks, events, customHeaders);
+
+      if (!updated) {
+        return res.status(500).json({ error: 'Falha ao atualizar configuração no banco de dados' });
+      }
+
+      // Use the updated instance data for WAHA API call
+      // This ensures that all current configuration is sent to WAHA
+      const wahaConfig = {
+        webhooks: updated.webhooks || [],
+        events: updated.events || [],
+        customHeaders: (updated.customHeaders as Record<string, string>) || {}
+      };
+
+      // Update configuration in WAHA API with current config
+      const wahaSuccess = await wahaAPI.updateSessionConfig(name, wahaConfig);
+
+      if (!wahaSuccess) {
+        console.warn('[WAHA] Could not update session config in WAHA, but database was updated');
+      }
+
+      res.json(updated);
+    } catch (error) {
+      console.error('Error updating WAHA config:', error);
+      res.status(500).json({ error: 'Falha ao atualizar configuração WAHA' });
     }
   });
 

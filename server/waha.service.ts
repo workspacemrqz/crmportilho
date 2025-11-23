@@ -633,4 +633,59 @@ export class WAHAService {
       return false;
     }
   }
+
+  async updateSessionConfig(
+    instanceName: string,
+    config: {
+      webhooks?: string[];
+      events?: string[];
+      customHeaders?: Record<string, string>;
+    }
+  ): Promise<boolean> {
+    try {
+      const url = `${this.baseUrl}/api/sessions/${instanceName}`;
+      console.log(`[WAHA] Updating session config at ${url}`);
+      console.log(`[WAHA] Config:`, config);
+      
+      const body: any = { config: {} };
+      
+      // Handle webhooks - allow empty array to clear webhooks
+      if (config.webhooks !== undefined) {
+        if (config.webhooks.length > 0) {
+          // Use provided events or default to 'message'
+          const events = config.events && config.events.length > 0 ? config.events : ['message'];
+          body.config.webhooks = config.webhooks.map(url => ({
+            url,
+            events
+          }));
+        } else {
+          // Empty array means clear all webhooks
+          body.config.webhooks = [];
+        }
+      }
+      
+      // Handle custom headers independently
+      if (config.customHeaders !== undefined) {
+        body.config.customHeaders = config.customHeaders;
+      }
+      
+      const response = await fetch(url, {
+        method: 'PATCH',
+        headers: this.getHeaders(),
+        body: JSON.stringify(body)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[WAHA] Failed to update session config: ${response.status} - ${errorText}`);
+        return false;
+      }
+
+      console.log(`[WAHA] Session config updated successfully`);
+      return true;
+    } catch (error) {
+      console.error('[WAHA] Error updating session config:', error);
+      return false;
+    }
+  }
 }

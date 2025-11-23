@@ -22,7 +22,7 @@ export function logSecurityEvent(event: string, details: any) {
 }
 
 // Validate webhook authenticity
-export function validateWebhookAuth(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+export async function validateWebhookAuth(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   try {
     // Check for WAHA API credentials (primary)
     const wahaApiKey = process.env.WAHA_API_KEY;

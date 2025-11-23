@@ -599,6 +599,9 @@ export const instances = pgTable("instances", {
   status: varchar("status", { length: 50 }).notNull(),
   chatbotEnabled: boolean("chatbot_enabled").notNull().default(false),
   followupEnabled: boolean("followup_enabled").notNull().default(false),
+  webhooks: text("webhooks").array().default(sql`ARRAY[]::text[]`),
+  events: text("events").array().default(sql`ARRAY[]::text[]`),
+  customHeaders: jsonb("custom_headers").default(sql`'{}'::jsonb`),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
 }, (table) => ({
