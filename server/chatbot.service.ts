@@ -920,7 +920,7 @@ export class ChatbotService {
       // Check for human handoff request (check all messages)
       const hasHandoffRequest = buffer.messages.some(msg => this.isHumanHandoffRequest(msg.content));
       if (hasHandoffRequest) {
-        await this.handleHumanHandoff(lead, conversation, 'Cliente solicitou atendimento humano');
+        await this.handleHumanHandoff(lead, conversation, 'Cliente solicitou atendimento humano', instanceName);
         return;
       }
 
@@ -1628,7 +1628,7 @@ export class ChatbotService {
         
         // CRITICAL: AWAIT all remaining messages before advancing state
         const remainingMessages = messages.slice(1);
-        await this.sendMessagesInBackground(lead, remainingMessages, conversation.id, currentStep.stepName);
+        await this.sendMessagesInBackground(lead, remainingMessages, instanceName, conversation.id, currentStep.stepName);
         console.log(`[ChatbotService] ✅ All ${messages.length} messages sent successfully - safe to advance state`);
       }
       
@@ -1720,6 +1720,7 @@ export class ChatbotService {
   private async sendMessagesInBackground(
     lead: Lead,
     messages: string[],
+    instanceName: string,
     conversationId: string,
     stepName: string
   ): Promise<void> {
@@ -1730,7 +1731,7 @@ export class ChatbotService {
         try {
           console.log(`[Fixed Step] Sending message ${i + 2}/${messages.length + 1}`); // +2 because first message was already sent
           const messageWithPlaceholders = await this.replacePlaceholders(messages[i], lead);
-          await this.sendMessageWithRetry(lead.whatsappPhone, messageWithPlaceholders, conversationId);
+          await this.sendMessageWithRetry(lead.whatsappPhone, messageWithPlaceholders, instanceName, conversationId);
           console.log(`[Fixed Step] Message ${i + 2}/${messages.length + 1} sent successfully`);
           
           // Delay between messages (except for the last one)
@@ -1824,7 +1825,7 @@ export class ChatbotService {
           
           // Process the next step immediately (recursively)
           console.log(`[ChatbotService] 🔄 Processing next step immediately: ${nextStep.stepName}`);
-          const shouldContinue = await this.processFlowStep(lead, conversation, chatbotState, nextStep, allSteps, {} as FlowConfig, userResponse);
+          const shouldContinue = await this.processFlowStep(lead, conversation, chatbotState, nextStep, allSteps, {} as FlowConfig, userResponse, conversation.instanceName);
           
           // Return the result from processing the next step
           return shouldContinue;
@@ -1917,6 +1918,7 @@ export class ChatbotService {
           await this.sendMessageWithRetry(
             lead.whatsappPhone,
             aiMessageWithPlaceholders,
+            conversation.instanceName,
             conversation.id
           );
           return false; // Stop loop
@@ -1934,6 +1936,7 @@ export class ChatbotService {
         await this.sendMessageWithRetry(
           lead.whatsappPhone,
           aiMessageWithPlaceholders,
+          conversation.instanceName,
           conversation.id
         );
         console.log(`[ChatbotService] 🛑 Returning false - no transition, stopping loop`);
@@ -2134,83 +2137,83 @@ Lembre-se: Use EXATAMENTE os stepIds disponíveis listados acima. Se não for ne
         break;
       
       case 'fluxo_auto_dados_veiculo':
-        await this.handleFluxoAutoDadosVeiculo(lead, conversation, chatbotState, messageContent, instanceName);
+        await this.handleFluxoAutoDadosVeiculo(lead, conversation, chatbotState, messageContent);
         break;
       
       case 'dados_veiculo_estacionamento':
-        await this.handleDadosVeiculoEstacionamento(lead, conversation, chatbotState, messageContent, instanceName);
+        await this.handleDadosVeiculoEstacionamento(lead, conversation, chatbotState, messageContent);
         break;
       
       case 'dados_veiculo_portao':
-        await this.handleDadosVeiculoPortao(lead, conversation, chatbotState, messageContent, instanceName);
+        await this.handleDadosVeiculoPortao(lead, conversation, chatbotState, messageContent);
         break;
       
       case 'dados_veiculo_trabalho_estudo':
-        await this.handleDadosVeiculoTrabalhoEstudo(lead, conversation, chatbotState, messageContent, instanceName);
+        await this.handleDadosVeiculoTrabalhoEstudo(lead, conversation, chatbotState, messageContent);
         break;
       
       case 'dados_veiculo_moradia':
-        await this.handleDadosVeiculoMoradia(lead, conversation, chatbotState, messageContent, instanceName);
+        await this.handleDadosVeiculoMoradia(lead, conversation, chatbotState, messageContent);
         break;
       
       case 'dados_veiculo_carro_reserva':
-        await this.handleDadosVeiculoCarroReserva(lead, conversation, chatbotState, messageContent, instanceName);
+        await this.handleDadosVeiculoCarroReserva(lead, conversation, chatbotState, messageContent);
         break;
       
       case 'dados_veiculo_reboque':
-        await this.handleDadosVeiculoReboque(lead, conversation, chatbotState, messageContent, instanceName);
+        await this.handleDadosVeiculoReboque(lead, conversation, chatbotState, messageContent);
         break;
       
       case 'dados_veiculo_condutor_menor_25':
-        await this.handleDadosVeiculoCondutorMenor25(lead, conversation, chatbotState, messageContent, instanceName);
+        await this.handleDadosVeiculoCondutorMenor25(lead, conversation, chatbotState, messageContent);
         break;
       
       case 'dados_veiculo_tipo_uso':
-        await this.handleDadosVeiculoTipoUso(lead, conversation, chatbotState, messageContent, instanceName);
+        await this.handleDadosVeiculoTipoUso(lead, conversation, chatbotState, messageContent);
         break;
 
       case 'menu3_renovacao':
-        await this.handleMenu3Renovacao(lead, conversation, chatbotState, messageContent, instanceName);
+        await this.handleMenu3Renovacao(lead, conversation, chatbotState, messageContent);
         break;
 
       case 'menu4_endosso':
-        await this.handleMenu4Endosso(lead, conversation, chatbotState, messageContent, instanceName);
+        await this.handleMenu4Endosso(lead, conversation, chatbotState, messageContent);
         break;
 
       case 'menu5_parcelas':
-        await this.handleMenu5Parcelas(lead, conversation, chatbotState, messageContent, instanceName);
+        await this.handleMenu5Parcelas(lead, conversation, chatbotState, messageContent);
         break;
 
       case 'menu6_sinistros':
-        await this.handleMenu6Sinistros(lead, conversation, chatbotState, messageContent, instanceName);
+        await this.handleMenu6Sinistros(lead, conversation, chatbotState, messageContent);
         break;
       
       case 'aguardando_apolice':
-        await this.handleAguardandoApolice(lead, conversation, chatbotState, messageContent, instanceName);
+        await this.handleAguardandoApolice(lead, conversation, chatbotState, messageContent);
         break;
       
       case 'fluxo_auto_quando_pega':
-        await this.handleFluxoAutoQuandoPega(lead, conversation, chatbotState, messageContent, instanceName);
+        await this.handleFluxoAutoQuandoPega(lead, conversation, chatbotState, messageContent);
         break;
       
       case 'aguardando_identificador':
-        await this.handleAguardandoIdentificador(lead, conversation, chatbotState, messageContent, instanceName);
+        await this.handleAguardandoIdentificador(lead, conversation, chatbotState, messageContent);
         break;
       
       case 'aguardando_identificador_parcelas':
-        await this.handleAguardandoIdentificadorParcelas(lead, conversation, chatbotState, messageContent, instanceName);
+        await this.handleAguardandoIdentificadorParcelas(lead, conversation, chatbotState, messageContent);
         break;
       
       case 'aguardando_identificador_sinistros':
-        await this.handleAguardandoIdentificadorSinistros(lead, conversation, chatbotState, messageContent, instanceName);
+        await this.handleAguardandoIdentificadorSinistros(lead, conversation, chatbotState, messageContent);
         break;
       
       case 'endosso_item':
-        await this.handleEndossoItem(lead, conversation, chatbotState, messageContent, instanceName);
+        await this.handleEndossoItem(lead, conversation, chatbotState, messageContent);
         break;
       
       case 'aguardando_documentos':
-        await this.handleAguardandoDocumentos(lead, conversation, chatbotState, messageContent, instanceName);
+        await this.handleAguardandoDocumentos(lead, conversation, chatbotState, messageContent);
         break;
       
       case 'conversa_finalizada':
@@ -2233,7 +2236,7 @@ Lembre-se: Use EXATAMENTE os stepIds disponíveis listados acima. Se não for ne
         );
         
         // SEMPRE transferir para humano, NUNCA resetar
-        await this.handleHumanHandoff(lead, conversation, 'Estado desconhecido');
+        await this.handleHumanHandoff(lead, conversation, 'Estado desconhecido', instanceName);
     }
   }
 
@@ -3226,7 +3229,7 @@ Responda APENAS com "CONFIRMAR" ou "ALTERAR".`;
         
         if (updatedState) {
           console.log('[ChatbotService] 🚀 Chamando handler do novo estado: fluxo_auto_dados_veiculo');
-          await this.handleFluxoAutoDadosVeiculo(lead, conversation, updatedState, messageContent, instanceName);
+          await this.handleFluxoAutoDadosVeiculo(lead, conversation, updatedState, messageContent);
         }
         
         return;
@@ -3522,7 +3525,7 @@ Mensagem do usuário: ${messageContent}`;
           'Estou com dificuldades para processar sua resposta. Vou transferir você para um atendente humano que poderá ajudá-lo melhor.',
           conversation.id
         );
-        await this.handleHumanHandoff(lead, conversation, 'Erro repetido ao processar confirmação de dados');
+        await this.handleHumanHandoff(lead, conversation, 'Erro repetido ao processar confirmação de dados', conversation.instanceName);
       } else {
         // Incrementar contador de tentativas
         const errorAttempts = ((chatbotState.context as any)?.errorAttempts || 0) + 1;
@@ -3569,6 +3572,7 @@ Mensagem do usuário: ${messageContent}`;
       await this.sendMessageWithRetry(
         lead.whatsappPhone,
         'Desculpe, houve um erro. Por favor, tente novamente ou digite "humano" para falar com um atendente.',
+        conversation.instanceName,
         conversation.id
       );
     }
@@ -4173,7 +4177,7 @@ RESPOSTA:`;
           'Entendi! Para alterações de cobertura, vou transferir você para nosso setor especializado. Em breve entrarão em contato. 💚', 
           conversation.id
         );
-        await this.handleHumanHandoff(lead, conversation, 'Endosso - Alteração de Cobertura');
+        await this.handleHumanHandoff(lead, conversation, 'Endosso - Alteração de Cobertura', conversation.instanceName);
         console.log(`[ChatbotService] ✅ Transferindo para humano - Alteração de Cobertura`);
         
       } else {
@@ -4325,18 +4329,18 @@ Nossa equipe irá analisar e entrar em contato em breve com as melhores opções
 Obrigado por escolher a Portilho Corretora!`;
         
         await this.sendMessageWithRetry(lead.whatsappPhone, confirmMessage, conversation.instanceName, conversation.id);
-        await this.handleHumanHandoff(lead, conversation, 'Cotação de apólice - mantém dados atuais');
+        await this.handleHumanHandoff(lead, conversation, 'Cotação de apólice - mantém dados atuais', conversation.instanceName);
       } else if (lowercaseMessage.includes('não') || lowercaseMessage.includes('revisar') || lowercaseMessage.includes('atualizar')) {
         const reviewMessage = `Entendi! Para revisar os dados, vou transferir você para um especialista que poderá ajudá-lo com todas as alterações necessárias. 💚`;
         
         await this.sendMessageWithRetry(lead.whatsappPhone, reviewMessage, conversation.instanceName, conversation.id);
-        await this.handleHumanHandoff(lead, conversation, 'Cotação de apólice - deseja revisar dados');
+        await this.handleHumanHandoff(lead, conversation, 'Cotação de apólice - deseja revisar dados', conversation.instanceName);
       } else {
         // Client sent something else - could be the policy document
         const receivedMessage = `Recebi seu envio! Nossa equipe irá analisar e entrar em contato em breve com a melhor proposta. 💚`;
         
         await this.sendMessageWithRetry(lead.whatsappPhone, receivedMessage, conversation.instanceName, conversation.id);
-        await this.handleHumanHandoff(lead, conversation, 'Apólice recebida para análise');
+        await this.handleHumanHandoff(lead, conversation, 'Apólice recebida para análise', conversation.instanceName);
       }
     } catch (error) {
       console.error('[ChatbotService] ❌ Erro em handleAguardandoApolice:', error);
@@ -4454,7 +4458,7 @@ Vou encaminhar seu atendimento para o setor responsável. Em breve entrarão em 
 Tipo: ${tipoRenovacao}
 ${tipoIdentificadorDescricao}: ${identificador}`;
         
-        await this.handleHumanHandoff(lead, conversation, handoffInfo);
+        await this.handleHumanHandoff(lead, conversation, handoffInfo, conversation.instanceName);
         console.log(`[ChatbotService] ✅ Transferindo para humano - Renovação de ${tipoRenovacao}`);
       } else {
         const errorMessage = `Desculpe, o ${tipoIdentificador} informado parece estar incorreto.
@@ -4526,7 +4530,7 @@ Vou verificar suas parcelas e boletos. Um especialista entrará em contato em br
 Tipo de Seguro: ${tipoSeguroParcelas}
 ${tipoIdentificadorDescricao}: ${identificador}`;
       
-      await this.handleHumanHandoff(lead, conversation, handoffInfo);
+      await this.handleHumanHandoff(lead, conversation, handoffInfo, conversation.instanceName);
       console.log(`[ChatbotService] ✅ Transferindo para humano - Parcelas de ${tipoSeguroParcelas}`);
     } catch (error) {
       console.error('[ChatbotService] ❌ Erro em handleAguardandoIdentificadorParcelas:', error);
@@ -4592,7 +4596,7 @@ ${tipoIdentificadorDescricao}: ${identificador}`;
 Tipo de Seguro: ${tipoSeguroSinistros}
 ${tipoIdentificadorDescricao}: ${identificador}`;
       
-      await this.handleHumanHandoff(lead, conversation, handoffInfo);
+      await this.handleHumanHandoff(lead, conversation, handoffInfo, conversation.instanceName);
       console.log(`[ChatbotService] 🚨 Transferindo para humano - SINISTRO de ${tipoSeguroSinistros}`);
     } catch (error) {
       console.error('[ChatbotService] ❌ Erro em handleAguardandoIdentificadorSinistros:', error);
@@ -4702,7 +4706,7 @@ Vou encaminhar seu atendimento para o setor responsável. Em breve entrarão em 
 Item: ${itemDescricao}
 Documento: Recebido`;
         
-        await this.handleHumanHandoff(lead, conversation, handoffInfo);
+        await this.handleHumanHandoff(lead, conversation, handoffInfo, conversation.instanceName);
         console.log(`[ChatbotService] ✅ Documento de endosso recebido - Transferindo para humano`);
         
       } else {
@@ -5349,6 +5353,13 @@ Retorne APENAS uma palavra: "sim", "não" ou "unclear".`;
 
   // Send message with retry logic
   private async sendMessageWithRetry(phone: string, text: string, instanceName: string, conversationId?: string, maxRetries: number = 3): Promise<any> {
+    // CRITICAL VALIDATION: Ensure instanceName is never null/undefined
+    if (!instanceName || instanceName.trim() === '') {
+      const errorMsg = `[ChatbotService] ❌ CRITICAL: instanceName is missing or empty! phone=${phone}, conversationId=${conversationId}`;
+      console.error(errorMsg);
+      throw new Error('instanceName is required and cannot be empty - this would cause WAHA "Session does not exist" errors');
+    }
+    
     let lastError: any;
     
     for (let attempt = 1; attempt <= maxRetries; attempt++) {

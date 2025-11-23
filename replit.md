@@ -6,6 +6,23 @@ Seguro IA is a WhatsApp-based CRM and intelligent customer service system design
 
 Preferred communication style: Simple, everyday language.
 
+# Recent Changes
+
+## November 23, 2025 - Fixed ChatbotService Instance Name Parameter Bug
+- **Critical Bug Fix**: Resolved 42+ function calls in ChatbotService that were passing incorrect parameters, causing "Session does not exist" errors
+- **Root Cause**: Functions were passing conversation UUIDs instead of instance names to WAHA API
+- **Error Symptom**: WAHA returned 422 errors: `Session "xxx-xxx-xxx" does not exist`
+- **Changes Made (3 Rounds)**:
+  1. **Round 1**: Fixed 41+ direct `sendMessageWithRetry` calls (3 params → 4 params with instanceName)
+  2. **Round 2**: Updated `sendMessagesInBackground` to accept and propagate `instanceName` parameter
+  3. **Round 3**: Fixed all remaining parameter mismatches via subagent (34 TypeScript errors resolved)
+     - Added missing `instanceName` to `handleHumanHandoff` calls
+     - Removed extraneous `instanceName` from handlers that don't accept it
+     - Fixed `processFlowStep` missing `instanceName` parameter
+- **Defensive Validation**: Added guard in `sendMessageWithRetry` that validates `instanceName` is never null/undefined/empty before calling WAHA API
+- **Database Check**: Verified zero conversations have null `instance_name` values
+- **Result**: All chatbot messages now correctly route to proper WAHA instances with validated instance names
+
 # System Architecture
 
 ## Frontend Architecture
