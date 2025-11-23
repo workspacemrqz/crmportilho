@@ -10,6 +10,18 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Changes
 
+## November 23, 2025 - Complete Multi-Instance Migration
+- **MAJOR ARCHITECTURE CHANGE**: Migrated entire system from single WAHA_INSTANCIA environment variable to full multi-instance architecture
+- **ChatbotService**: Updated all 32+ handler methods to accept and propagate `instanceName` parameter throughout the entire call chain
+- **Conversations Schema**: Added `instanceName` field to track which instance manages each conversation
+- **Webhook Handler**: Now validates incoming webhooks against instance database and only processes messages if `chatbotEnabled=true` for that instance
+- **FollowupService**: Updated to send follow-up messages through the correct instance based on conversation origin (uses stored `instanceName` from conversation)
+- **WAHA Integration**: All `wahaAPI.send*` calls now require `instanceName` as the 3rd parameter
+- **Removed Legacy Code**: 
+  - Deleted deprecated single-instance WhatsApp API routes (/api/whatsapp/status, start, stop, logout)
+  - Removed unused WAHA_INSTANCIA references from middleware
+- **Result**: System now fully supports running multiple WhatsApp instances simultaneously with independent chatbot and follow-up configurations per instance
+
 ## November 23, 2025 - Per-Instance Chatbot and Follow-up Toggle Control
 - Extended instances schema with two new boolean fields:
   - `chatbotEnabled` (default: false) - Controls whether chatbot responds to messages on this instance
