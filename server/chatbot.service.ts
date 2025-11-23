@@ -194,9 +194,9 @@ export class ChatbotService {
 
   /**
    * Replace placeholders in text with lead information
-   * Currently supports: {nome}
+   * Currently supports: {nome}, [DD/MM/AAAA], [NÚMERO_DO_PROTOCOLO]
    */
-  private replacePlaceholders(text: string, lead: Lead): string {
+  private async replacePlaceholders(text: string, lead: Lead): Promise<string> {
     let result = text;
     
     // Replace {nome} with first name
@@ -204,6 +204,48 @@ export class ChatbotService {
     if (firstName) {
       result = result.replace(/\{nome\}/gi, firstName);
     }
+    
+    // Replace [DD/MM/AAAA] with current date in São Paulo timezone
+    const saoPauloDate = new Date().toLocaleDateString('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+    result = result.replace(/\[DD\/MM\/AAAA\]/gi, saoPauloDate);
+    
+    // Replace [NÚMERO_DO_PROTOCOLO] with lead's protocol number
+    // If lead doesn't have a protocol, generate one
+    let protocol = lead.protocol;
+    if (!protocol) {
+      // Generate a new protocol number
+      const { storage } = await import('./storage');
+      const year = new Date().getFullYear();
+      const allLeads = await storage.getLeads({});
+      const currentYearLeads = allLeads.filter(l => 
+        l.protocol && l.protocol.startsWith(`${year}-`)
+      );
+      
+      let nextNumber = 1;
+      if (currentYearLeads.length > 0) {
+        const protocolNumbers = currentYearLeads
+          .map(l => {
+            const match = l.protocol.match(/^\d{4}-(\d{3})$/);
+            return match ? parseInt(match[1], 10) : 0;
+          })
+          .filter(num => num > 0);
+        
+        if (protocolNumbers.length > 0) {
+          nextNumber = Math.max(...protocolNumbers) + 1;
+        }
+      }
+      
+      protocol = `${year}-${String(nextNumber).padStart(3, '0')}`;
+      
+      // Update the lead with the new protocol
+      await storage.updateLead(lead.id, { protocol });
+    }
+    result = result.replace(/\[NÚMERO_DO_PROTOCOLO\]/gi, protocol);
     
     return result;
   }
@@ -1561,13 +1603,13 @@ export class ChatbotService {
       } else if (messages.length === 1) {
         // Single message: send and await (replace placeholders)
         console.log(`[ChatbotService] 📤 Sending single message`);
-        const messageWithPlaceholders = this.replacePlaceholders(messages[0], lead);
+        const messageWithPlaceholders = await this.replacePlaceholders(messages[0], lead);
         await this.sendMessageWithRetry(lead.whatsappPhone, messageWithPlaceholders, conversation.id);
         console.log(`[ChatbotService] ✅ Message sent successfully`);
       } else {
         // Multiple messages: await first, then await ALL remaining messages
         console.log(`[ChatbotService] 📤 Sending first of ${messages.length} messages`);
-        const firstMessageWithPlaceholders = this.replacePlaceholders(messages[0], lead);
+        const firstMessageWithPlaceholders = await this.replacePlaceholders(messages[0], lead);
         await this.sendMessageWithRetry(lead.whatsappPhone, firstMessageWithPlaceholders, conversation.id);
         console.log(`[ChatbotService] ✅ First message sent, now sending remaining ${messages.length - 1} messages`);
         
@@ -1674,7 +1716,7 @@ export class ChatbotService {
       for (let i = 0; i < messages.length; i++) {
         try {
           console.log(`[Fixed Step] Sending message ${i + 2}/${messages.length + 1}`); // +2 because first message was already sent
-          const messageWithPlaceholders = this.replacePlaceholders(messages[i], lead);
+          const messageWithPlaceholders = await this.replacePlaceholders(messages[i], lead);
           await this.sendMessageWithRetry(lead.whatsappPhone, messageWithPlaceholders, conversationId);
           console.log(`[Fixed Step] Message ${i + 2}/${messages.length + 1} sent successfully`);
           
@@ -1856,7 +1898,7 @@ export class ChatbotService {
           console.log(`[ChatbotService] 📤 Sending AI response as fallback`);
           
           // Fallback: send AI message
-          const aiMessageWithPlaceholders = this.replacePlaceholders(aiResponse.mensagemAgente, lead);
+          const aiMessageWithPlaceholders = await this.replacePlaceholders(aiResponse.mensagemAgente, lead);
           await this.sendMessageWithRetry(
             lead.whatsappPhone,
             aiMessageWithPlaceholders,
@@ -1873,7 +1915,7 @@ export class ChatbotService {
         }
         console.log(`[ChatbotService] 📤 Sending AI response to user`);
         
-        const aiMessageWithPlaceholders = this.replacePlaceholders(aiResponse.mensagemAgente, lead);
+        const aiMessageWithPlaceholders = await this.replacePlaceholders(aiResponse.mensagemAgente, lead);
         await this.sendMessageWithRetry(
           lead.whatsappPhone,
           aiMessageWithPlaceholders,

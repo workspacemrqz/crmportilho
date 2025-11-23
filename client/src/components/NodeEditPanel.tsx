@@ -339,7 +339,9 @@ export default function NodeEditPanel({
               </div>
               
               <p className="text-xs text-muted-foreground">
-                As mensagens serão enviadas sequencialmente com intervalo de 2-4 segundos
+                As mensagens serão enviadas sequencialmente com intervalo de 2-4 segundos.
+                <br />
+                Tags disponíveis: <code className="px-1 py-0.5 rounded bg-muted">{"{nome}"}</code> (primeiro nome), <code className="px-1 py-0.5 rounded bg-muted">[DD/MM/AAAA]</code> (data atual), <code className="px-1 py-0.5 rounded bg-muted">[NÚMERO_DO_PROTOCOLO]</code> (protocolo do cliente)
               </p>
             </div>
           ) : (
@@ -354,6 +356,9 @@ export default function NodeEditPanel({
                   placeholder="Como o agente deve se comportar? Que perguntas fazer?"
                   data-testid="textarea-edit-prompt"
                 />
+                <p className="text-xs text-muted-foreground">
+                  Tags disponíveis: <code className="px-1 py-0.5 rounded bg-muted">{"{nome}"}</code> (primeiro nome), <code className="px-1 py-0.5 rounded bg-muted">[DD/MM/AAAA]</code> (data atual), <code className="px-1 py-0.5 rounded bg-muted">[NÚMERO_DO_PROTOCOLO]</code> (protocolo do cliente)
+                </p>
               </div>
 
               <div className="space-y-2">

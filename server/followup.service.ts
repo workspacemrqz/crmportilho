@@ -242,9 +242,9 @@ export class FollowupService {
 
   /**
    * Replace placeholders in text with lead information
-   * Currently supports: {nome}
+   * Currently supports: {nome}, [DD/MM/AAAA], [NÚMERO_DO_PROTOCOLO]
    */
-  private replacePlaceholders(text: string, lead: Lead): string {
+  private async replacePlaceholders(text: string, lead: Lead): Promise<string> {
     let result = text;
     
     // Replace {nome} with first name
@@ -252,6 +252,48 @@ export class FollowupService {
     if (firstName) {
       result = result.replace(/\{nome\}/gi, firstName);
     }
+    
+    // Replace [DD/MM/AAAA] with current date in São Paulo timezone
+    const saoPauloDate = new Date().toLocaleDateString('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+    result = result.replace(/\[DD\/MM\/AAAA\]/gi, saoPauloDate);
+    
+    // Replace [NÚMERO_DO_PROTOCOLO] with lead's protocol number
+    // If lead doesn't have a protocol, generate one
+    let protocol = lead.protocol;
+    if (!protocol) {
+      // Generate a new protocol number
+      const { storage } = await import('./storage');
+      const year = new Date().getFullYear();
+      const allLeads = await storage.getLeads({});
+      const currentYearLeads = allLeads.filter(l => 
+        l.protocol && l.protocol.startsWith(`${year}-`)
+      );
+      
+      let nextNumber = 1;
+      if (currentYearLeads.length > 0) {
+        const protocolNumbers = currentYearLeads
+          .map(l => {
+            const match = l.protocol.match(/^\d{4}-(\d{3})$/);
+            return match ? parseInt(match[1], 10) : 0;
+          })
+          .filter(num => num > 0);
+        
+        if (protocolNumbers.length > 0) {
+          nextNumber = Math.max(...protocolNumbers) + 1;
+        }
+      }
+      
+      protocol = `${year}-${String(nextNumber).padStart(3, '0')}`;
+      
+      // Update the lead with the new protocol
+      await storage.updateLead(lead.id, { protocol });
+    }
+    result = result.replace(/\[NÚMERO_DO_PROTOCOLO\]/gi, protocol);
     
     return result;
   }
@@ -296,7 +338,7 @@ export class FollowupService {
       console.log(`[Followup] Sending follow-up "${followup.name}" to ${conversation.leadPhone} (conversation: ${conversation.id})`);
 
       // Process placeholders in message
-      const messageWithPlaceholders = this.replacePlaceholders(followup.message, lead);
+      const messageWithPlaceholders = await this.replacePlaceholders(followup.message, lead);
       console.log(`[Followup] Original message: "${followup.message}"`);
       console.log(`[Followup] Processed message: "${messageWithPlaceholders}"`);
 

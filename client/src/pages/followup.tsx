@@ -361,7 +361,7 @@ export default function FollowupPage() {
                           />
                         </FormControl>
                         <FormDescription>
-                          Use <code className="px-1 py-0.5 rounded bg-muted text-xs">{"{nome}"}</code> para personalizar com o primeiro nome do lead. Seja amigável e ofereça ajuda.
+                          Tags disponíveis: <code className="px-1 py-0.5 rounded bg-muted text-xs">{"{nome}"}</code> (primeiro nome), <code className="px-1 py-0.5 rounded bg-muted text-xs">[DD/MM/AAAA]</code> (data atual), <code className="px-1 py-0.5 rounded bg-muted text-xs">[NÚMERO_DO_PROTOCOLO]</code> (protocolo do cliente). Seja amigável e ofereça ajuda.
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
