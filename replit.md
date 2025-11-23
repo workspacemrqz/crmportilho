@@ -8,6 +8,16 @@ The system uses a full-stack TypeScript architecture with React + Vite on the fr
 
 Preferred communication style: Simple, everyday language.
 
+# Recent Changes
+
+## November 23, 2025 - WhatsApp Instance Management
+- Added new "Instâncias" page for managing WhatsApp connections via WAHA API
+- Implemented database schema for tracking instances (UUID-based with status and timestamps)
+- Created REST API endpoints for instance management (create, list, get QR code, check status)
+- Built frontend interface with QR code display for WhatsApp authentication
+- Added menu item and route for instance management
+- All endpoints protected with session-based authentication
+
 # System Architecture
 
 ## Frontend Architecture
@@ -58,6 +68,7 @@ Preferred communication style: Simple, everyday language.
 - **FlowConfigs**: Configurable chatbot flows with AI-powered routing
 - **FollowupMessages**: Automated follow-up scheduling based on conversation inactivity
 - **WorkflowTemplates**: Reusable message templates with versioning
+- **Instances**: WhatsApp instance management with status tracking and QR code authentication
 
 **Service Layer Pattern:**
 - **ChatbotService**: Core conversation logic with state machine implementation
