@@ -12,6 +12,7 @@ import Leads from "@/pages/leads";
 import Conversations from "@/pages/conversations";
 import Followup from "@/pages/followup";
 import Fluxo from "@/pages/fluxo";
+import Instances from "@/pages/instances";
 import LoginPage from "@/pages/login";
 import NotFound from "@/pages/not-found";
 import { LogOut } from "lucide-react";
@@ -24,6 +25,7 @@ function Router() {
       <Route path="/conversas" component={Conversations} />
       <Route path="/followup" component={Followup} />
       <Route path="/fluxo" component={Fluxo} />
+      <Route path="/instancias" component={Instances} />
       <Route component={NotFound} />
     </Switch>
   );
