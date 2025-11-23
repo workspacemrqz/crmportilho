@@ -1331,28 +1331,38 @@ export class ChatbotService {
       // Update lead status/priority if configured in this node
       await this.updateLeadStatusAndPriority(lead, currentStep);
       
-      // Mark this step as executed BEFORE processing
-      executedSteps.add(currentStep.stepId);
-      await this.updateChatbotState(chatbotState.id, {
-        context: {
-          ...context,
-          executedSteps: Array.from(executedSteps)
-        }
-      });
-      console.log(`[ChatbotService] 📝 Marked step "${currentStep.stepId}" as executed`);
-      
-      // Check if this is a FIXED message node or AI node
+      // Process the step (AI or FIXED)
+      let shouldContinue: boolean;
       if (currentStep.stepType === 'fixed') {
         console.log(`[ChatbotService] 📌 FIXED message node detected`);
-        return await this.processFixedMessageStep(lead, conversation, chatbotState, currentStep, allSteps, messageContent);
+        shouldContinue = await this.processFixedMessageStep(lead, conversation, chatbotState, currentStep, allSteps, messageContent);
       } else {
         // AI node - existing logic
         console.log(`[ChatbotService] 🤖 AI node detected - using OpenAI`);
-        return await this.processAIStep(lead, conversation, chatbotState, currentStep, allSteps, flowConfig, messageContent);
+        shouldContinue = await this.processAIStep(lead, conversation, chatbotState, currentStep, allSteps, flowConfig, messageContent);
       }
       
+      // Mark as executed ONLY AFTER successful processing
+      executedSteps.add(currentStep.stepId);
+      const updatedContext = {
+        ...context,
+        executedSteps: Array.from(executedSteps)
+      };
+      
+      // Persist to database
+      await this.updateChatbotState(chatbotState.id, {
+        context: updatedContext
+      });
+      
+      // CRITICAL: Update in-memory chatbotState so subsequent iterations in same cycle see the executed flag
+      chatbotState.context = updatedContext as any;
+      
+      console.log(`[ChatbotService] ✅ Step "${currentStep.stepId}" executed and persisted successfully`);
+      
+      return shouldContinue;
+      
     } catch (error) {
-      console.error('[ChatbotService] Error processing flow step:', error);
+      console.error('[ChatbotService] ❌ Error in processFlowStep:', error);
       throw error;
     }
   }
