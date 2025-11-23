@@ -33,6 +33,8 @@ import {
   type InsertFlowStep,
   type FollowupMessage,
   type InsertFollowupMessage,
+  type Instance,
+  type InsertInstance,
   users,
   leads,
   conversations,
@@ -49,7 +51,8 @@ import {
   flowConfigs,
   keywordRules,
   flowSteps,
-  followupMessages
+  followupMessages,
+  instances
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, like, desc, asc, sql, gte, lte } from "drizzle-orm";
@@ -157,6 +160,12 @@ export interface IStorage {
   createFollowupMessage(data: InsertFollowupMessage): Promise<FollowupMessage>;
   updateFollowupMessage(id: string, data: Partial<InsertFollowupMessage>): Promise<FollowupMessage | undefined>;
   deleteFollowupMessage(id: string): Promise<boolean>;
+
+  // Instance methods
+  getInstances(): Promise<Instance[]>;
+  getInstance(name: string): Promise<Instance | undefined>;
+  createInstance(data: InsertInstance): Promise<Instance>;
+  updateInstanceStatus(name: string, status: string): Promise<Instance | undefined>;
 
   // Dashboard stats
   getDashboardStats(): Promise<DashboardStats>;
@@ -818,6 +827,31 @@ export class PgStorage implements IStorage {
     const result = await db.delete(followupMessages)
       .where(eq(followupMessages.id, id));
     return (result.rowCount ?? 0) > 0;
+  }
+
+  // Instance methods implementation
+  async getInstances(): Promise<Instance[]> {
+    const result = await db.select().from(instances).orderBy(desc(instances.createdAt));
+    return result;
+  }
+
+  async getInstance(name: string): Promise<Instance | undefined> {
+    const [result] = await db.select().from(instances).where(eq(instances.name, name));
+    return result;
+  }
+
+  async createInstance(data: InsertInstance): Promise<Instance> {
+    const [result] = await db.insert(instances).values(data).returning();
+    return result;
+  }
+
+  async updateInstanceStatus(name: string, status: string): Promise<Instance | undefined> {
+    const [result] = await db
+      .update(instances)
+      .set({ status, updatedAt: new Date() })
+      .where(eq(instances.name, name))
+      .returning();
+    return result;
   }
 
   async getDashboardStats(): Promise<DashboardStats> {

@@ -21,7 +21,9 @@ import {
   insertKeywordRuleSchema,
   insertFlowStepSchema,
   insertFollowupMessageSchema,
-  type Message
+  insertInstanceSchema,
+  type Message,
+  type Instance
 } from "@shared/schema";
 import { 
   validateWebhookAuth, 
@@ -2640,6 +2642,122 @@ Retorne APENAS o JSON array, sem texto adicional.`;
         error: 'Failed to fetch state',
         message: error instanceof Error ? error.message : 'Failed to fetch chatbot state'
       });
+    }
+  });
+
+  // WhatsApp Instances Management Endpoints
+  app.post('/api/instancias', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { name } = req.body;
+      
+      if (!name) {
+        return res.status(400).json({ error: 'Nome da instância é obrigatório' });
+      }
+
+      // Check if instance already exists in database
+      const existingInstance = await storage.getInstance(name);
+      if (existingInstance) {
+        return res.status(400).json({ error: 'Instância já existe' });
+      }
+
+      // Create session in WAHA
+      const wahaUrl = `${process.env.WAHA_API}/api/sessions`;
+      const wahaResponse = await fetch(wahaUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Api-Key': process.env.WAHA_API_KEY || ''
+        },
+        body: JSON.stringify({
+          name,
+          config: {}
+        })
+      });
+
+      if (!wahaResponse.ok) {
+        const errorText = await wahaResponse.text();
+        console.error('[WAHA] Error creating session:', errorText);
+        return res.status(500).json({ error: 'Falha ao criar sessão no WAHA' });
+      }
+
+      const wahaData = await wahaResponse.json();
+      console.log('[WAHA] Session created:', wahaData);
+
+      // Store instance in database
+      const instance = await storage.createInstance({
+        name: wahaData.name,
+        status: wahaData.status || 'STARTING'
+      });
+
+      res.json(instance);
+    } catch (error) {
+      console.error('Error creating instance:', error);
+      res.status(500).json({ error: 'Falha ao criar instância' });
+    }
+  });
+
+  app.get('/api/instancias', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const instances = await storage.getInstances();
+      res.json(instances);
+    } catch (error) {
+      console.error('Error fetching instances:', error);
+      res.status(500).json({ error: 'Falha ao buscar instâncias' });
+    }
+  });
+
+  app.get('/api/instancias/:name/qr', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { name } = req.params;
+
+      // Get QR code from WAHA
+      const wahaUrl = `${process.env.WAHA_API}/api/${name}/auth/qr`;
+      const wahaResponse = await fetch(wahaUrl, {
+        headers: {
+          'Accept': 'application/json',
+          'X-Api-Key': process.env.WAHA_API_KEY || ''
+        }
+      });
+
+      if (!wahaResponse.ok) {
+        const errorText = await wahaResponse.text();
+        console.error('[WAHA] Error getting QR code:', errorText);
+        return res.status(500).json({ error: 'Falha ao obter QR code' });
+      }
+
+      const qrData = await wahaResponse.json();
+      res.json(qrData);
+    } catch (error) {
+      console.error('Error getting QR code:', error);
+      res.status(500).json({ error: 'Falha ao obter QR code' });
+    }
+  });
+
+  app.get('/api/instancias/:name/status', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { name } = req.params;
+
+      // Get status from WAHA
+      const wahaUrl = `${process.env.WAHA_API}/api/sessions/${name}`;
+      const wahaResponse = await fetch(wahaUrl, {
+        headers: {
+          'X-Api-Key': process.env.WAHA_API_KEY || ''
+        }
+      });
+
+      if (!wahaResponse.ok) {
+        return res.status(404).json({ error: 'Instância não encontrada no WAHA' });
+      }
+
+      const sessionData = await wahaResponse.json();
+      
+      // Update status in database
+      await storage.updateInstanceStatus(name, sessionData.status);
+
+      res.json({ name, status: sessionData.status });
+    } catch (error) {
+      console.error('Error getting instance status:', error);
+      res.status(500).json({ error: 'Falha ao obter status da instância' });
     }
   });
 
