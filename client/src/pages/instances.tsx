@@ -388,16 +388,6 @@ export default function Instances() {
                     Conectar WhatsApp
                   </Button>
                 )}
-                
-                <Button
-                  data-testid={`button-refresh-${instance.name}`}
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => refreshStatus(instance.name)}
-                >
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Atualizar Status
-                </Button>
 
                 <Button
                   data-testid={`button-delete-${instance.name}`}
