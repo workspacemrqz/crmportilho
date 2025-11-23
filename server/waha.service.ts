@@ -647,30 +647,40 @@ export class WAHAService {
       console.log(`[WAHA] Updating session config at ${url}`);
       console.log(`[WAHA] Config:`, config);
       
-      const body: any = { config: {} };
-      
-      // Handle webhooks - allow empty array to clear webhooks
-      if (config.webhooks !== undefined) {
-        if (config.webhooks.length > 0) {
-          // Use provided events or default to 'message'
-          const events = config.events && config.events.length > 0 ? config.events : ['message'];
-          body.config.webhooks = config.webhooks.map(url => ({
-            url,
-            events
-          }));
-        } else {
-          // Empty array means clear all webhooks
-          body.config.webhooks = [];
+      // Build webhooks array in WAHA format
+      const webhooks = [];
+      if (config.webhooks && config.webhooks.length > 0) {
+        const events = config.events && config.events.length > 0 ? config.events : ['message'];
+        for (const webhookUrl of config.webhooks) {
+          const webhookConfig: any = {
+            url: webhookUrl,
+            events: events
+          };
+          
+          // Add customHeaders to each webhook if provided
+          if (config.customHeaders && Object.keys(config.customHeaders).length > 0) {
+            webhookConfig.customHeaders = Object.entries(config.customHeaders).map(([name, value]) => ({
+              name,
+              value
+            }));
+          }
+          
+          webhooks.push(webhookConfig);
         }
       }
       
-      // Handle custom headers independently
-      if (config.customHeaders !== undefined) {
-        body.config.customHeaders = config.customHeaders;
-      }
+      // WAHA expects complete session config with name and config object
+      const body = {
+        name: instanceName,
+        config: {
+          webhooks: webhooks
+        }
+      };
+      
+      console.log(`[WAHA] Sending body:`, JSON.stringify(body, null, 2));
       
       const response = await fetch(url, {
-        method: 'PATCH',
+        method: 'PUT',
         headers: this.getHeaders(),
         body: JSON.stringify(body)
       });
