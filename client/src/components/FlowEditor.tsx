@@ -371,7 +371,6 @@ function FlowEditorInnerComponent(
   // PRIMARY state refs - source of truth
   const positionsRef = useRef<Record<string, {x: number, y: number}>>({});
   const nodesMapRef = useRef<Map<string, Node>>(new Map());
-  const fitViewOnInitRef = useRef(true);
   
   // Ref para acessar steps atual sem depender dele no effect
   const stepsRef = useRef<FlowStep[]>(steps);
@@ -631,11 +630,6 @@ function FlowEditorInnerComponent(
       
       return updated;
     });
-    
-    // Fit view apenas na primeira renderização
-    if (fitViewOnInitRef.current && currentSteps.length > 0) {
-      fitViewOnInitRef.current = false;
-    }
   }, [structuralHash, setNodes]);
 
   // Edges reconciliation (lightweight - always rebuild)
@@ -923,7 +917,7 @@ function FlowEditorInnerComponent(
         onPaneClick={handlePaneClick}
         nodeTypes={memoizedNodeTypes}
         edgeTypes={memoizedEdgeTypes}
-        fitView={fitViewOnInitRef.current}
+        fitView={false}
         preventScrolling={true}
         minZoom={0.2}
         maxZoom={2}
