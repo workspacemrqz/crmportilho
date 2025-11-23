@@ -10,6 +10,18 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Changes
 
+## November 23, 2025 - Fixed WAHA Configuration Update Bug
+- **Critical Bug Fix**: Corrected the WAHA API integration that was preventing webhook configurations from being applied
+- **Root Cause**: The `updateSessionConfig` method in waha.service.ts was using incorrect HTTP method (PATCH) and wrong payload format
+- **Changes Made**:
+  - Changed HTTP method from `PATCH` to `PUT` (as required by WAHA API)
+  - Updated payload format to include `name` field at root level: `{name, config: {webhooks}}`
+  - Fixed customHeaders format: now sends as array of `{name, value}` objects within each webhook
+  - Added detailed logging of request body for debugging
+- **Previous Behavior**: Configurations were saved to database but never sent to WAHA API (404 error)
+- **Fixed Behavior**: All webhook, events, and customHeaders configurations now successfully propagate to WAHA
+- **Validation**: Confirmed by logs showing `[WAHA] Session config updated successfully` and incoming webhooks with correct X-Api-Key header
+
 ## November 23, 2025 - WAHA Custom Headers Auto-Configuration
 - **Removed Custom Headers Section from Frontend**: Simplified the WAHA configuration dialog by removing the custom headers interface
 - **Backend-Enforced Headers**: The system now automatically configures authentication headers on the backend:
