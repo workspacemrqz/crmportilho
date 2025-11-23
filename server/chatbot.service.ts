@@ -337,7 +337,10 @@ export class ChatbotService {
             if (conversation) {
               const chatbotState = await storage.getChatbotState(conversation.id);
               if (chatbotState) {
-                const currentStep = await this.identifyCurrentStep(chatbotState, steps);
+                // CRITICAL: If chatbot state exists, find the current step and use its buffer
+                // Do NOT fall back to initial step - that would ignore the configured buffer
+                const currentStep = steps.find(s => s.stepId === chatbotState.currentState);
+                
                 if (currentStep) {
                   // Type assertion to access buffer field (Drizzle infers all fields)
                   const buffer = (currentStep as any).buffer;
@@ -353,14 +356,16 @@ export class ChatbotService {
                     bufferSeconds = 300;
                   }
                   
-                  console.log(`[ChatbotService] 🕐 Usando buffer do step atual "${currentStep.stepName}": ${bufferSeconds}s (valor original: ${buffer})${bufferSeconds === 0 ? ' - ENVIO INSTANTÂNEO' : ''}`);
+                  console.log(`[ChatbotService] 🕐 ✅ USANDO BUFFER DO STEP ATUAL "${currentStep.stepName}": ${bufferSeconds}s (valor original: ${buffer})${bufferSeconds === 0 ? ' - ENVIO INSTANTÂNEO' : ''}`);
                   return bufferSeconds * 1000;
+                } else {
+                  console.warn(`[ChatbotService] ⚠️ Current step "${chatbotState.currentState}" não encontrado nos steps disponíveis`);
                 }
               }
             }
           }
           
-          // Fallback: Use initial step (lowest order) for new leads or transitional states
+          // Fallback: Use initial step (lowest order) ONLY for completely new leads (no chatbot state)
           // This ensures buffer=0 works for first contact without requiring chatbot state
           const initialStep = steps.reduce((min, step) => 
             step.order < min.order ? step : min
@@ -377,7 +382,7 @@ export class ChatbotService {
             bufferSeconds = 300;
           }
           
-          console.log(`[ChatbotService] 🕐 Usando buffer do step inicial "${initialStep.stepName}" (novo lead ou transição): ${bufferSeconds}s (valor original: ${buffer})${bufferSeconds === 0 ? ' - ENVIO INSTANTÂNEO' : ''}`);
+          console.log(`[ChatbotService] 🕐 Usando buffer do step inicial "${initialStep.stepName}" (NOVO LEAD sem estado): ${bufferSeconds}s (valor original: ${buffer})${bufferSeconds === 0 ? ' - ENVIO INSTANTÂNEO' : ''}`);
           return bufferSeconds * 1000;
         }
       }
@@ -1099,18 +1104,6 @@ export class ChatbotService {
       }
       
       console.log(`[ChatbotService] 📋 Flow "${flowConfig.id}" loaded with ${steps.length} steps`);
-      
-      // CRITICAL: Clear executedSteps at the start of each NEW message processing cycle
-      // This allows steps to be executed again for new user messages
-      // The executedSteps tracking is only meant to prevent infinite loops WITHIN the same processing cycle
-      const context = chatbotState.context as any || {};
-      await this.updateChatbotState(chatbotState.id, {
-        context: {
-          ...context,
-          executedSteps: [] // Reset for new message
-        }
-      });
-      console.log(`[ChatbotService] 🔄 Cleared executedSteps for new message processing cycle`);
       
       // Process steps in a loop to handle automatic transitions
       // Limit iterations to prevent infinite loops
