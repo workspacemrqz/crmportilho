@@ -687,7 +687,7 @@ export class ChatbotService {
       const lead = await this.findOrCreateLead(phone, contactInfo);
       
       // Find or create conversation
-      const conversation = await this.findOrCreateConversation(lead.id, lead.protocol);
+      const conversation = await this.findOrCreateConversation(lead.id, lead.protocol, instanceName);
       
       // Get or create chatbot state - this tells us the current flow step
       const chatbotState = await this.getOrCreateChatbotState(conversation.id);
@@ -814,7 +814,7 @@ export class ChatbotService {
       console.log('[ChatbotService] Lead found/created:', lead.id, lead.protocol, 'Name:', lead.name || 'N/A');
       
       // Find or create conversation
-      let conversation = await this.findOrCreateConversation(lead.id, lead.protocol);
+      let conversation = await this.findOrCreateConversation(lead.id, lead.protocol, instanceName);
       
       // Get or create chatbot state FIRST to check handoff status
       let chatbotState = await this.getOrCreateChatbotState(conversation.id);
@@ -1109,8 +1109,8 @@ export class ChatbotService {
     return newLead;
   }
 
-  private async findOrCreateConversation(leadId: string, protocol: string): Promise<Conversation> {
-    console.log(`[ChatbotService] 🔎 findOrCreateConversation - leadId: ${leadId} | protocol: ${protocol}`);
+  private async findOrCreateConversation(leadId: string, protocol: string, instanceName: string = 'default'): Promise<Conversation> {
+    console.log(`[ChatbotService] 🔎 findOrCreateConversation - leadId: ${leadId} | protocol: ${protocol} | instanceName: ${instanceName}`);
     
     // 🔧 CORREÇÃO CRÍTICA: Procurar por conversas NÃO fechadas (active, waiting, transferred)
     // Isso evita criar nova conversa quando uma foi transferida para humano
@@ -1152,12 +1152,13 @@ export class ChatbotService {
     }
 
     console.log(`[ChatbotService] ⚠️⚠️⚠️ NENHUMA CONVERSA NÃO-FECHADA ENCONTRADA!`);
-    console.log(`[ChatbotService] ⚠️ CRIANDO NOVA CONVERSA para lead: ${leadId} | protocol: ${protocol}`);
+    console.log(`[ChatbotService] ⚠️ CRIANDO NOVA CONVERSA para lead: ${leadId} | protocol: ${protocol} | instanceName: ${instanceName}`);
     console.log(`[ChatbotService] ⚠️ Stack trace de onde foi chamado:`, new Error().stack);
     
     const [newConversation] = await db.insert(conversations).values({
       leadId,
       protocol,
+      instanceName,
       status: 'active',
       currentMenu: 'initial',
       currentStep: 'welcome'
