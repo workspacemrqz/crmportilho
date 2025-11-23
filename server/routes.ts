@@ -2856,7 +2856,7 @@ Retorne APENAS o JSON array, sem texto adicional.`;
   app.patch('/api/instancias/:name/waha-config', requireAuth, async (req: Request, res: Response) => {
     try {
       const { name } = req.params;
-      const { webhooks, customHeaders } = req.body;
+      const { webhooks } = req.body;
 
       // Check if instance exists in database
       const instance = await storage.getInstance(name);
@@ -2866,6 +2866,12 @@ Retorne APENAS o JSON array, sem texto adicional.`;
 
       // Eventos obrigatórios sempre fixos no backend
       const events = ["message", "session.status"];
+
+      // Custom Headers obrigatórios sempre fixos no backend (somente se WAHA_API_KEY estiver definida)
+      const customHeaders: Record<string, string> = {};
+      if (process.env.WAHA_API_KEY) {
+        customHeaders['X-Api-Key'] = process.env.WAHA_API_KEY;
+      }
 
       // Update WAHA configuration in database
       const updated = await storage.updateInstanceWahaConfig(name, webhooks, events, customHeaders);

@@ -584,7 +584,6 @@ export default function Instances() {
           onOpenChange={setWahaConfigDialogOpen}
           instanceName={instanceToConfig.name}
           initialWebhooks={instanceToConfig.webhooks || []}
-          initialCustomHeaders={(instanceToConfig.customHeaders as Record<string, string> | null | undefined) ?? {}}
         />
       )}
     </div>

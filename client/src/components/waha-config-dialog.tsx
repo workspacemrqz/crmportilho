@@ -19,7 +19,6 @@ interface WahaConfigDialogProps {
   onOpenChange: (open: boolean) => void;
   instanceName: string;
   initialWebhooks?: string[];
-  initialCustomHeaders?: Record<string, string>;
 }
 
 
@@ -28,24 +27,17 @@ export function WahaConfigDialog({
   onOpenChange,
   instanceName,
   initialWebhooks = [],
-  initialCustomHeaders = {},
 }: WahaConfigDialogProps) {
   const { toast } = useToast();
   const [webhooks, setWebhooks] = useState<string[]>(initialWebhooks.length > 0 ? initialWebhooks : [""]);
-  const [customHeaders, setCustomHeaders] = useState<Array<{ key: string; value: string }>>(
-    Object.entries(initialCustomHeaders).map(([key, value]) => ({ key, value }))
-  );
   const [isSaving, setIsSaving] = useState(false);
 
   // Reset state when dialog opens or props change
   useEffect(() => {
     if (open) {
       setWebhooks(initialWebhooks.length > 0 ? initialWebhooks : [""]);
-      setCustomHeaders(
-        Object.entries(initialCustomHeaders).map(([key, value]) => ({ key, value }))
-      );
     }
-  }, [open, initialWebhooks, initialCustomHeaders]);
+  }, [open, initialWebhooks]);
 
   const handleAddWebhook = () => {
     setWebhooks([...webhooks, ""]);
@@ -62,37 +54,14 @@ export function WahaConfigDialog({
     setWebhooks(newWebhooks);
   };
 
-
-  const handleAddHeader = () => {
-    setCustomHeaders([...customHeaders, { key: "", value: "" }]);
-  };
-
-  const handleRemoveHeader = (index: number) => {
-    setCustomHeaders(customHeaders.filter((_, i) => i !== index));
-  };
-
-  const handleHeaderChange = (index: number, field: "key" | "value", value: string) => {
-    const newHeaders = [...customHeaders];
-    newHeaders[index][field] = value;
-    setCustomHeaders(newHeaders);
-  };
-
   const handleSave = async () => {
     setIsSaving(true);
     
     try {
       const filteredWebhooks = webhooks.filter(w => w.trim() !== "");
-      
-      const headersObject = customHeaders.reduce((acc, { key, value }) => {
-        if (key.trim() && value.trim()) {
-          acc[key.trim()] = value.trim();
-        }
-        return acc;
-      }, {} as Record<string, string>);
 
       await apiRequest("PATCH", `/api/instancias/${instanceName}/waha-config`, {
         webhooks: filteredWebhooks,
-        customHeaders: headersObject,
       });
 
       toast({
@@ -123,7 +92,7 @@ export function WahaConfigDialog({
             Configuração WAHA
           </DialogTitle>
           <DialogDescription>
-            Configure webhooks e cabeçalhos personalizados para a instância{" "}
+            Configure webhooks para a instância{" "}
             <strong>{instanceName}</strong>
           </DialogDescription>
         </DialogHeader>
@@ -165,57 +134,6 @@ export function WahaConfigDialog({
                   )}
                 </div>
               ))}
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <div className="flex items-center justify-between gap-2">
-              <Label className="text-base font-semibold">Custom Headers</Label>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleAddHeader}
-                data-testid="button-add-header"
-              >
-                <Plus className="w-4 h-4 mr-1" />
-                Adicionar
-              </Button>
-            </div>
-            <div className="space-y-2">
-              {customHeaders.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  Nenhum cabeçalho personalizado configurado
-                </p>
-              ) : (
-                customHeaders.map((header, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <Input
-                      placeholder="Chave (ex: X-Custom-Header)"
-                      value={header.key}
-                      onChange={(e) => handleHeaderChange(index, "key", e.target.value)}
-                      data-testid={`input-header-key-${index}`}
-                      className="flex-1"
-                    />
-                    <Input
-                      placeholder="Valor"
-                      value={header.value}
-                      onChange={(e) => handleHeaderChange(index, "value", e.target.value)}
-                      data-testid={`input-header-value-${index}`}
-                      className="flex-1"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleRemoveHeader(index)}
-                      data-testid={`button-remove-header-${index}`}
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
-                  </div>
-                ))
-              )}
             </div>
           </div>
         </div>
